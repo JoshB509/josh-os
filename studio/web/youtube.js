@@ -1,6 +1,6 @@
 'use strict';
-// YouTube board: an idea bank to work through, then four production lanes that fit on one
-// screen. Each lane groups related stages, shown as a coloured sub-stage you can change on
+// YouTube board: four production lanes that fit on one screen come first, with the idea bank
+// underneath. Each lane groups related stages, shown as a coloured sub-stage you can change on
 // the card. Drag a card between lanes to move it on.
 const YT_LANES=[
   {key:'preparing',label:'Preparing',hint:'Script, titles and thumbnail',stages:['Scripting'],drop:'Scripting'},
@@ -46,15 +46,15 @@ renderBoard=function(){
   const inLane=l=>all.filter(p=>l.stages.includes(p.stage)&&match(p)).sort((a,b)=>(a.publish_date||'9999').localeCompare(b.publish_date||'9999'));
   $('#workspace').innerHTML=`
   <div class="yt-tools"><input id="yt-search" type="search" placeholder="Search videos and ideas" value="${esc(ytQuery)}" aria-label="Search videos"><span class="count">${all.length-published.length} in progress · ${published.length} published</span></div>
-  <section class="idea-bank" data-lane-drop="Idea" aria-label="Idea bank">
-    <header class="lane-head"><h2>Ideas <span class="count">${ideas.length}</span></h2><p>Your holding area. Open one to shape the angle, then start preparing it.</p></header>
-    <div class="idea-grid"><button class="idea-new" data-yt-new>＋ New idea</button>${ideas.map(ytIdea).join('')}</div>
-  </section>
   <section class="production" aria-label="In production">
     <header class="lane-head"><h2>In production</h2><p>Drag a video to the next lane when it moves on.</p></header>
     <div class="lanes">${YT_LANES.map(l=>{const items=inLane(l);return `<section class="lane" data-lane-drop="${esc(l.drop)}" data-lane="${l.key}">
       <header><b>${l.label}</b><span class="count">${items.length}</span><small>${l.hint}</small></header>
       ${items.map(p=>ytCard(p,l)).join('')||`<p class="lane-empty">Drop a video here</p>`}</section>`}).join('')}</div>
+  </section>
+  <section class="idea-bank" data-lane-drop="Idea" aria-label="Idea bank">
+    <header class="lane-head"><h2>Ideas <span class="count">${ideas.length}</span></h2><p>Your holding area. Open one to shape the angle, then start preparing it.</p></header>
+    <div class="idea-grid"><button class="idea-new" data-yt-new>＋ New idea</button>${ideas.map(ytIdea).join('')}</div>
   </section>
   ${published.length?`<section class="published"><header class="lane-head"><h2>Published <span class="count">${published.length}</span></h2>${published.length>4?`<button class="subtle small" data-yt-published>${ytAllPublished?'Show fewer':'Show all'}</button>`:''}</header>
     <div class="published-row">${(ytAllPublished?published:published.slice(0,4)).map(p=>{const t=p.top_three[0]||p.thumbnails[0]?.asset;return `<button class="pub-card" data-open="${esc(p.id)}">${t?`<img src="/assets/${esc(t)}?w=320" alt="">`:'<span class="pub-blank"></span>'}<b>${esc(p.name)}</b><small>${esc(formatDate(p.publish_date))}</small></button>`}).join('')}</div></section>`:''}`;
