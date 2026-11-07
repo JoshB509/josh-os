@@ -93,52 +93,92 @@ function carouselWorking(posted){
   return head+`<div class="cv-groups">${CAROUSEL_GROUPS.map(table).join('')}</div>`;
 }
 
+let carouselSlide=0;
+function carouselWhen(c){
+  if(!c.post_date)return c.stage==='Posted'?'Posted, date not set.':'No post date yet.';
+  const d=new Date(c.post_date+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'});
+  const time=c.tags?.post_time?` at ${c.tags.post_time}`:'';
+  return c.stage==='Posted'?`Went out ${d}${time}.`:`Goes out ${d}${time}.`;
+}
+function carouselViewer(c){
+  const slides=carouselSlides(c.slides),n=c.images||slides.length;
+  if(!n)return `<div class="pv-stage pv-empty"><p>No slides yet. Ask Sam to draft them, or write them under Edit the words.</p></div>`;
+  const i=Math.min(carouselSlide,n-1);
+  const face=k=>c.images?`<img src="${carouselImg(c,k)}" alt="Slide ${k+1}">`:`<div class="pv-paper"><p>${esc(slides[k].replace(/\*\*/g,''))}</p></div>`;
+  return `<div class="pv-stage" tabindex="0" aria-label="Slide ${i+1} of ${n}. Use the arrow keys to move." data-pv-stage>
+      <div class="pv-frame">${face(i)}</div>
+      ${n>1?`<button class="pv-nav prev" data-pv-go="${i-1}" ${i===0?'disabled':''} aria-label="Previous slide">‹</button><button class="pv-nav next" data-pv-go="${i+1}" ${i===n-1?'disabled':''} aria-label="Next slide">›</button>`:''}
+    </div>
+    <div class="pv-thumbs">${Array.from({length:n},(_,k)=>`<button class="pv-thumb ${k===i?'on':''}" data-pv-go="${k}" aria-label="Slide ${k+1}">${c.images?`<img src="${carouselImg(c,k)}" alt="" loading="lazy">`:`<span>${k+1}</span>`}</button>`).join('')}</div>`;
+}
+function carouselPerformance(c){
+  const r=c.results?.d7?.views?c.results.d7:c.results?.d1||{},w=c.results?.d7?.views?'a week':'the first check';
+  if(c.stage!=='Posted')return '';
+  if(!Object.keys(r).filter(k=>k!=='checked_at').length)return `<section class="pv-card"><h3>How it's doing</h3><p class="hint">No numbers yet. Sam adds them a day and a week after it goes out.</p></section>`;
+  const likeRate=r.views&&r.likes!=null?(r.likes/r.views*100):null;
+  const stat=(v,l)=>v==null?'':`<div><b>${carouselNum(v)}</b><span>${l}</span></div>`;
+  return `<section class="pv-card"><h3>How it's doing</h3>
+    <div class="pv-stats">${stat(r.views,'views')}${stat(r.likes,'likes')}${stat(r.comments,'comments')}${stat(r.new_people,'new people')}</div>
+    <p class="pv-read">${likeRate!=null?`${likeRate.toFixed(1)}% of people who saw it liked it, as of ${esc(w)}.`:'Views aren\u2019t in yet, so there\u2019s no like rate.'}</p></section>`;
+}
 function renderCarouselEditor(){
   const c=carouselFind(carouselOpen);if(!c){carouselOpen=null;return renderCarousels()}
-  const slides=carouselSlides(c.slides),videos=state.projects.filter(p=>!p.archived),t=c.tags||{},opt=carousels.tag_options||{};
+  const videos=state.projects.filter(p=>!p.archived),t=c.tags||{},opt=carousels.tag_options||{};
   page(c.title,'Carousel');subPage('Carousels',c.title,'data-carousel-back');
   const tagSel=k=>`<label>${esc(CAROUSEL_TAG_LABELS[k])}<select data-cv-tag="${k}"><option value="">Not set</option>${(opt[k]||[]).map(v=>`<option ${t[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select></label>`;
   const tagText=(k,ph='')=>`<label>${esc(CAROUSEL_TAG_LABELS[k])}<input data-cv-tag="${k}" value="${esc(t[k]??'')}" placeholder="${esc(ph)}"></label>`;
   const tagFlag=k=>`<label class="check"><input type="checkbox" data-cv-flag="${k}" ${t[k]?'checked':''}>${esc(CAROUSEL_TAG_LABELS[k])}</label>`;
   const res=w=>(carousels.result_numbers||[]).map(k=>`<td><input type="number" min="0" step="any" inputmode="decimal" data-cv-result="${w}:${k}" value="${esc((c.results?.[w]||{})[k]??'')}" aria-label="${esc(CAROUSEL_RESULT_LABELS[k])} at ${w==='d1'?'1 day':'7 days'}"></td>`).join('');
-  const rate=w=>{const r=c.results?.[w]||{};return r.views?`Likes ${carouselNum(carouselRate(r,'likes'))}, comments ${carouselNum(carouselRate(r,'comments'))} and new people ${carouselNum(carouselRate(r,'new_people'))} per 1,000 views`:'Add views to see the per 1,000 numbers'};
-  $('#workspace').innerHTML=`<div class="crumb"><button data-carousel-back>← Back to carousels</button></div>
-  <div class="project-top"><input class="name" data-carousel-field="title" value="${esc(c.title)}" maxlength="240" aria-label="Title">
-    <select data-carousel-field="stage" aria-label="Stage">${carousels.stages.map(s=>`<option ${s===c.stage?'selected':''}>${esc(s)}</option>`).join('')}</select>
-    <span id="carousel-save" class="save-note">Saved</span></div>
-  ${c.images?`<div class="cv-strip" aria-label="Slides">${Array.from({length:c.images},(_,i)=>`<a href="${carouselImg(c,i)}" target="_blank" rel="noopener" class="cv-slide"><img src="${carouselImg(c,i)}" alt="Slide ${i+1}" loading="lazy"><span>${i+1}</span></a>`).join('')}</div>`:''}
-  <div class="carousel-editor">
-    <section>
-      <details class="cv-section" ${c.stage==='Posted'?'open':''}><summary>Results</summary>
-        <div class="cv-results"><table><thead><tr><th></th>${(carousels.result_numbers||[]).map(k=>`<th>${esc(CAROUSEL_RESULT_LABELS[k])}</th>`).join('')}</tr></thead>
-          <tbody><tr><th>1 day</th>${res('d1')}</tr><tr><th>7 days</th>${res('d7')}</tr></tbody></table></div>
-        <p class="hint">At 1 day. ${esc(rate('d1'))}.<br>At 7 days. ${esc(rate('d7'))}.</p>
-      </details>
-      <label>Hook<textarea data-carousel-field="hook" rows="2" maxlength="1000" placeholder="The first line people see">${esc(c.hook)}</textarea></label>
-      <label>Slides <small>put a line of three dashes between slides</small><textarea data-carousel-field="slides" rows="12" placeholder="Slide 1 text&#10;---&#10;Slide 2 text">${esc(c.slides)}</textarea></label>
-      ${c.images?'':`<div class="slide-strip" id="slide-strip">${carouselStrip(slides)}</div>`}
-      <label>Caption<textarea data-carousel-field="caption" rows="5" maxlength="5000">${esc(c.caption)}</textarea></label>
-      <label>Notes<textarea data-carousel-field="notes" rows="4">${esc(c.notes)}</textarea></label>
-    </section>
-    <aside>
+  const describe=[t.style,t.format&&t.format.toLowerCase()].filter(Boolean).join(', ');
+  $('#workspace').innerHTML=`<div class="pv">
+  <header class="pv-head">
+    <input class="pv-title" data-carousel-field="title" value="${esc(c.title)}" maxlength="240" aria-label="Title">
+    <div class="pv-meta"><p>${esc(carouselWhen(c))}${describe?` ${esc(describe.charAt(0).toUpperCase()+describe.slice(1))}.`:''}</p>
+      <label class="pv-stage-pick"><span class="sr-only">Stage</span><select data-carousel-field="stage" class="stage-${esc(c.stage.toLowerCase().replace(/ /g,'-'))}">${carousels.stages.map(s=>`<option ${s===c.stage?'selected':''}>${esc(s)}</option>`).join('')}</select></label>
+      <span id="carousel-save" class="save-note">Saved</span></div>
+  </header>
+  <div class="pv-body">
+    <div class="pv-left" id="pv-viewer">${carouselViewer(c)}</div>
+    <div class="pv-right">
+      ${carouselPerformance(c)}
+      <section class="pv-card"><h3>Caption</h3>${c.caption?`<p class="pv-caption">${esc(c.caption)}</p>`:'<p class="hint">No caption yet.</p>'}</section>
+      ${c.link||t.tracked_link?`<section class="pv-card pv-links">${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Open the post on YouTube</a>`:''}${t.tracked_link?`<a href="${esc(t.tracked_link)}" target="_blank" rel="noopener">Tracked link</a>`:''}</section>`:''}
+      ${c.tags?.testing?`<section class="pv-card"><h3>What it's testing</h3><p>${esc(c.tags.testing)}</p></section>`:''}
+    </div>
+  </div>
+  <details class="pv-more"><summary>Edit the words</summary><div class="pv-more-body">
+    <label>Hook<textarea data-carousel-field="hook" rows="2" maxlength="1000">${esc(c.hook)}</textarea></label>
+    <label>Slides <small>a line of three dashes between slides</small><textarea data-carousel-field="slides" rows="12">${esc(c.slides)}</textarea></label>
+    <label>Caption<textarea data-carousel-field="caption" rows="5" maxlength="5000">${esc(c.caption)}</textarea></label>
+    <label>Notes<textarea data-carousel-field="notes" rows="3">${esc(c.notes)}</textarea></label>
+  </div></details>
+  <details class="pv-more"><summary>Details Sam keeps</summary><div class="pv-more-body pv-grid">
+    <div>
       <label>Post date<input type="date" data-carousel-field="post_date" value="${esc(c.post_date)}"></label>
       ${tagText('post_time','21:00')}
       <label>Link to the post<input data-carousel-field="link" value="${esc(c.link)}" placeholder="https://"></label>
       ${tagText('tracked_link','https://linklr.app/r/…')}
-      <label>Slides folder<input data-carousel-field="folder" value="${esc(c.folder)}" placeholder="Carousel/2026-11-02_six-phrases-that-sound-senior"><small class="hint">${c.folder?(c.images?`${c.images} images found`:'No images found in that folder'):'Inside E:\\CareerOS\\03_Community_Posts'}</small></label>
-      <details class="cv-section" open><summary>Tags</summary><div class="cv-tags">
-        ${tagSel('theme')}${tagText('topic')}${tagSel('format')}${tagSel('style')}
-        ${tagSel('hook_type')}${tagText('hook_text')}${tagFlag('hook_number')}${tagSel('angle')}
-        ${tagSel('cta_type')}${tagText('lead_magnet')}${tagSel('cta_place')}${tagSel('caption_style')}
-        ${tagFlag('video_same_day')}${tagText('testing','e.g. phrases format on a new topic')}${tagSel('idea_source')}
-      </div></details>
+      <label>Slides folder<input data-carousel-field="folder" value="${esc(c.folder)}"><small class="hint">${c.folder?(c.images?`${c.images} images found`:'No images found in that folder'):'Inside E:\\CareerOS\\03_Community_Posts'}</small></label>
       <label>Linked video<select data-carousel-field="project_id"><option value="">None</option>${videos.map(p=>`<option value="${esc(p.id)}" ${p.id===c.project_id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
       <label>Owner<select data-carousel-field="owner">${(team?.agents||[{id:'sam',name:'Sam'}]).map(a=>`<option value="${esc(a.id)}" ${a.id===c.owner?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="josh" ${c.owner==='josh'?'selected':''}>Josh</option></select></label>
-      <h4>Platforms</h4><div class="flow-picks">${carousels.platforms.map(p=>`<label class="check"><input type="checkbox" data-carousel-platform="${esc(p)}" ${c.platforms.includes(p)?'checked':''}>${esc(p)}</label>`).join('')}</div>
+      <div class="flow-picks">${carousels.platforms.map(p=>`<label class="check"><input type="checkbox" data-carousel-platform="${esc(p)}" ${c.platforms.includes(p)?'checked':''}>${esc(p)}</label>`).join('')}</div>
       <label class="check"><input type="checkbox" data-carousel-archive ${c.archived?'checked':''}>Archived</label>
-    </aside>
+    </div>
+    <div class="cv-tags">
+      ${tagSel('theme')}${tagText('topic')}${tagSel('format')}${tagSel('style')}
+      ${tagSel('hook_type')}${tagText('hook_text')}${tagFlag('hook_number')}${tagSel('angle')}
+      ${tagSel('cta_type')}${tagText('lead_magnet')}${tagSel('cta_place')}${tagSel('caption_style')}
+      ${tagFlag('video_same_day')}${tagText('testing')}${tagSel('idea_source')}
+    </div>
+    <div class="cv-results pv-wide"><table><thead><tr><th></th>${(carousels.result_numbers||[]).map(k=>`<th>${esc(CAROUSEL_RESULT_LABELS[k])}</th>`).join('')}</tr></thead>
+      <tbody><tr><th>1 day</th>${res('d1')}</tr><tr><th>7 days</th>${res('d7')}</tr></tbody></table></div>
+  </div></details>
   </div>`;
 }
+function carouselGo(i){const c=carouselFind(carouselOpen);if(!c)return;const n=c.images||carouselSlides(c.slides).length;carouselSlide=Math.max(0,Math.min(n-1,i));const v=$('#pv-viewer');if(v){v.innerHTML=carouselViewer(c);v.querySelector('[data-pv-stage]')?.focus({preventScroll:true})}}
+document.addEventListener('click',e=>{const g=e.target.closest('[data-pv-go]');if(g&&view==='carousels'&&carouselOpen)carouselGo(+g.dataset.pvGo)});
+document.addEventListener('keydown',e=>{if(!e.target.closest?.('[data-pv-stage]'))return;if(e.key==='ArrowRight'){e.preventDefault();carouselGo(carouselSlide+1)}if(e.key==='ArrowLeft'){e.preventDefault();carouselGo(carouselSlide-1)}});
+
 function carouselStrip(slides){return slides.length?slides.map((s,i)=>`<div class="slide"><span>${i+1}</span><p>${esc(s)}</p></div>`).join(''):'<p class="hint">Your slides will preview here as you write.</p>'}
 
 async function newCarousel(){
@@ -151,7 +191,7 @@ function carouselTags(c,key,value){const t={...(c.tags||{})};if(value===''||valu
 
 document.addEventListener('input',e=>{
   if(view!=='carousels'||!carouselOpen)return;const el=e.target,c=carouselFind(carouselOpen);
-  if(el.dataset.carouselField&&el.tagName!=='SELECT'&&el.type!=='date'){carouselSaver.change(c,el.dataset.carouselField,el.value);if(el.dataset.carouselField==='title'){const crumb=$('#crumbs span');if(crumb)crumb.textContent=el.value}if(el.dataset.carouselField==='slides'){const s=$('#slide-strip');if(s)s.innerHTML=carouselStrip(carouselSlides(el.value))}}
+  if(el.dataset.carouselField&&el.tagName!=='SELECT'&&el.type!=='date'){carouselSaver.change(c,el.dataset.carouselField,el.value);if(el.dataset.carouselField==='title'){const crumb=$('#crumbs span');if(crumb)crumb.textContent=el.value}if(el.dataset.carouselField==='slides'&&!c.images){const v=$('#pv-viewer');if(v)v.innerHTML=carouselViewer(c)}}
   if(el.dataset.cvTag&&el.tagName==='INPUT')carouselTags(c,el.dataset.cvTag,el.value.trim());
   if(el.dataset.cvResult){const [w,k]=el.dataset.cvResult.split(':'),r={...(c.results||{})};const row={...(r[w]||{})};if(el.value==='')delete row[k];else row[k]=+el.value;
     if(Object.keys(row).filter(x=>x!=='checked_at').length){row.checked_at=row.checked_at||new Date().toISOString().slice(0,10);r[w]=row}else delete r[w];carouselSaver.change(c,'results',r)}
@@ -176,7 +216,7 @@ document.addEventListener('click',async e=>{
     const wn=e.target.closest('[data-cv-window]');if(wn){carouselWindow=wn.dataset.cvWindow;renderCarousels();return}
   }
   if(view!=='carousels'&&view!=='calendar')return;
-  const open=e.target.closest('[data-carousel-open]');if(open){if(!leave())return;current=null;carouselOpen=open.dataset.carouselOpen;view='carousels';if(!carousels)await carouselLoad();render();scrollTo(0,0);return}
+  const open=e.target.closest('[data-carousel-open]');if(open){if(!leave())return;current=null;carouselOpen=open.dataset.carouselOpen;carouselSlide=0;view='carousels';if(!carousels)await carouselLoad();render();scrollTo(0,0);return}
   if(e.target.closest('[data-carousel-back]')){await carouselSaver.flush();carouselOpen=null;try{await carouselLoad()}catch{}render()}
 });
 

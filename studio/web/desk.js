@@ -160,7 +160,7 @@ async function renderTodayView(){
 function deskInject(){
   if(current)return;const id=DESKS[view];if(!id)return;
   if(view==='email'&&typeof emailCurrent!=='undefined'&&emailCurrent)return;
-  if(view==='carousels'&&typeof carouselOpen!=='undefined'&&carouselOpen)return;
+  if(view==='carousels'&&((typeof carouselOpen!=='undefined'&&carouselOpen)||(typeof inspoOpen!=='undefined'&&inspoOpen)))return;
   const ws=$('#workspace');if(!ws||ws.querySelector('.desk'))return;
   if(!team){deskData().then(()=>{if(DESKS[view]===id&&!current)deskInject()});return}
   ws.insertAdjacentHTML('afterbegin',agentDesk(id,{compact:true,scope:view}));
@@ -172,7 +172,7 @@ async function deskAct(act){
   if(kind==='view'){if(!leave())return;current=null;view=arg;await refresh();render();scrollTo(0,0);return}
   if(kind==='project'){if(view==='today')view='board';openProject(arg);scrollTo(0,0);return}
   if(kind==='project-tab'){const [t,id]=[rest[0],rest.slice(1).join(':')];if(view==='today')view=t==='edit'?'editing':'board';openProject(id);if(current){tab=t;renderDetail();scrollTo(0,0)}return}
-  if(kind==='carousel'){if(!leave())return;current=null;view='carousels';if(!carousels)carousels=deskCarousels||await api('/api/carousels');carouselOpen=arg;render();scrollTo(0,0);return}
+  if(kind==='carousel'){if(!leave())return;current=null;view='carousels';if(!carousels)carousels=deskCarousels||await api('/api/carousels');carouselOpen=arg;carouselSlide=0;render();scrollTo(0,0);return}
   if(kind==='email'){view='email';current=null;openEmail(arg);scrollTo(0,0);return}
   if(kind==='new'){if(arg==='carousel')return newCarousel();if(arg==='email'){view='email';return newEmail()}if(arg==='video')return showNew()}
 }

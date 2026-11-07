@@ -140,6 +140,13 @@ function roomFormat(text){
   }).join('');
 }
 function roomTime(at){if(!at)return '';const d=new Date(at);if(isNaN(d))return '';return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
+function roomSavedItem(x){return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':'Updated'} ${x.kind==='inspo'?'creator post ':''}${esc(x.title)} <i>›</i></button>`}
+function roomSaved(list){
+  const items=list.map(roomSavedItem).join('');
+  if(list.length<=3)return `<div class="room-saved">${items}</div>`;
+  const n=a=>list.filter(x=>x.action===a).length,parts=[n('added')&&`added ${n('added')}`,n('updated')&&`updated ${n('updated')}`,n('failed')&&`${n('failed')} didn't save`].filter(Boolean).join(', ');
+  return `<details class="room-saved"><summary>Saved changes: ${esc(parts)}</summary>${items}</details>`;
+}
 function roomMessages(a,msgs){
   let last='';
   return msgs.map(m=>{
@@ -147,7 +154,7 @@ function roomMessages(a,msgs){
     const sep=day&&day!==last?`<div class="room-day">${esc(day===new Date().toDateString()?'Today':d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</div>`:'';if(day)last=day;
     const who=m.role==='josh'?'josh':'agent';
     const meta=m.failed?`<span class="room-failed">Didn't go through. ${esc(m.failed)} <button class="link" data-room-retry="${esc(m.id)}">Try again</button></span>`:m.id==='pending'?'<span>Sent</span>':`<span>${esc(m.role==='josh'?'You':a.name)}${m.at?' · '+esc(roomTime(m.at)):''}</span>`;
-    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?`<div class="room-saved">${m.saved.map(x=>x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':'Updated'} ${x.kind==='inspo'?'creator post ':''}${esc(x.title)} <i>›</i></button>`).join('')}</div>`:''}<div class="room-meta-line">${meta}</div></div>`;
+    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?roomSaved(m.saved):''}<div class="room-meta-line">${meta}</div></div>`;
   }).join('');
 }
 function roomWork(a){

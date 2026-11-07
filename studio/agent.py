@@ -479,6 +479,43 @@ class Agents:
                       selection=mine['selection'])
         return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
 
+    def focus(self, context, carousels, inspo=None):
+        """What Josh has open in Josh OS while he chats, so "this" means that thing."""
+        if not isinstance(context, dict):
+            return ''
+        kind, cid = context.get('kind'), str(context.get('id') or '')
+        keep = lambda d, keys: {k: d.get(k) for k in keys if d.get(k) not in (None, '', [], {})}
+        if kind == 'carousel':
+            c = next((c for c in carousels if c['id'] == cid), None)
+            if not c:
+                return ''
+            body = keep(c, ('id', 'title', 'stage', 'post_date', 'hook', 'slides', 'caption', 'notes', 'link', 'folder', 'tags', 'results'))
+            return ('Josh has this carousel open right now, so "this", "it" and "the post" mean this one. To change it, send it in '
+                    'the "carousels" list with this id. Its slide images (if any) are in the folder under '
+                    'E:\\CareerOS\\03_Community_Posts, and you can look at them with Read.\n' + json.dumps(body, ensure_ascii=False, indent=1))
+        if kind == 'inspo' and inspo is not None:
+            try:
+                p = inspo.get(cid)
+            except KeyError:
+                return ''
+            body = keep(p, ('id', 'creator', 'date', 'url', 'hook', 'caption', 'likes', 'comments', 'folder', 'tags', 'look', 'new_thing', 'new_note', 'notes'))
+            return ('Josh has this creator post open right now, so "this" means this one. To change it, send it in the "inspo" '
+                    'list with this id. Its slides are in the folder under E:\\CareerOS\\03_Community_Posts\\_Inspo.\n'
+                    + json.dumps(body, ensure_ascii=False, indent=1))
+        if kind == 'project':
+            try:
+                p = self.store.get(cid)
+            except KeyError:
+                return ''
+            title = next((t.get('text') for t in p.get('titles') or [] if t.get('id') == p.get('chosen_title')), '') or p['name']
+            return ('Josh has this video open right now, so "this video" means this one. You can read it but not change video '
+                    'cards from this chat yet, so say what to change.\n'
+                    + json.dumps(dict(name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
+                                      notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:6000]), ensure_ascii=False, indent=1))
+        if kind == 'page' and context.get('name'):
+            return f"Josh is on the {str(context['name'])[:40]} page of Josh OS."
+        return ''
+
     def chat(self, data, carousels, tracker=None, inspo=None):
         """The general chat on a team member's own page."""
         if not isinstance(data, dict):
@@ -503,6 +540,9 @@ class Agents:
                 parts += ['', 'Earlier in this conversation:']
                 for m in history[-12:]:
                     parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
+            focus = self.focus(data.get('context'), carousels, inspo)
+            if focus:
+                parts += ['', focus]
             parts += ['', f'Josh: {message}']
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      CAROUSEL_SCHEMA if keeps else DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
