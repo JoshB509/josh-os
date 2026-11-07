@@ -49,7 +49,7 @@ function renderEmailQueue(){
     <section class="cq-weeks"><h2>Next two weeks</h2><div class="cq-strip eq-strip">${days.map(d=>{const k=emailKey(d),es=live.filter(p=>p.planned_date===k);
       return `<div class="cq-day ${d.getDay()===0||d.getDay()===6?'wkend':''}"><span class="cq-date"><b>${d.getDate()}</b>${esc(d.toLocaleDateString(undefined,{weekday:'short'}))}</span>${es.length?es.map(p=>`<button class="eq-slot s-${esc(evStatus(p).toLowerCase())}" data-email-go="${esc(p.id)}"><span class="eq-slot-subject">${esc(p.subject||'Untitled')}</span><span class="cq-slot-stage">${esc(emailStep(p).key==='approve'?'For review':evStatus(p)==='Draft'?'Being written':evStatus(p)==='Ready'?'Approved':evStatus(p))}${emailTime(p)?`, ${esc(emailTime(p))}`:''}</span></button>`).join(''):`<button class="cq-open eq-open" data-dock-ask="Plan an email for ${esc(emailDay(k,true))}">Open</button>`}</div>`}).join('')}</div></section>
     ${later.length?`<section class="cq-works"><h2>Later</h2>${later.map(p=>`<button class="cq-row" data-email-go="${esc(p.id)}"><span class="cq-row-title">${esc(p.subject||'Untitled email')}</span><span class="cq-row-meta">${esc(emailStep(p).label)}, for ${esc(emailDay(p.planned_date))}</span></button>`).join('')}</section>`:''}
-    ${sent.length?`<section class="cq-works"><h2>Recently sent</h2>${sent.map(p=>`<button class="cq-row" data-email-go="${esc(p.id)}"><span class="cq-row-title">${esc(p.subject)}</span><span class="cq-row-meta">${esc(emailDay(p.planned_date))}</span></button>`).join('')}</section>`:''}
+    ${sent.length?`<section class="cq-works"><h2>Recently sent</h2>${sent.map(p=>`<button class="cq-row" data-email-go="${esc(p.id)}"><span class="cq-row-title">${esc(p.subject)}</span><span class="cq-row-meta">${esc([emailResultLine(p),emailDay(p.planned_date)].filter(Boolean).join(', '))}</span></button>`).join('')}</section>`:''}
   </div>`;
 }
 
@@ -58,6 +58,14 @@ function emailLetter(p){
   if(emailEditing)return `<textarea class="ef-body-edit" data-ef-field="body" placeholder="Write the email">${esc(p.body)}</textarea>`;
   const linked=emailLinkedBody(p),html=(linked.html||esc(p.body).replace(/\n/g,'<br>')).replace(/\{\{\s*subscriber\.first_name\s*\}\}/g,'<span class="ef-merge">First name</span>');
   return (p.body||'').trim()?`<div class="ef-letter">${html}</div>`:`<div class="ef-letter ef-empty"><p>Nothing written yet.</p><button class="primary" data-dock-ask="Write this email in full and save it to it.">Ask Laia to write it</button></div>`;
+}
+function emailPct(v){if(v==null||v==='')return null;v=+v;return (v<=1?v*100:v).toFixed(1)+'%'}
+function emailResultLine(p){const r=p.results||{},o=emailPct(r.open_rate),c=emailPct(r.click_rate);return [o&&`${o} opened`,c&&`${c} clicked`].filter(Boolean).join(', ')}
+function emailResults(p){
+  const r=p.results||{};if(evStatus(p)!=='Sent')return '';
+  if(!Object.keys(r).filter(k=>k!=='checked_at'&&k!=='kit_broadcast_id').length)return `<section class="pv-card"><h3>How it did</h3><p class="hint">No numbers yet. Laia reads them from Kit.</p></section>`;
+  const stat=(v,l)=>v==null||v===''?'':`<div><b>${esc(String(v))}</b><span>${l}</span></div>`;
+  return `<section class="pv-card"><h3>How it did</h3><div class="pv-stats">${stat(emailPct(r.open_rate),'opened')}${stat(emailPct(r.click_rate),'clicked')}${stat(r.recipients,'sent to')}${stat(r.unsubscribes,'unsubscribed')}${stat(r.new_people,'new people')}</div>${r.checked_at?`<p class="hint">Checked ${esc(r.checked_at)}.</p>`:''}</section>`;
 }
 function emailSteps(p){
   const s=emailStep(p),at=EMAIL_STEPS.findIndex(x=>x[0]===s.key)+(s.done?1:0);
@@ -88,6 +96,7 @@ function renderEmailReview(){
         <div id="ef-letter">${emailLetter(p)}</div>
       </article>
       <aside class="ef-side">
+        ${emailResults(p)}
         ${p.notes?`<details class="pv-card ef-notes"><summary>Laia's notes</summary><p class="pv-notes">${esc(p.notes)}</p></details>`:''}
         ${(p.subject_alternatives||[]).length?`<section class="pv-card"><h3>Other subject lines</h3>${p.subject_alternatives.map(s=>`<button class="ef-alt" data-ef-subject="${esc(typeof s==='string'?s:s.text||'')}">${esc(typeof s==='string'?s:s.text||'')}</button>`).join('')}</section>`:''}
         ${(p.links||[]).length?`<section class="pv-card"><h3>Link in this email</h3>${p.links.map(l=>`<p class="ef-link"><b>${esc(l.label)}</b><span>${esc(l.href)}</span></p>`).join('')}</section>`:''}

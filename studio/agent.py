@@ -56,13 +56,21 @@ DESK_SCHEMA = {
 }
 # Team members who write the emails can save drafts and send dates from chat.
 EMAIL_WRITE = ('subject', 'preview', 'body', 'planned_date', 'send_time', 'notes', 'description')
+# Reading Kit through the Kit connector linked to Claude on this PC. Laia reads, she doesn't send.
+KIT_READ = tuple('mcp__claude_ai_Kit__' + t for t in (
+    'list_broadcasts', 'get_broadcast', 'get_stats_for_a_broadcast', 'get_stats_for_a_list_of_broadcasts',
+    'get_link_clicks_for_a_broadcast', 'get_email_stats', 'get_growth_stats', 'list_sequences', 'get_sequence',
+    'list_sequence_emails', 'get_sequence_email', 'list_tags', 'list_forms', 'list_segments', 'get_current_account'))
+KIT = {'laia': KIT_READ, 'max': KIT_READ}
 EMAIL_PROPS = {
     'emails': {
         'type': 'array',
         'description': 'Emails to add or change in Josh OS. Leave empty when nothing needs saving.',
         'items': {'type': 'object', 'properties': {
             'id': {'type': 'string', 'description': 'Id of an existing email to change. Leave out to add a new draft.'},
-            **{k: {'type': 'string'} for k in EMAIL_WRITE}}},
+            **{k: {'type': 'string'} for k in EMAIL_WRITE},
+            'sent': {'type': 'boolean', 'description': 'True only when Kit shows this email has gone out.'},
+            'results': {'type': 'object', 'description': 'How it did in Kit: recipients, opens, open_rate, clicks, click_rate, unsubscribes, new_people, kit_broadcast_id, checked_at.'}}},
     },
 }
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
@@ -332,8 +340,14 @@ class Agents:
             *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
                '  entry changes an email when you give its id from the snapshot, or adds a new draft without one. You can change the',
                '  subject, preview, body, planned_date (YYYY-MM-DD), send_time (HH:MM, Dubai), notes and description. Josh approves',
-               '  emails himself, so never change their status. Keep {{ subscriber.first_name }} and link wording as they are.',
+               '  emails himself, so never change their status, except setting sent when Kit shows one has gone out. Keep {{ subscriber.first_name }} and link wording as they are.',
                '  When you re-plan dates, spread the emails across open days from tomorrow and tell Josh the new plan.',
+               '- You can read Kit through its tools (mcp__claude_ai_Kit__..., find them with ToolSearch). Use them to see what has',
+               '  actually gone out and how each email did: opens, clicks, link clicks and unsubscribes. Josh sometimes sends drafts',
+               '  himself in Kit, so match sent broadcasts to drafts by subject and wording. When one has gone out, set sent true',
+               '  with its real send date and save its results. Never create, change or send anything in Kit.',
+               '- Learn from the results. Compare open rates by subject line style and click rates by where the link sits and how',
+               '  it is worded, save what works as lessons, and use it in the next drafts.',
             '  When Josh asks you to write or rewrite an email, do it now and save it, rather than promising it for a later run.']
               if 'email' in (agent.get('workflows') or []) and getattr(self, 'emails', None) is not None else []),
             *(['- You cannot edit or run files from this chat, but you can change your cards and redo designs as described above.',
@@ -645,7 +659,7 @@ class Agents:
                 schema['properties'].update(EMAIL_PROPS)
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
-                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())], full=True)
+                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())), full=True)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -682,6 +696,10 @@ class Agents:
             if not isinstance(u, dict):
                 continue
             changes = {k: str(v) for k, v in u.items() if k in EMAIL_WRITE and v is not None}
+            if u.get('sent') is True:
+                changes['status'] = 'Sent'
+            if isinstance(u.get('results'), dict):
+                changes['results'] = {k: v for k, v in u['results'].items() if v is not None}
             eid = str(u.get('id') or '')
             try:
                 if eid:

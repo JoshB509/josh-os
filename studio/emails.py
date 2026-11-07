@@ -5,7 +5,9 @@ from pathlib import Path
 from .store import Conflict,now
 from .kit import Kit,KitError,content_hash
 
-FIELDS={'subject','preview','body','planned_date','audience','status','tags','source_ids','notes','archived','description','type','send_time','kit'}
+FIELDS={'subject','preview','body','planned_date','audience','status','tags','source_ids','notes','archived','description','type','send_time','kit','results'}
+# How a sent email did, read from Kit by Laia: recipients, opens, clicks, unsubscribes and the rates, plus when it was checked.
+RESULT_KEYS={'recipients','opens','open_rate','clicks','click_rate','unsubscribes','new_people','kit_broadcast_id','checked_at'}
 # Draft: being written. Ready: Josh has agreed it and it can go to Kit.
 # Scheduled: it is in Kit. Published: Josh has checked it in Kit and scheduled it. Sent: it has gone out.
 STATUSES=['Draft','Ready','Scheduled','Published','Sent']
@@ -13,7 +15,7 @@ KIT_STATUS={'draft':'Scheduled','scheduled':'Published','sending':'Published','c
 
 def normalize(p):
     if p.get('status') in ('Ready for review','Processing'):p['status']={'Ready for review':'Ready','Processing':'Published'}[p['status']]
-    p.setdefault('description','');p.setdefault('type','Newsletter');p.setdefault('send_time','');p.setdefault('kit',None)
+    p.setdefault('description','');p.setdefault('type','Newsletter');p.setdefault('send_time','');p.setdefault('kit',None);p.setdefault('results',{})
     return p
 
 class Emails:
@@ -68,6 +70,9 @@ class Emails:
             date.fromisoformat(p['planned_date'])
         normalize(p)
         if p['status'] not in STATUSES:raise ValueError('Choose a status: '+', '.join(STATUSES))
+        r=p.get('results') or {}
+        if not isinstance(r,dict) or set(r)-RESULT_KEYS or any(not isinstance(v,(int,float,str)) or isinstance(v,bool) for v in r.values()):raise ValueError('Results must be numbers: '+', '.join(sorted(RESULT_KEYS)))
+        p['results']=r
         for key,limit in [('description',1000),('type',80)]:
             if not isinstance(p[key],str) or len(p[key])>limit:raise ValueError(key+' must be text within '+str(limit)+' characters')
         p['type']=p['type'].strip() or 'Newsletter'
