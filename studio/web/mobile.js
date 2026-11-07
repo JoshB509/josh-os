@@ -9,16 +9,19 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
   document.addEventListener('click',e=>{if(document.body.classList.contains('menu-open')&&!e.target.closest('.rail,#menu'))close()});
 
-  Object.assign(viewNames,{board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
+  Object.assign(viewNames,{today:'Today',board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
 
   if(location.hostname!=='127.0.0.1'){const w=$('#where');if(w)w.innerHTML='<i></i>Remote'}
 
   // Label the New button for the view you are on, and hide it where it does nothing.
   const labels={board:'New video',calendar:'New video',archive:'New video',email:'New email',carousels:'New carousel'};
   const baseRender=render;
-  render=function(){const r=baseRender();const b=$('#new-project');const label=labels[view];b.hidden=!label;if(label)b.textContent=label;return r};
+  render=function(){const r=baseRender();const b=$('#new-project');const label=labels[view];b.hidden=!label;if(label)b.textContent=label;
+    document.querySelectorAll('.tabbar .tab[data-view]').forEach(t=>t.classList.toggle('active',t.dataset.view===view||t.dataset.also===view));return r};
 
-  if(['team','carousels','editing'].includes(initialView)){view=initialView;refresh().then(render).catch(()=>{})}
+  // Today is the home page unless a link asks for somewhere else.
+  if(['today','team','carousels','editing'].includes(initialView)||!initialView){view=initialView||'today';refresh().then(render).catch(()=>{})}
+  $('#tab-more').onclick=e=>{e.stopPropagation();menu.click()};
 
   $('#phone-access').onclick=async()=>{
     let info;try{info=await api('/api/phone')}catch(e){toast(e.message,true);return}

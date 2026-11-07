@@ -1,6 +1,7 @@
 'use strict';
 // Team page: the named agents, their profiles and the shared lessons-learned log.
 // Profiles autosave. The agents do not run yet, so the chat box is a placeholder.
+const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email'};
 let team=null,teamOpen=null,teamTimer=null,teamSaving=null;
 
 // A sub-page under one of the views: hides the big heading and shows "Parent / Name" crumbs.
@@ -33,18 +34,25 @@ function teamLearnForm(agentId=''){
 }
 
 async function renderTeam(){
-  page('Your team','The people who run each workflow with you. Open a profile to shape who they are and what they own.');
+  page('Team','');$('#page-title').parentElement.hidden=true;
   if(!team){$('#workspace').innerHTML='<p class="hint">Loading your team…</p>';try{team=await api('/api/team')}catch(e){$('#workspace').innerHTML=`<div class="empty"><h2>Could not load the team.</h2><p>${esc(e.message)}</p></div>`;return}
     if(view!=='team'||current)return}
   if(teamOpen)return renderTeamProfile();
-  $('#workspace').innerHTML=`<div class="team-grid">${team.agents.map(a=>`
-    <article class="agent-card" data-team-open="${esc(a.id)}" tabindex="0" style="--agent:${esc(a.color)}">
-      <div class="agent-head">${teamAvatar(a,'lg')}<div><h3>${esc(a.name)}</h3><p class="role">${esc(a.role)}</p></div>${teamStatus(a)}</div>
-      <p class="mission">${esc(a.mission)}</p>
-      <div class="flows">${teamFlows(a)}</div>
-    </article>`).join('')}</div>
+  if(typeof deskData==='function'){await deskData();if(view!=='team'||current||teamOpen)return}
+  const brief=a=>typeof deskBrief==='function'?deskBrief(a.id):{say:a.mission,items:[]};
+  $('#workspace').innerHTML=`<header class="team-intro"><h1>Your team</h1><p>Each of them looks after one part of the business. Tap someone to see what they're working on.</p></header>
+    <div class="people">${team.agents.map(a=>{const b=brief(a),later=a.status==='Coming later';return `
+    <article class="person ${later?'later':''}" style="--agent:${esc(a.color)}">
+      <button class="person-main" data-team-open="${esc(a.id)}" aria-label="Open ${esc(a.name)}">
+        ${teamAvatar(a,'xxl')}
+        <span class="person-name">${esc(a.name)}</span><span class="person-role">${esc(a.role)}</span>
+        ${later?'<span class="person-badge quietish">Starts later</span>':b.items.length?`<span class="person-badge">${b.items.length} for you</span>`:'<span class="person-badge clear">All clear</span>'}
+        <span class="person-say">${esc(b.say)}</span>
+      </button>
+      ${TEAM_HOME[a.id]?`<button class="person-go" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk <i>→</i></button>`:''}
+    </article>`}).join('')}</div>
     <section class="learnings"><h2>Lessons learned</h2>
-      <p class="hint">What the team has found works and what doesn't. Sam and Laia add to this as they track performance, and every agent reads it before starting work.</p>
+      <p class="hint">What the team has learned about what works. Sam and Laia add to this as they track results, and everyone reads it before they start work.</p>
       ${teamLearnForm()}
       <ul class="learning-list">${team.learnings.length?team.learnings.map(teamLearning).join(''):'<li class="hint">No lessons yet. Add the first one above.</li>'}</ul>
     </section>`;
@@ -55,35 +63,35 @@ function renderTeamProfile(){
   const lines=x=>esc(x.join('\n'));
   const mine=team.learnings.filter(l=>l.agent_id===a.id);
   page(a.name,a.role);subPage('Team',a.name,'data-team-back');
-  $('#workspace').innerHTML=`<div class="crumb"><button data-team-back>← Back to the team</button></div>
-  <div class="profile" style="--agent:${esc(a.color)}">
-    <div class="profile-top">
-      <label class="photo-pick" title="Change photo">${teamAvatar(a,'xl')}<input type="file" accept="image/png,image/jpeg,image/webp" data-team-photo hidden><span>Change photo</span></label>
+  $('#workspace').innerHTML=`<div class="profile" style="--agent:${esc(a.color)}">
+    <header class="profile-hero">
+      <label class="photo-pick" title="Change photo">${teamAvatar(a,'xxl')}<input type="file" accept="image/png,image/jpeg,image/webp" data-team-photo hidden><span>Change photo</span></label>
       <div class="profile-name"><input class="name" data-team-field="name" value="${esc(a.name)}" maxlength="60" aria-label="Name">
-        <input class="role-input" data-team-field="role" value="${esc(a.role)}" maxlength="120" aria-label="Role"></div>
-      <div class="profile-side"><select data-team-field="status" aria-label="Status">${team.statuses.map(s=>`<option ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}</select>
-        <input type="color" data-team-field="color" value="${esc(a.color)}" aria-label="Colour"><span id="team-save" class="save-note">Saved</span></div>
-    </div>
-    <div class="profile-grid">
-      <section>
-        <section class="chat-preview"><h2>Talk to ${esc(a.name)}</h2>
-          <div class="chat-bubble">${teamAvatar(a,'xs')}<p>Hi Josh, I'm ${esc(a.name)}. Once I'm switched on I'll check in with you here.${a.check_in?`<br><small>Check-ins: ${esc(a.check_in)}</small>`:''}</p></div>
-          <div class="chat-input"><input disabled placeholder="Chat arrives in the next build"><button class="primary small" disabled>Send</button></div>
+        <input class="role-input" data-team-field="role" value="${esc(a.role)}" maxlength="120" aria-label="Role">
+        ${TEAM_HOME[a.id]?`<button class="primary" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk</button>`:''}</div>
+    </header>
+    ${typeof agentDesk==='function'?agentDesk(a.id):''}
+    <details class="how-works"><summary><span>How ${esc(a.name)} works</span><small id="team-save" class="save-note">Saved</small></summary>
+      <div class="profile-grid">
+        <section>
+          <label>Mission<textarea data-team-field="mission" rows="3" maxlength="2000">${esc(a.mission)}</textarea></label>
+          <label>Responsibilities <small>one per line</small><textarea data-team-list="responsibilities" rows="6">${lines(a.responsibilities)}</textarea></label>
+          <label>Personality and tone<textarea data-team-field="personality" rows="2" maxlength="1000">${esc(a.personality)}</textarea></label>
+          <label>Check-ins<input data-team-field="check_in" value="${esc(a.check_in)}" maxlength="500" placeholder="When ${esc(a.name)} messages you, and with what"></label>
         </section>
-        <label>Mission<textarea data-team-field="mission" rows="4" maxlength="2000">${esc(a.mission)}</textarea></label>
-        <label>Responsibilities <small>one per line</small><textarea data-team-list="responsibilities" rows="6">${lines(a.responsibilities)}</textarea></label>
-        <label>Personality and tone<textarea data-team-field="personality" rows="3" maxlength="1000">${esc(a.personality)}</textarea></label>
-        <label>Check-in<input data-team-field="check_in" value="${esc(a.check_in)}" maxlength="500" placeholder="When ${esc(a.name)} messages you, and with what"></label>
-      </section>
-      <aside>
-        <h3>Workflows</h3>
-        <div class="flow-picks">${Object.entries(team.workflows).map(([k,v])=>`<label class="check"><input type="checkbox" data-team-flow="${esc(k)}" ${a.workflows.includes(k)?'checked':''}>${esc(v)}</label>`).join('')}</div>
-        <label>Skills and tools <small>one per line</small><textarea data-team-list="skills" rows="5">${lines(a.skills)}</textarea></label>
-        <h3>Lessons from ${esc(a.name)}</h3>
-        ${teamLearnForm(a.id)}
-        <ul class="learning-list">${mine.length?mine.map(teamLearning).join(''):'<li class="hint">Nothing yet.</li>'}</ul>
-      </aside>
-    </div>
+        <aside>
+          <label>Status<select data-team-field="status">${team.statuses.map(s=>`<option ${s===a.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label>
+          <label class="color-row">Colour<input type="color" data-team-field="color" value="${esc(a.color)}"></label>
+          <h4>Workflows</h4>
+          <div class="flow-picks">${Object.entries(team.workflows).map(([k,v])=>`<label class="check"><input type="checkbox" data-team-flow="${esc(k)}" ${a.workflows.includes(k)?'checked':''}>${esc(v)}</label>`).join('')}</div>
+          <label>Skills and tools <small>one per line</small><textarea data-team-list="skills" rows="4">${lines(a.skills)}</textarea></label>
+        </aside>
+      </div>
+    </details>
+    <section class="learnings"><h2>What ${esc(a.name)} has learned</h2>
+      ${teamLearnForm(a.id)}
+      <ul class="learning-list">${mine.length?mine.map(teamLearning).join(''):'<li class="hint">Nothing yet.</li>'}</ul>
+    </section>
   </div>`;
 }
 
