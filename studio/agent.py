@@ -73,6 +73,8 @@ EMAIL_PROPS = {
             'id': {'type': 'string', 'description': 'Id of an existing email to change. Leave out to add a new draft.'},
             **{k: {'type': 'string'} for k in EMAIL_WRITE},
             'sent': {'type': 'boolean', 'description': 'True only when Kit shows this email has gone out.'},
+            'source_ids': {'type': 'array', 'items': {'type': 'string'},
+                           'description': 'Library emails this one is based on, as JonBrosio:<id> or EdLawrence:<message_id>.'},
             'results': {'type': 'object', 'description': 'How it did in Kit: recipients, opens, open_rate, clicks, click_rate, unsubscribes, new_people, kit_broadcast_id, checked_at.'}}},
     },
     'library': {
@@ -375,6 +377,9 @@ class Agents:
                '- The email library is every Ed Lawrence and Jon Brosio email we have, in References/EmailExamples in Josh OS',
                '  (EdLawrence/newsletters.json and newsletters.md, JonBrosio/corpus.json, and additions.json in each). Before you',
                '  draft, search it with Grep for how they handled a similar idea, subject or call to action.',
+               '- When an email is based on one from the library, link it in source_ids so Josh can read the two side by side.',
+               '  The id is the folder and the email id: JonBrosio:<id> from corpus.json, EdLawrence:<message_id> from',
+               '  newsletters.json, or the folder and id from additions.json. Copy the id exactly.',
                '- Keep the library up to date. When Josh asks, search Gmail (mcp__claude_ai_Gmail__search_threads, find it with',
                '  ToolSearch) for emails from Ed Lawrence (hi@film-booth.com) and Jon Brosio since the newest one in the library,',
                '  read each with get_message or get_thread, and save each newsletter in the "library" list with its full body text,',
@@ -736,6 +741,9 @@ class Agents:
                 changes['status'] = 'Sent'
             if isinstance(u.get('results'), dict):
                 changes['results'] = {k: v for k, v in u['results'].items() if v is not None}
+            if isinstance(u.get('source_ids'), list):
+                known = mails.references()
+                changes['source_ids'] = [str(x) for x in u['source_ids'] if str(x) in known][:5]
             eid = str(u.get('id') or '')
             try:
                 if eid:

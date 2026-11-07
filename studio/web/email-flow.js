@@ -2,7 +2,7 @@
 // Email, built around Josh's flow. Laia writes, Josh reads it the way a subscriber will,
 // edits if he needs to, and approves it with its send time. Then it goes to Kit and out.
 // The full editor (links, sources, history, export) and the full list stay one click away.
-let emailFull=false,emailEditing=false,emailFlowSaver=null;
+let emailFull=false,emailEditing=false,emailFlowSaver=null,emailCompare=false,emailSourceAt=0,emailSources={};
 const EMAIL_STEPS=[['write','Write'],['approve','Approve'],['kit','In Kit'],['sent','Sent']];
 
 function emailToday(){const d=new Date();d.setHours(12,0,0,0);return d}
@@ -71,7 +71,9 @@ function emailSteps(p){
   const s=emailStep(p),at=EMAIL_STEPS.findIndex(x=>x[0]===s.key)+(s.done?1:0);
   return `<ol class="ps" aria-label="Progress">${EMAIL_STEPS.map(([k,l],i)=>`<li class="${i<at?'done':i===at?'now':''}"${i===at?' aria-current="step"':''}>${esc(l)}</li>`).join('')}</ol>`;
 }
-function emailActions(p){
+function emailCompareButton(p){return (p.source_ids||[]).length?`<button class="subtle" data-ef-compare>${emailCompare?'Hide the original':'Compare with the original'}</button>`:`<button class="subtle" data-dock-ask="Which library email is this one based on? Link it in source_ids so I can compare them side by side. If it isn't based on one, say so.">Find the original</button>`}
+function emailActions(p){return emailActionsBase(p).replace(/<\/div>(?![\s\S]*<\/div>)/,emailCompareButton(p)+'</div>')||`<div class="pa">${emailCompareButton(p)}</div>`}
+function emailActionsBase(p){
   const s=emailStep(p),st=evStatus(p);
   const edit=`<button class="subtle" data-ef-edit>${emailEditing?'Done editing':'Edit'}</button>`;
   const when=`<label class="pa-when"><span>Send on</span><input type="date" data-ef-field="planned_date" value="${esc(p.planned_date)}"><input type="time" data-ef-field="send_time" value="${esc(p.send_time||'')}" aria-label="Send time"></label>`;
@@ -80,6 +82,17 @@ function emailActions(p){
   if(st==='Ready')return `<div class="pa"><p class="pa-note">${evKit?.connected?'Approved. It goes to Kit and gets scheduled there.':'Approved. Kit isn’t connected, so it can’t be scheduled from here yet.'}</p>${evKit?.connected?'':'<button class="subtle" data-ev-kit>Connect Kit</button>'}<button class="subtle" data-ef-status="Draft">Undo approval</button></div>`;
   if(p.kit?.url)return `<div class="pa"><p class="pa-note">${esc(evKitLine(p))}</p><a class="subtle-link" href="${esc(p.kit.url)}" target="_blank" rel="noopener noreferrer">${st==='Sent'?'See the report in Kit':'Check it in Kit'}</a></div>`;
   return '';
+}
+async function emailSource(id){if(!emailSources[id])emailSources[id]=await api('/api/email-inspiration/'+encodeURIComponent(id));return emailSources[id]}
+function emailOriginal(p){
+  const ids=p.source_ids||[];if(!ids.length)return '';
+  const id=ids[Math.min(emailSourceAt,ids.length-1)],r=emailSources[id];
+  const pick=ids.length>1?`<div class="cv-window ef-pick" role="group" aria-label="Original">${ids.map((x,i)=>`<button data-ef-source="${i}" aria-pressed="${i===emailSourceAt}">${esc((emailSources[x]?.author||x.split(':')[0]).split(' ')[0])} ${i+1}</button>`).join('')}</div>`:'';
+  if(!r){emailSource(id).then(()=>{if(emailCurrent?.id===p.id&&emailCompare)renderEmailReview()}).catch(e=>toast(e.message,true));return `<article class="ef-mail ef-orig"><p class="hint">Loading the original…</p></article>`}
+  const day=r.date?new Date(r.date).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
+  return `<article class="ef-mail ef-orig">${pick}
+    <div class="ef-inbox"><span class="ef-from">${esc(r.author)}${day?`, ${esc(day)}`:''}</span><b class="ef-orig-subject">${esc(r.subject)}</b>${r.source_url?`<a class="ef-orig-link" href="${esc(r.source_url)}" target="_blank" rel="noopener noreferrer">Open in Gmail</a>`:''}</div>
+    <div class="ef-letter">${esc(r.body).replace(/\n/g,'<br>')}</div></article>`;
 }
 function renderEmailReview(){
   const p=emailCurrent;
@@ -90,18 +103,18 @@ function renderEmailReview(){
       <p class="pv-when">${esc(emailStep(p).label)}. ${p.planned_date?`${evStatus(p)==='Sent'?'Went':'Goes'} out ${esc(emailDay(p.planned_date,true))}${emailTime(p)?` at ${esc(emailTime(p))}`:''}.`:'No send date yet.'}<span id="ef-save" class="save-note"></span></p>
       <div id="ef-actions">${emailActions(p)}</div>
     </header>
-    <div class="ef-body">
-      <article class="ef-mail">
+    <div class="ef-body ${emailCompare&&(p.source_ids||[]).length?'ef-compare':''}">
+      <article class="ef-mail">${emailCompare&&(p.source_ids||[]).length?'<p class="ef-label">Laia’s draft</p>':''}
         <div class="ef-inbox"><span class="ef-from">Josh Brindley</span><input class="ef-preview" data-ef-field="preview" value="${esc(p.preview)}" maxlength="1000" placeholder="Preview text, the line people see in their inbox"></div>
         <div id="ef-letter">${emailLetter(p)}</div>
       </article>
-      <aside class="ef-side">
+      ${emailCompare&&(p.source_ids||[]).length?emailOriginal(p):`<aside class="ef-side">
         ${emailResults(p)}
         ${p.notes?`<details class="pv-card ef-notes"><summary>Laia's notes</summary><p class="pv-notes">${esc(p.notes)}</p></details>`:''}
         ${(p.subject_alternatives||[]).length?`<section class="pv-card"><h3>Other subject lines</h3>${p.subject_alternatives.map(s=>`<button class="ef-alt" data-ef-subject="${esc(typeof s==='string'?s:s.text||'')}">${esc(typeof s==='string'?s:s.text||'')}</button>`).join('')}</section>`:''}
         ${(p.links||[]).length?`<section class="pv-card"><h3>Link in this email</h3>${p.links.map(l=>`<p class="ef-link"><b>${esc(l.label)}</b><span>${esc(l.href)}</span></p>`).join('')}</section>`:''}
         <section class="pv-card"><button class="link" data-ef-full>Open the full editor</button><p class="hint">For links, sources, type, audience, version history and export.</p></section>
-      </aside>
+      </aside>`}
     </div>
   </div>`;
   document.querySelectorAll('.ef-body-edit,.ef-subject').forEach(roomGrow);
@@ -122,7 +135,7 @@ renderEmail=function(){
   emailShell();renderEmailQueue();
 };
 const emailFlowOpen=openEmail;
-openEmail=function(id){emailFull=false;emailEditing=false;return emailFlowOpen(id)};
+openEmail=function(id){emailFull=false;emailEditing=false;emailCompare=false;emailSourceAt=0;return emailFlowOpen(id)};
 
 document.addEventListener('click',async e=>{
   const go=e.target.closest('[data-email-go]');
@@ -131,6 +144,8 @@ document.addEventListener('click',async e=>{
   const pane=e.target.closest('[data-email-pane]');if(pane&&!emailCurrent){emailPane=pane.dataset.emailPane;render();return}
   if(!emailCurrent||emailFull)return;const p=emailCurrent;
   if(e.target.closest('[data-ef-edit]')){emailEditing=!emailEditing;if(!emailEditing)await emailSaver().flush();renderEmailReview();if(emailEditing)document.querySelector('.ef-body-edit')?.focus();return}
+  if(e.target.closest('[data-ef-compare]')){emailCompare=!emailCompare;emailSourceAt=0;renderEmailReview();return}
+  const src=e.target.closest('[data-ef-source]');if(src){emailSourceAt=+src.dataset.efSource;renderEmailReview();return}
   if(e.target.closest('[data-ef-full]')){await emailSaver().flush();emailFull=true;render();return}
   const alt=e.target.closest('[data-ef-subject]');if(alt){emailSaver().change(p,'subject',alt.dataset.efSubject);renderEmailReview();return}
   if(e.target.closest('[data-ef-approve]')){

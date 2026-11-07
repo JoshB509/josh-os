@@ -679,7 +679,16 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 .room-panel .room-row:has(> :nth-child(3):last-child){grid-template-columns:96px minmax(0,1fr) 12px}
 
 /* Josh's own chat messages: a dark bubble with light text in both themes (in dark mode --ink flips to light). */
-:root{--me-bg:#15171C;--me-ink:#FFFFFF}
-@media (prefers-color-scheme:dark){:root{--me-bg:#3A3F4B;--me-ink:#F4F4F2}}
-.room-msg.josh .room-bubble,.sam-msg.josh{background:var(--me-bg);color:var(--me-ink)}
+/* One fixed pair, so the text is readable whatever theme the window reports. */
+.room-msg.josh .room-bubble,.sam-msg.josh,.room-msg.josh .room-bubble p,.sam-msg.josh p{color:#FFFFFF!important}
+.room-msg.josh .room-bubble,.sam-msg.josh{background:#2E3440!important}
 .room-msg.josh .room-bubble a,.sam-msg.josh a{color:inherit}
+.ef-body.ef-compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ef-compare .ef-mail{max-width:none;padding:var(--sp-5)}
+.ef-compare .ef-letter{font-size:16px}
+.ef-orig{background:color-mix(in srgb,#f5c21b 7%,var(--card))}
+.ef-label{margin:0 0 var(--sp-2);font-size:var(--fs-caption);font-weight:600;color:var(--muted)}
+.ef-orig-subject{font-size:var(--fs-sub);color:var(--ink);line-height:1.3}
+.ef-orig-link{font-size:var(--fs-caption);color:var(--muted)}
+.ef-pick{margin:0 0 var(--sp-3)}
+@media (max-width:1000px){.ef-body.ef-compare{grid-template-columns:1fr}}
