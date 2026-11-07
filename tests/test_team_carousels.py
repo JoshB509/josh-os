@@ -104,9 +104,31 @@ class CarouselTests(unittest.TestCase):
         self.assertEqual(self.carousels.create({'id': cid, 'title': 'Double click'}), c)
         saved = self.carousels.save(cid, {'stage': 'Posted', 'link': 'https://instagram.com/p/1', 'post_date': '2026-11-09'}, 1)
         self.assertTrue(saved['posted_at'])
-        self.assertEqual(self.carousels.all()['items'], [saved])
+        self.assertEqual(self.carousels.all()['items'], [dict(saved, images=0)])
         reopened = self.carousels.save(cid, {'stage': 'Approved'}, 2)
         self.assertIsNone(reopened['posted_at'])
+
+    def test_tags_results_and_chat_saves(self):
+        done = self.carousels.apply('sam', [{'title': 'Six phrases', 'stage': 'Drafting',
+                                             'tags': {'format': 'Phrases', 'style': 'Paper', 'hook_number': True, 'slide_count': 8}}])
+        self.assertEqual(done[0]['action'], 'added')
+        cid = done[0]['id']
+        done = self.carousels.apply('sam', [{'id': cid, 'tags': {'theme': 'Meetings'}, 'results': {'d1': {'views': 1200, 'likes': 40}}},
+                                            {'title': 'Bad tag', 'tags': {'format': 'Nope'}}])
+        self.assertEqual([d['action'] for d in done], ['updated', 'failed'])
+        item = self.carousels.get(cid)
+        self.assertEqual(item['tags'], {'format': 'Phrases', 'style': 'Paper', 'hook_number': True, 'slide_count': 8, 'theme': 'Meetings'})
+        self.assertEqual(item['results'], {'d1': {'views': 1200, 'likes': 40}})
+        self.carousels.apply('sam', [{'id': cid, 'results': {'d1': {'comments': 3}}}])
+        self.assertEqual(self.carousels.get(cid)['results']['d1'], {'views': 1200, 'likes': 40, 'comments': 3})
+        with self.assertRaises(ValueError):
+            self.carousels.save(cid, {'results': {'d30': {'views': 1}}}, self.carousels.get(cid)['revision'])
+        with self.assertRaises(ValueError):
+            self.carousels.save(cid, {'tags': {'post_time': '9pm'}}, self.carousels.get(cid)['revision'])
+        # Folders outside the community posts folder are ignored.
+        rev = self.carousels.get(cid)['revision']
+        self.carousels.save(cid, {'folder': r'C:\Windows'}, rev)
+        self.assertEqual(self.carousels.images(self.carousels.get(cid)), [])
 
     def test_validation_and_conflicts(self):
         c = self.carousels.create({'title': 'Hook test'})

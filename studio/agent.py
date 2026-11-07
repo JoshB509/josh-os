@@ -54,6 +54,28 @@ DESK_SCHEMA = {
     'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
     'required': ['reply'],
 }
+# Team members who keep the carousel tracker can save to it from chat.
+CAROUSEL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'},
+        'carousels': {
+            'type': 'array',
+            'description': 'Carousels to add or change in Josh OS. Leave empty when nothing needs saving.',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string', 'description': 'Id of an existing carousel to change. Leave out to add a new one.'},
+                    'title': {'type': 'string'}, 'stage': {'type': 'string'}, 'post_date': {'type': 'string'},
+                    'hook': {'type': 'string'}, 'slides': {'type': 'string'}, 'caption': {'type': 'string'},
+                    'notes': {'type': 'string'}, 'link': {'type': 'string'}, 'folder': {'type': 'string'},
+                    'tags': {'type': 'object'}, 'results': {'type': 'object'},
+                },
+            },
+        },
+    },
+    'required': ['reply'],
+}
 DESK = 'desk'  # thread key for the general chat on a team member's page
 
 # Training files each team member works from. The folder can be moved with "training_dir" in settings.json.
@@ -264,6 +286,7 @@ class Agents:
                  if 'create_tracked_link' in LINKLR.get(agent['id'], ()) else []),
                '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
               if agent['id'] in LINKLR else []),
+            *(self.carousel_rules() if 'carousels' in (agent.get('workflows') or []) else []),
             *(['- You cannot edit files or Josh OS cards from this chat yet. When a card needs changing, tell Josh what to change.']
               if agent['id'] in CHROME else
               ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
@@ -281,14 +304,32 @@ class Agents:
             lines += ['', 'Your training follows. It is Josh\'s own process and it overrides general habits.', training]
         return '\n'.join(lines)
 
+    def carousel_rules(self):
+        from .carousels import TAG_OPTIONS, TAG_TEXT, TAG_FLAGS, RESULT_NUMBERS, STAGES
+        return [
+            '- The Carousels page in Josh OS is the record for every carousel, its tags and its results. Save to it with the',
+            '  "carousels" list in your answer. Each entry adds a carousel, or changes one when you give its id from the snapshot.',
+            '  When you draft carousels, save each one there as a Drafting card with hook, slides (a line of three dashes between',
+            '  slides), caption and tags. When you post or schedule one, set the stage, post_date and link. When you read stats,',
+            '  save them in results. Never invent a number. Leave out anything you did not check.',
+            f"  Stages: {', '.join(STAGES)}. Folder is the slide images folder under E:\\CareerOS\\03_Community_Posts.",
+            '  Tags use these exact values: ' + '; '.join(f"{k} = {' / '.join(v)}" for k, v in TAG_OPTIONS.items()) + '.',
+            f"  Free text tags: {', '.join(sorted(TAG_TEXT))} (post_time like 21:00). True or false tags: {', '.join(sorted(TAG_FLAGS))}. slide_count is a whole number.",
+            f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
+            '  Tags and results you send are merged into what is already saved. Tell Josh in your reply what you saved.',
+        ]
+
     def desk_snapshot(self, agent_id, carousels):
         from datetime import date
-        lines = [f'Today is {date.today().isoformat()}.', '', 'Your carousels in Josh OS (newest first):']
+        lines = [f'Today is {date.today().isoformat()}.', '', 'Your carousels in Josh OS (newest first). id | date | stage | title | tags | results:']
         mine = [c for c in carousels if c.get('owner') == agent_id and not c.get('archived')][:40]
         if mine:
             for c in mine:
-                note = ' '.join((c.get('notes') or '').split())[:300]
-                lines.append(f"- {c.get('post_date') or 'no date'} | {c['stage']} | {c['title']}" + (f" | {note}" if note else ''))
+                note = ' '.join((c.get('notes') or '').split())[:200]
+                tags = json.dumps(c.get('tags') or {}, ensure_ascii=False) if c.get('tags') else 'no tags'
+                res = json.dumps(c.get('results') or {}) if c.get('results') else 'no results'
+                lines.append(f"- {c['id']} | {c.get('post_date') or 'no date'} | {c['stage']} | {c['title']} | {tags} | {res}"
+                             + (f" | folder {c['folder']}" if c.get('folder') else '') + (f" | {note}" if note else ''))
         else:
             lines.append('- none yet')
         lines += ['', 'Videos in Josh OS:']
@@ -320,7 +361,7 @@ class Agents:
         return '\n'.join(parts)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=()):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -367,6 +408,8 @@ class Agents:
         replacement = answer.get('replacement')
         if replacement is not None and not isinstance(replacement, str):
             replacement = None
+        if full:
+            return reply, answer
         return reply, replacement
 
     def ask(self, data):
@@ -402,7 +445,7 @@ class Agents:
                       selection=mine['selection'])
         return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
 
-    def chat(self, data, carousels):
+    def chat(self, data, carousels, tracker=None):
         """The general chat on a team member's own page."""
         if not isinstance(data, dict):
             raise ValueError('Invalid request.')
@@ -426,10 +469,16 @@ class Agents:
                 for m in history[-12:]:
                     parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
             parts += ['', f'Josh: {message}']
-            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
-                                extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())])
+            keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
+            reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
+                                     CAROUSEL_SCHEMA if keeps else DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
+                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())], full=True)
+            todo = answer.get('carousels') if isinstance(answer, dict) else None
+            saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
         finally:
             lock.release()
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
+        if saved:
+            theirs['saved'] = saved
         return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)

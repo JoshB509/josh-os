@@ -150,6 +150,9 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/agents/thread':
                     q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                     return self.send(s.agents.thread(q.get('project',[''])[0],q.get('agent',[''])[0]))
+                if len(parts)==5 and parts[:2]==['api','carousels'] and parts[3]=='slide' and parts[4].isdigit():
+                    file,mime=s.carousels.image(parts[2],int(parts[4]))
+                    return self.send(file.read_bytes(),mime=mime,cache='private, max-age=300')
                 if path=='/api/carousels':return self.send(s.carousels.all())
                 if path=='/api/phone':return self.send(s.phone.status(s.token))
                 if path=='/manifest.webmanifest':return self.send(s.phone.manifest(),mime='application/manifest+json')
@@ -283,7 +286,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
             if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
             if path=='/api/agents/chat' and method=='POST':
-                try:return self.send(s.agents.chat(data,s.carousels.all()['items']))
+                try:return self.send(s.agents.chat(data,s.carousels.all()['items'],s.carousels))
                 except AgentError as e:return self.send({'error':str(e)},503)
             if path=='/api/agents/ask' and method=='POST':
                 try:return self.send(s.agents.ask(data))

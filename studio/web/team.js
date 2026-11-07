@@ -147,7 +147,7 @@ function roomMessages(a,msgs){
     const sep=day&&day!==last?`<div class="room-day">${esc(day===new Date().toDateString()?'Today':d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</div>`:'';if(day)last=day;
     const who=m.role==='josh'?'josh':'agent';
     const meta=m.failed?`<span class="room-failed">Didn't go through. ${esc(m.failed)} <button class="link" data-room-retry="${esc(m.id)}">Try again</button></span>`:m.id==='pending'?'<span>Sent</span>':`<span>${esc(m.role==='josh'?'You':a.name)}${m.at?' · '+esc(roomTime(m.at)):''}</span>`;
-    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div><div class="room-meta-line">${meta}</div></div>`;
+    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?`<div class="room-saved">${m.saved.map(x=>x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="carousel:${esc(x.id)}">${x.action==='added'?'Added':'Updated'} ${esc(x.title)} <i>›</i></button>`).join('')}</div>`:''}<div class="room-meta-line">${meta}</div></div>`;
   }).join('');
 }
 function roomWork(a){
@@ -201,7 +201,7 @@ async function roomSend(message,retryId=null){
   roomThread[id]=[...list,{id:'pending',role:'josh',text:message,at:new Date().toISOString()}];
   roomBusy=id;roomStarted=Date.now();roomRender();
   clearInterval(roomTick);roomTick=setInterval(()=>{const c=$('#room-clock');if(c)c.textContent=roomElapsed()},1000);
-  try{const r=await api('/api/agents/chat',{agent_id:id,message});roomThread[id]=r.messages}
+  try{const r=await api('/api/agents/chat',{agent_id:id,message});roomThread[id]=r.messages;if(r.reply?.saved?.length){carousels=null;deskCarousels=null;deskData().then(roomWorkRender).catch(()=>{})}}
   catch(e){roomThread[id]=(roomThread[id]||[]).map(m=>m.id==='pending'?{...m,id:'failed-'+Date.now(),failed:e.message}:m)}
   finally{clearInterval(roomTick);roomBusy=null;if(teamOpen===id)roomRender()}
 }
