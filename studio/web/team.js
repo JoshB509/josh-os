@@ -35,29 +35,54 @@ function teamLearnForm(agentId=''){
     <button class="primary small">Add lesson</button></div></form>`;
 }
 
+// What each person needs from Josh right now, worked out from the same rules as their own pages.
+function teamNeeds(a){
+  const week=new Date();week.setHours(12,0,0,0);week.setDate(week.getDate()+6);const wk=week.toISOString().slice(0,10);
+  if(a.id==='sam'&&typeof carouselNeeds==='function'){
+    const list=(typeof carousels!=='undefined'&&carousels?carousels:deskCarousels)?.items||[];
+    return list.filter(c=>!c.archived&&carouselNeeds(c)&&(!c.post_date||c.post_date<=wk)).sort((x,y)=>(x.post_date||'9999').localeCompare(y.post_date||'9999'))
+      .map(c=>({text:c.title,act:`data-desk-act="carousel:${esc(c.id)}"`,what:carouselNeeds(c)==='Ready for your review'?'carousel to review':'carousel to design',date:c.post_date}));
+  }
+  if(a.id==='laia'&&typeof emailStep==='function'&&typeof emailRows!=='undefined'){
+    return emailRows.filter(p=>!p.archived&&emailStep(p).key==='approve'&&(!p.planned_date||p.planned_date<=wk)).sort((x,y)=>(x.planned_date||'9999').localeCompare(y.planned_date||'9999'))
+      .map(p=>({text:p.subject,act:`data-email-go="${esc(p.id)}"`,what:'email to approve',date:p.planned_date}));
+  }
+  const b=typeof deskBrief==='function'?deskBrief(a.id):{items:[]};
+  return (b.items||[]).filter(i=>i.needs).map(i=>({text:i.text,act:`data-desk-act="${esc(i.act)}"`,what:(i.sub||'').split('·')[0].trim().toLowerCase()||'thing',date:''}));
+}
+function teamCount(needs){
+  const groups={};for(const n of needs)groups[n.what]=(groups[n.what]||0)+1;
+  return Object.entries(groups).map(([w,n])=>`${n} ${n===1?w:w.replace(/^(\w+)/,'$1s')}`).join(' and ');
+}
+function teamLast(a){const m=(roomThread[a.id]||[]).filter(x=>x.role==='agent').at(-1);return m?{text:m.text.replace(/\s+/g,' ').slice(0,160),at:m.at}:null}
+function teamAgo(at){const s=(Date.now()-new Date(at))/1000;if(s<90)return 'just now';if(s<3600)return Math.round(s/60)+' min ago';if(s<86400)return Math.round(s/3600)+' h ago';return new Date(at).toLocaleDateString(undefined,{day:'numeric',month:'short'})}
+
 async function renderTeam(){
   page('Team','');$('#page-title').parentElement.hidden=true;
   if(!team){$('#workspace').innerHTML=`<div class="people" aria-label="Getting the team's notes">${typeof deskSkeleton==='function'?deskSkeleton(4):''}</div>`;try{team=await api('/api/team')}catch(e){$('#workspace').innerHTML=`<div class="empty"><h2>Could not load the team.</h2><p>${esc(e.message)}</p></div>`;return}
     if(view!=='team'||current)return}
   if(teamOpen)return renderTeamProfile();
   if(typeof deskData==='function'){await deskData();if(view!=='team'||current||teamOpen)return}
-  const brief=a=>typeof deskBrief==='function'?deskBrief(a.id):{say:a.mission,items:[]};
-  $('#workspace').innerHTML=`<header class="team-intro"><h1>Your team</h1><p>Each of them looks after one part of the business. Tap someone to see what they're working on.</p></header>
-    <div class="people">${team.agents.map(a=>{const b=brief(a),later=a.status==='Coming later';return `
-    <article class="person ${later?'later':''}" style="--agent:${esc(a.color)}">
-      <button class="person-main" data-team-open="${esc(a.id)}" aria-label="Open ${esc(a.name)}">
-        ${teamAvatar(a,'xxl')}
-        <span class="person-name">${esc(a.name)}</span><span class="person-role">${esc(a.role)}</span>
-        ${later?'<span class="person-badge later">Starts later</span>':b.unknown?'<span class="person-badge later">Not set up</span>':(n=>n?`<span class="person-badge">${n} for you</span>`:'<span class="person-badge clear">All clear</span>')(b.items.filter(i=>i.needs).length)}
-        <span class="person-say">${esc(b.say)}</span>
-      </button>
-      ${TEAM_HOME[a.id]?`<button class="person-go" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk <i>→</i></button>`:''}
-    </article>`}).join('')}</div>
-    <section class="learnings"><h2>Lessons learned</h2>
-      <p class="hint">What the team has learned about what works. Sam and Laia add to this as they track results, and everyone reads it before they start work.</p>
-      ${teamLearnForm()}
-      <ul class="learning-list">${team.learnings.length?team.learnings.map(teamLearning).join(''):'<li class="hint">No lessons yet. Add the first one above.</li>'}</ul>
-    </section>`;
+  const missing=team.agents.filter(a=>a.status!=='Coming later'&&!roomLoaded[a.id]);
+  if(missing.length){await Promise.all(missing.map(a=>api(`/api/agents/thread?project=desk&agent=${encodeURIComponent(a.id)}`).then(t=>{roomThread[a.id]=t;roomLoaded[a.id]=true}).catch(()=>{})));if(view!=='team'||current||teamOpen)return}
+  const rows=team.agents.map(a=>({a,later:a.status==='Coming later',needs:a.status==='Coming later'?[]:teamNeeds(a),last:teamLast(a),asked:typeof dockUnread!=='undefined'&&dockUnread[a.id]}));
+  const active=rows.filter(r=>!r.later).sort((x,y)=>(y.asked-x.asked)||(y.needs.length-x.needs.length)),later=rows.filter(r=>r.later);
+  const total=active.reduce((n,r)=>n+r.needs.length,0),who=active.filter(r=>r.needs.length||r.asked);
+  const lead=total?`${total} thing${total===1?'':'s'} need${total===1?'s':''} you this week, across ${who.map(r=>r.a.name).join(' and ').replace(/ and (?=.* and )/g,', ')}.`:'Nothing needs you right now.';
+  $('#workspace').innerHTML=`<div class="tm">
+    <header class="tm-head"><h1>Team</h1><p>${esc(lead)}</p></header>
+    <div class="tm-list">${active.map(({a,needs,last,asked})=>`
+      <article class="tm-person ${needs.length||asked?'wants':''}" style="--agent:${esc(a.color)}">
+        <button class="tm-open" data-team-open="${esc(a.id)}" aria-label="Open ${esc(a.name)}'s desk">
+          ${teamAvatar(a,'lg')}
+          <span class="tm-who"><b>${esc(a.name)}</b><span>${esc(a.role)}</span></span>
+          <span class="tm-state">${asked?`<span class="tm-flag ask">Has a question for you</span>`:needs.length?`<span class="tm-flag">${needs.length} for you</span>`:'<span class="tm-flag clear">All clear</span>'}</span>
+          ${last?`<span class="tm-last"><q>${esc(last.text)}${last.text.length>=160?'…':''}</q><small>${esc(teamAgo(last.at))}</small></span>`:`<span class="tm-last tm-none">No messages yet. Open the desk to talk to ${esc(a.name)}.</span>`}
+        </button>
+        ${needs.length?`<div class="tm-needs"><p class="tm-needs-label">Needs you for ${esc(teamCount(needs))}.</p>${needs.slice(0,3).map(n=>`<button class="tm-need" ${n.act}><span>${esc(n.text)}</span>${n.date?`<small>${esc(new Date(n.date+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric'}))}</small>`:''}</button>`).join('')}${needs.length>3?`<button class="tm-need more" data-team-open="${esc(a.id)}">${needs.length-3} more</button>`:''}</div>`:''}
+      </article>`).join('')}</div>
+    ${later.length?`<p class="tm-later">${later.map(({a})=>`${esc(a.name)}, ${esc(a.role)}`).join('; ')}, starts later.</p>`:''}
+  </div>`;
 }
 
 function renderTeamProfile(){
@@ -97,10 +122,11 @@ function renderTeamProfile(){
         </aside>
       </div>
     </details>
-    <section class="learnings"><h2>What ${esc(a.name)} has learned</h2>
-      ${teamLearnForm(a.id)}
+    <details class="tm-lessons"><summary>What ${esc(a.name)} has learned <span>${mine.length}</span></summary>
+      <p class="hint">${esc(a.name)} saves these from your edits, your answers and the results, and reads them before every job.</p>
       <ul class="learning-list">${mine.length?mine.map(teamLearning).join(''):'<li class="hint">Nothing yet.</li>'}</ul>
-    </section>
+      <details class="tm-add"><summary>Add a lesson yourself</summary>${teamLearnForm(a.id)}</details>
+    </details>
   </div>`;
   const t=$('#room-thread');if(t)t.scrollTop=t.scrollHeight;
   if(!roomLoaded[a.id])roomLoad(a.id);
@@ -111,7 +137,7 @@ function roomQuick(a){return a.id==='sam'?['What are you working on?','How far a
 function roomElapsed(){const t=Math.max(0,Math.round((Date.now()-roomStarted)/1000));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`}
 function roomChat(a){
   const msgs=roomThread[a.id]||[],busy=roomBusy===a.id,off=roomStatus&&!roomStatus.available,later=a.status==='Coming later';
-  const can=a.id==='sam'?'Reads your files and training, and uses Chrome to post and check stats':'Reads your files and training, but can’t change anything from here';
+  const can={sam:'Reads your files and training, makes and changes carousels, and uses Chrome to post and check stats',laia:'Reads Kit and your files, and writes, edits and re-plans emails'}[a.id]||'Reads your files and training, but can’t change anything from here';
   const st=later?['later','Starts later']:off?['off','Offline']:busy?['busy','Working']:['ready','Ready'];
   const quick=roomQuick(a),locked=off||later;
   const empty=`<div class="room-empty"><p>Ask ${esc(a.name)} what's in progress, talk through ideas, or give direction.</p>
@@ -165,8 +191,9 @@ function roomWork(a){
   const day=k=>k?new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}):'No date';
   const row=(act,date,title,stage)=>`<button class="room-row" data-desk-act="${esc(act)}"><span class="room-date">${esc(day(date))}</span><span class="room-title" title="${esc(title)}">${esc(title)}</span><span class="room-stage">${esc(stage)}</span><i aria-hidden="true">›</i></button>`;
   const flows=a.workflows||[],tabs=[];
-  const desk=typeof agentDesk==='function'?agentDesk(a.id,{head:false}):'';
-  if(desk)tabs.push(['desk','For you','',desk]);
+  const needs=a.status==='Coming later'?[]:teamNeeds(a);
+  tabs.push(['desk','For you',needs.length,`<section class="room-list"><header><h3>${needs.length?`Needs you for ${esc(teamCount(needs))}`:'Nothing needs you right now'}</h3></header>
+      ${needs.map(n=>`<button class="room-row" ${n.act}><span class="room-date">${esc(n.date?new Date(n.date+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}):'')}</span><span class="room-title" title="${esc(n.text)}">${esc(n.text)}</span><i aria-hidden="true">›</i></button>`).join('')}</section>`]);
   if(flows.includes('carousels'))tabs.push(['carousels','Carousels',upcoming.length,`<section class="room-list"><header><h3>Queue</h3><span class="room-meta">${ahead} day${ahead===1?'':'s'} ahead, aiming for 10</span></header>
       ${upcoming.length?upcoming.map(c=>row('carousel:'+c.id,c.post_date,c.title,c.stage)).join(''):'<p class="hint">Nothing in the queue yet.</p>'}
       ${posted.length?`<h4>Recently posted</h4>${posted.map(c=>row('carousel:'+c.id,c.post_date,c.title,c.stage)).join('')}`:''}</section>`]);
