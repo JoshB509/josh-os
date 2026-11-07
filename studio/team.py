@@ -14,6 +14,7 @@ WORKFLOWS = {
     'carousels': 'Carousels',
     'editing': 'Editing',
     'email': 'Email',
+    'courses': 'Course lessons',
     'clients': 'Clients',
     'business': 'Business metrics',
     'calendar': 'Calendar',
@@ -67,6 +68,21 @@ SEEDS = [
          skills=['Email writing scripts', 'Email reference library', 'Kit'],
          check_in='Monday and Thursday, with the buffer and last week\'s results.',
          status='Draft'),
+    dict(id='saskia', name='Saskia', role='L&D Content Lead', color='#b5487a',
+         mission='Turn what Josh teaches into course content people finish. Saskia plans and writes the CareerOS '
+                 'lessons for Heard at the Top and Promoted in 6, builds the lesson slides, makes the playbooks, '
+                 'cheat sheets and worksheets, and keeps lesson recording on track.',
+         personality='Warm, structured and practical. Thinks in learning outcomes and what the learner does next.',
+         responsibilities=['Plan each course and lesson around what the learner can do afterwards',
+                           'Write and tighten lesson scripts in Josh\'s voice',
+                           'Build beat-by-beat lesson slides ready to record',
+                           'Make the playbooks, cheat sheets and worksheets that go with each lesson',
+                           'Keep the recording plan on track and flag lessons with no date',
+                           'Add what helps learners finish to the lessons-learned log'],
+         workflows=['courses', 'calendar'],
+         skills=['lesson-slides', 'careeros-playbook'],
+         check_in='Weekly, with what is recorded, what is next to record and anything missing for it.',
+         status='Draft'),
     dict(id='max', name='Max', role='Business Manager', color='#0f7b6c',
          mission='Sell the courses and programmes, and track the business numbers against the '
                  'goal of USD 15,000 a month from courses and upsells.',
@@ -105,6 +121,8 @@ class Team:
             self._rename(c)
             for i, seed in enumerate(SEEDS):
                 if not c.execute('SELECT 1 FROM team_agents WHERE id=?', (seed['id'],)).fetchone():
+                    # New team members join in their place in the list, ahead of anyone after them.
+                    c.execute('UPDATE team_agents SET position=position+1 WHERE position>=?', (i,))
                     agent = dict(seed, revision=1, photo=photos[seed['id']], created_at=now(), updated_at=now())
                     c.execute('INSERT INTO team_agents VALUES(?,?,?,?)', (seed['id'], 1, i, json.dumps(agent)))
 

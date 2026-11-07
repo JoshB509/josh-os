@@ -3,7 +3,7 @@
 // Until the agents run, briefings are worked out from the app's own data, so every
 // line is true and every item opens the thing it talks about.
 const DESKS={board:'sam',carousels:'sam',editing:'tariq',email:'laia'};
-let deskCarousels=null,deskTeamLoading=null;
+let deskCarousels=null,deskTeamLoading=null,deskLessons=null;
 
 function deskToday(){const d=plannerToday();d.setHours(0,0,0,0);return d}
 function deskDays(iso){if(!iso)return null;const d=new Date(iso+'T00:00:00');return Math.round((d-deskToday())/864e5)}
@@ -15,6 +15,7 @@ async function deskData(){
   const jobs=[];
   if(!team&&!deskTeamLoading)deskTeamLoading=api('/api/team').then(t=>team=t).catch(()=>{});
   if(!deskCarousels)jobs.push(api('/api/carousels').then(c=>{deskCarousels=c;if(typeof carousels!=='undefined'&&!carousels)carousels=c}).catch(()=>{}));
+  if(!deskLessons)jobs.push(api('/api/lessons').then(l=>deskLessons=l).catch(()=>{deskLessons={lessons:[],missing:true}}));
   if(deskTeamLoading)jobs.push(deskTeamLoading);
   await Promise.all(jobs);
 }
@@ -82,6 +83,19 @@ function deskBrief(id,scope=null){
       say=`We're ${ahead} day${ahead===1?'':'s'} ahead on email, and the goal is 14.${soon.length?` ${deskPlural(soon.length,'draft')} to review${week?`, and ${week===soon.length?(week===1?'it goes':'they all go'):`${week} of them ${week===1?'goes':'go'}`} out this week`:''}.`:' Let\'s plan the next few.'}`}
     return {say,items,chips:[{label:'New email',act:'new:email'},{label:'Email plan',act:'view:email'}]};
   }
+  if(id==='saskia'){
+    if(!deskLessons||deskLessons.missing)return {unknown:true,say:'The course lessons aren\'t set up on this PC yet. Once the lesson catalogue is in Josh OS, I\'ll track what\'s recorded and what\'s next.',items:[],chips:[{label:'Course lessons',act:'view:lessons'}]};
+    const ls=deskLessons.lessons||[],done=l=>!!(l.recording?.preferred_take||l.recording?.takes?.length);
+    const todo=ls.filter(l=>!done(l)),planned=todo.filter(l=>l.recording?.planned_date).sort((a,b)=>a.recording.planned_date.localeCompare(b.recording.planned_date));
+    const late=planned.filter(l=>deskDays(l.recording.planned_date)<0),undated=todo.filter(l=>!l.recording?.planned_date);
+    const label=l=>`${l.code?l.code+' ':''}${l.title||'Untitled lesson'}`;
+    const items=[...late.map(l=>({needs:true,icon:'clock',text:label(l),sub:`Lesson · planned ${deskWhen(l.recording.planned_date)}`,act:'view:lessons'})),
+      ...planned.filter(l=>!late.includes(l)).slice(0,4).map(l=>({needs:deskDays(l.recording.planned_date)<=1,icon:'film',text:label(l),sub:`Lesson · record ${deskWhen(l.recording.planned_date)}`,act:'view:lessons'})),
+      ...undated.slice(0,3).map(l=>({icon:'pen',text:label(l),sub:'Lesson · no recording date',act:'view:lessons'}))];
+    const say=!ls.length?'No lessons in the catalogue yet.'
+      :`${ls.length-todo.length} of ${ls.length} lessons are recorded.${planned.length?` The next one to record is ${label(planned[0])}, ${deskWhen(planned[0].recording.planned_date)}.`:''}${undated.length?` ${deskPlural(undated.length,'lesson')} still need${undated.length===1?'s':''} a recording date.`:''}`;
+    return {say,items,chips:[{label:'Course lessons',act:'view:lessons'},{label:'Tasks & goals',act:'view:tasks'}]};
+  }
   return {say:'I start once the business numbers are connected to Josh OS. Then I\'ll track sales and revenue against the USD 15,000 a month goal.',items:[],chips:[]};
 }
 // One count used everywhere: decisions waiting for Josh.
@@ -104,7 +118,7 @@ function agentDesk(id,{compact=false,scope=null,head=true}={}){
   all=[...all.filter(i=>i.needs),...all.filter(i=>!i.needs)];
   const items=all.slice(0,compact?(scope==='board'?2:3):5),needs=all.filter(i=>i.needs).length;
   const chips=b.chips.filter(c=>!(DESK_SKIP[scope]||[]).includes(c.act));
-  const home={sam:'carousels',tariq:'editing',laia:'email'}[id];
+  const home={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons'}[id];
   const count=a.status==='Coming later'?'':needs?`<span class="desk-count">${needs} for you</span>`:all.length?'':`<span class="desk-count clear">All clear</span>`;
   return `<section class="desk ${compact?'compact':''} ${min?'min':''}" style="--agent:${esc(a.color)}" data-desk="${esc(id)}" aria-label="${esc(a.name)}'s desk">
     <header class="desk-head" ${head?'':'hidden'}>${teamAvatar(a,'md')}
@@ -154,6 +168,7 @@ function deskInject(){
 
 async function deskAct(act){
   const [kind,...rest]=act.split(':'),arg=rest.join(':');
+  if(kind==='view'&&(arg==='lessons'||arg==='tasks')){location.href='/'+arg;return}
   if(kind==='view'){if(!leave())return;current=null;view=arg;await refresh();render();scrollTo(0,0);return}
   if(kind==='project'){if(view==='today')view='board';openProject(arg);scrollTo(0,0);return}
   if(kind==='project-tab'){const [t,id]=[rest[0],rest.slice(1).join(':')];if(view==='today')view=t==='edit'?'editing':'board';openProject(id);if(current){tab=t;renderDetail();scrollTo(0,0)}return}

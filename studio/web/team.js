@@ -2,7 +2,7 @@
 // Team page: the named agents, their profiles and the shared lessons-learned log.
 // Each member has their own page with a chat (run through Claude Code on this PC) and what they're working on.
 // Profiles autosave.
-const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email'};
+const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons'};
 let team=null,teamOpen=null,teamTimer=null,teamSaving=null;
 let roomThread={},roomBusy=null,roomStatus=null,roomLoaded={};
 
@@ -48,7 +48,7 @@ async function renderTeam(){
       <button class="person-main" data-team-open="${esc(a.id)}" aria-label="Open ${esc(a.name)}">
         ${teamAvatar(a,'xxl')}
         <span class="person-name">${esc(a.name)}</span><span class="person-role">${esc(a.role)}</span>
-        ${later?'<span class="person-badge later">Starts later</span>':(n=>n?`<span class="person-badge">${n} for you</span>`:'<span class="person-badge clear">All clear</span>')(b.items.filter(i=>i.needs).length)}
+        ${later?'<span class="person-badge later">Starts later</span>':b.unknown?'<span class="person-badge later">Not set up</span>':(n=>n?`<span class="person-badge">${n} for you</span>`:'<span class="person-badge clear">All clear</span>')(b.items.filter(i=>i.needs).length)}
         <span class="person-say">${esc(b.say)}</span>
       </button>
       ${TEAM_HOME[a.id]?`<button class="person-go" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk <i>→</i></button>`:''}

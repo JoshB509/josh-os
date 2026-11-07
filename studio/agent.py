@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .store import now
 
-SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'max': []}
+SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook'], 'max': []}
 REFERENCES = 'reference_sources'
 TIMEOUT = 300
 SCHEMA = {
@@ -49,6 +49,12 @@ TRAINING = {
         'embed': ['README.md', '01_house-style.md', '07_carousel-queue.md', '06_tracking-and-learning.md'],
         'read': ['02_carousels_lead-magnet-engine.md', '03_carousels_value-posts.md', '04_youtube-scheduling.md', '05_thumbnails.md'],
         'dirs': ['03_Community_Posts', '12_YouTube'],  # folders next to the training folder Sam may read
+    },
+    # Saskia reads the course content and programme downloadables, and any saskia_*.md training files Josh adds.
+    'saskia': {
+        'embed': ['01_house-style.md'],
+        'read': [],
+        'dirs': ['04_Programme', '08_Strategy'],
     },
 }
 
@@ -125,6 +131,7 @@ class Agents:
             if f.is_file():
                 parts += ['', f'=== Training: {name} ===', f.read_text(encoding='utf-8')]
         extra = [n for n in spec['read'] if (folder / n).is_file()]
+        extra += sorted(f.name for f in folder.glob(f'{agent_id}_*.md') if f.name not in extra) if folder.is_dir() else []
         if extra:
             parts += ['', f'More training files in {folder} (read them when the question needs them): ' + ', '.join(extra)]
         dirs = [str(folder)] + [str(folder.parent / d) for d in spec['dirs'] if (folder.parent / d).is_dir()]

@@ -66,6 +66,27 @@ class AgentTests(unittest.TestCase):
         self.ask(message='And the next line?')
         self.assertIn('Earlier in this conversation', json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
 
+    def test_saskia_gets_her_skills_and_training_files(self):
+        self.fake()
+        for name, text in [('lesson-slides', 'Beat-by-beat slides.'), ('careeros-playbook', 'Playbooks in house style.')]:
+            (self.root / '.claude/skills' / name).mkdir(parents=True, exist_ok=True)
+            (self.root / '.claude/skills' / name / 'SKILL.md').write_text(text, encoding='utf-8')
+        training = self.root / 'training'
+        training.mkdir()
+        (training / '01_house-style.md').write_text('No em dashes.', encoding='utf-8')
+        (training / 'saskia_courses.md').write_text('Course map.', encoding='utf-8')
+        settings = json.loads((self.root / 'settings.json').read_text())
+        (self.root / 'settings.json').write_text(json.dumps(dict(settings, training_dir=str(training))))
+        self.agents.ask(dict(agent_id='saskia', project_id=self.p['id'], message='Turn this into a lesson outline'))
+        system = json.loads(self.log.read_text(encoding='utf-8'))['system']
+        self.assertIn('You are Saskia', system)
+        self.assertIn('Beat-by-beat slides.', system)
+        self.assertIn('Playbooks in house style.', system)
+        self.assertIn('No em dashes.', system)
+        text, dirs = self.agents.training('saskia')
+        self.assertIn('saskia_courses.md', text)
+        self.assertIn(str(training), dirs)
+
     def test_stale_selection_and_bad_requests_are_refused(self):
         self.fake()
         with self.assertRaises(ValueError):

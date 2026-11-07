@@ -49,12 +49,23 @@ class TeamTests(unittest.TestCase):
         Team(self.store)
         data = self.team.all()
         ids = [a['id'] for a in data['agents']]
-        self.assertEqual(sorted(ids), ['laia', 'max', 'sam', 'tariq'])
+        self.assertEqual(sorted(ids), ['laia', 'max', 'sam', 'saskia', 'tariq'])
         agents = {a['id']: a for a in data['agents']}
         self.assertEqual(agents['sam']['name'], 'Bob')  # edited profile kept under the new id
         self.assertEqual(agents['tariq']['name'], 'Tariq')  # untouched profile replaced
         self.assertEqual(data['learnings'][0]['agent_id'], 'laia')
         self.assertEqual(Carousels(self.store).all()['items'][0]['owner'], 'sam')
+
+    def test_new_member_joins_existing_team_in_place(self):
+        with self.store.connect() as c:
+            c.execute("DELETE FROM team_agents WHERE id='saskia'")
+            c.execute("UPDATE team_agents SET position=3 WHERE id='max'")
+        Team(self.store)
+        ids = [a['id'] for a in self.team.all()['agents']]
+        self.assertEqual(ids, ['sam', 'tariq', 'laia', 'saskia', 'max'])
+        saskia = self.team.all()['agents'][3]
+        self.assertEqual((saskia['name'], saskia['workflows']), ('Saskia', ['courses', 'calendar']))
+        self.assertEqual(len(saskia['photo']), 64)
 
     def test_lessons_learned(self):
         lid = str(uuid.uuid4())
