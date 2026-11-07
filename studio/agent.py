@@ -11,6 +11,7 @@ Conversations are kept per video and per team member, so they can be picked up f
 phone or the desktop.
 """
 import json
+import socket
 import os
 import shutil
 import subprocess
@@ -35,6 +36,12 @@ SCHEMA = {
     'required': ['reply', 'replacement'],
 }
 ALLOWED_TOOLS = 'Read,Grep,Glob'
+# Team members who may look things up in Josh's Chrome from their chat (YouTube Studio, community posts, Linklr).
+CHROME = {'sam'}
+CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
+CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
+    'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
+    'tabs_close_mcp', 'navigate', 'read_page', 'get_page_text', 'find', 'computer'))
 DESK_SCHEMA = {
     'type': 'object',
     'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
@@ -140,6 +147,14 @@ class Agents:
                     help='' if path else 'Install Claude Code on this PC and sign in, or set "claude" in settings.json to its full path.')
 
     # Building the prompt ----------------------------------------------------
+    def chrome_device(self):
+        """The Claude in Chrome device ID for this PC's Chrome. "chrome_device" in settings.json can change it."""
+        try:
+            configured = json.loads((self.root / 'settings.json').read_text(encoding='utf-8-sig')).get('chrome_device')
+        except (OSError, ValueError):
+            configured = None
+        return configured or CHROME_DEVICE
+
     def training_dir(self):
         try:
             configured = json.loads((self.root / 'settings.json').read_text(encoding='utf-8-sig')).get('training_dir')
@@ -228,6 +243,11 @@ class Agents:
             '- When something belongs to someone else on the team, name them. Never claim you have spoken to them.',
             '- Use the snapshot of your work below and your training. Read files when you need detail. Never make up a number,',
             '  a post or a result you cannot see. Say what you would need to check instead.',
+            *(["- You can use Josh's Chrome to look things up, such as YouTube Studio, the channel's community posts and Linklr stats.",
+               f"  Use the Chrome on this PC ({socket.gethostname()}), which is the connected browser with device ID {self.chrome_device()}.",
+               '  Select it with select_browser straight away without asking Josh. Open a new tab for your work and close it when you are done.',
+               '  Only look and read. Never post, schedule, delete, change settings, or type into a form from this chat.',
+               '  If a page needs a sign-in, ask Josh to sign in himself.'] if agent['id'] in CHROME else []),
             '- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
             '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.',
             '- When Josh gives you a rule or a preference worth keeping, say you will add it to your lessons and suggest the exact wording.',
@@ -282,7 +302,7 @@ class Agents:
         return '\n'.join(parts)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=()):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -292,7 +312,9 @@ class Agents:
             wrapper = claude.lower().endswith(('.cmd', '.bat'))
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
-                   '--tools', ALLOWED_TOOLS, '--allowedTools', ALLOWED_TOOLS]
+                   '--tools', ALLOWED_TOOLS, '--allowedTools', ALLOWED_TOOLS + (',' + CHROME_TOOLS if chrome else '')]
+            if chrome:
+                cmd.append('--chrome')
             for d in dirs:
                 cmd += ['--add-dir', d]
             if not wrapper:
@@ -302,7 +324,7 @@ class Agents:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
                 out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding='utf-8',
-                                     cwd=str(self.root), timeout=TIMEOUT,
+                                     cwd=str(self.root), timeout=TIMEOUT * 2 if chrome else TIMEOUT,
                                      creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except subprocess.TimeoutExpired:
                 raise AgentError('That took too long, so I stopped. Try a smaller selection.') from None
@@ -386,7 +408,7 @@ class Agents:
                 for m in history[-12:]:
                     parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
             parts += ['', f'Josh: {message}']
-            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs)
+            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs, chrome=agent_id in CHROME)
         finally:
             lock.release()
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
