@@ -60,9 +60,32 @@ No API keys are written in the code. Stripe and Calendly keys are entered on the
 | `*.exe`, `build/`, `dist/` | Built launchers, rebuilt from `ui/*.cs` with `build.ps1` and `build-josh-os.ps1` |
 | `__pycache__/`, `*.pyc`, `*.log` | Caches and logs |
 
+## Workflows and the team
+
+The side rail is grouped by workflow. **Calendar** shows videos, carousels, emails and tasks together. **YouTube videos**, **Carousels**, **Editing** and **Email** each have their own page, and **Clients** sits at the bottom until the client workflow is built.
+
+**Team** holds the AI team members, who are Bob (Content & YouTube Manager), Eddie (Video Editor), Vera (Email Writer) and Max (Business Manager, coming later). Each profile has a name, photo, colour, mission, responsibilities, workflows, skills and a check-in schedule, all editable on the page. The **Lessons learned** log on the same page collects what works and what doesn't, so every agent can read it before starting work. The agents don't run yet, and the chat box on each profile is a placeholder for the next build. Profiles and lessons live in `studio/team.py`, carousels in `studio/carousels.py`.
+
+Video pages, carousels and team profiles save themselves a moment after you stop typing. Ctrl+S still saves a video straight away. Script edits made within 15 minutes of each other are folded into one draft version, so the version history stays readable.
+
+## Using Josh OS on your phone
+
+Josh OS only listens on this PC. To reach it from a phone, it uses Tailscale, which gives your phone a private, encrypted route to this PC that nobody outside your Tailscale account can use.
+
+1. Install Tailscale on this PC and on your phone, and sign in to the same account on both.
+2. Find this PC's Tailscale name in the Tailscale app (it looks like `josh-pc.tail1234.ts.net`) and add it to `settings.json`:
+   ```json
+   "phone_access": {"host": "josh-pc.tail1234.ts.net", "port": 8765}
+   ```
+3. Restart Josh OS. It now always runs on port 8765.
+4. On this PC, run `tailscale serve --bg 8765` once. Tailscale keeps forwarding `https://josh-pc.tail1234.ts.net` to Josh OS after restarts.
+5. In Josh OS, click **Use on your phone** at the bottom of the side rail, copy the link, and open it on your phone. Then use **Add to Home Screen** so it opens like an app.
+
+The phone link contains a key, which is stored in `Data/phone-access.json` and stays the same across restarts. To sign every phone out, delete that file and restart Josh OS. Never use `tailscale funnel`, because that would put Josh OS on the public internet.
+
 ## Layout
 
-- `studio/` is the app itself. It holds the server, its modules (admin, Kit, lessons, thumbnails, writing, tasks, jobs) and the web UI in `studio/web/`.
+- `studio/` is the app itself. It holds the server, its modules (admin, Kit, lessons, thumbnails, writing, tasks, jobs, team, carousels, phone access) and the web UI in `studio/web/`.
 - `dajoshi/` is the video engine (media, transcription, editing plan, keying, animation, export).
 - `worker.py`, `keying_runner.py`, `export_saved.py`, `reedit_saved.py` and `script_bridge.py` are the command-line tools.
 - `ui/` holds the C# launchers.

@@ -17,6 +17,9 @@ from .thumbnail_creator import ThumbnailCreator
 from .admin import Admin
 from .youtube_recording import Recording
 from .project_folders import ProjectFolders
+from .team import Team
+from .carousels import Carousels
+from .phone import PhoneAccess
 
 def preview(data_root,file,width):
     import hashlib,io
@@ -46,10 +49,13 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
+        self.team=Team(self.store);self.carousels=Carousels(self.store)
+        self.phone=PhoneAccess(self.root,self.store.root)
+        if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
         threading.Thread(target=self.admin.loop,daemon=True).start()
         threading.Thread(target=self.kit_loop,daemon=True).start()
-        self.token=secrets.token_urlsafe(32);self.demo=demo;self.picker_lock=threading.Lock()
+        self.token=self.phone.key or secrets.token_urlsafe(32);self.demo=demo;self.picker_lock=threading.Lock()
         super().__init__(('127.0.0.1',port),Handler)
         threading.Thread(target=self.project_folders.loop,daemon=True).start()
     def server_close(self):
@@ -72,9 +78,10 @@ class Handler(BaseHTTPRequestHandler):
     server_version='DaJoshiResolve'
     def log_message(self,fmt,*args):pass
     def authorized(self):
-        if self.headers.get('Host')!='127.0.0.1:'+str(self.server.server_port):return False
+        local='127.0.0.1:'+str(self.server.server_port);phone=getattr(self.server,'phone',None) or PhoneAccess.off()
+        if self.headers.get('Host') not in (local,*phone.hosts()):return False
         origin=self.headers.get('Origin')
-        if origin and origin!='http://127.0.0.1:'+str(self.server.server_port):return False
+        if origin and origin not in ('http://'+local,*phone.origins()):return False
         q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
         cookie=SimpleCookie()
         try:cookie.load(self.headers.get('Cookie',''))
@@ -137,6 +144,10 @@ class Handler(BaseHTTPRequestHandler):
                 if path in ('/tasks.js','/tasks.css','/task-links.js'):
                     return self.send((Path(__file__).parent/'web'/path[1:]).read_bytes(),mime='text/css; charset=utf-8' if path.endswith('.css') else 'text/javascript; charset=utf-8')
                 if path=='/api/tasks':return self.send(s.tasks.all())
+                if path=='/api/team':return self.send(s.team.all())
+                if path=='/api/carousels':return self.send(s.carousels.all())
+                if path=='/api/phone':return self.send(s.phone.status(s.token))
+                if path=='/manifest.webmanifest':return self.send(s.phone.manifest(),mime='application/manifest+json')
                 if path in ('/emails.js','/emails.css','/email-view.js'):
                     p=Path(__file__).parent/'web'/path[1:]
                     return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
@@ -165,7 +176,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/carousels.js','/editing.js','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -264,6 +275,11 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/admin/update':return self.send(s.admin.update(data['id'],data.get('changes',{})))
                 if path=='/api/admin/create-folder':return self.send(s.admin.create_folder(data['id']))
             if path=='/api/tasks' and method=='POST':return self.send(s.tasks.create(data))
+            if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
+            if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
+            if len(parts)==4 and parts[:3]==['api','team','learnings'] and method=='POST' and data.get('delete') is True:return self.send(s.team.forget(parts[3]))
+            if path=='/api/carousels' and method=='POST':return self.send(s.carousels.create(data))
+            if len(parts)==3 and parts[:2]==['api','carousels'] and method=='PUT':return self.send(s.carousels.save(parts[2],data['changes'],data['revision']))
             if len(parts)==3 and parts[:2]==['api','tasks'] and method=='PUT':return self.send(s.tasks.save(parts[2],data['changes'],data['revision']))
             if path=='/api/kit/connect' and method=='POST':
                 r=s.emails.kit.connect(data)

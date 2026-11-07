@@ -36,6 +36,30 @@ def record(store,c,project,label,source):
     return version
 
 
+DRAFT_WINDOW_SECONDS=15*60
+
+
+def refresh_draft(c,latest,project):
+    """Fold autosaves into the newest editor draft when it is under 15 minutes old.
+
+    Autosave writes every few seconds, so without this each pause in typing would add a
+    version. Approved versions and versions from other sources are never changed.
+    """
+    from datetime import datetime,timezone
+    if not latest:return False
+    version=json.loads(latest['body'])
+    if version.get('source')!='editor' or version.get('approval')!='draft':return False
+    try:age=(datetime.now(timezone.utc)-datetime.fromisoformat(version['created_at'])).total_seconds()
+    except (KeyError,ValueError):return False
+    if not 0<=age<DRAFT_WINDOW_SECONDS:return False
+    path=Path(version['path'])
+    if not path.is_file():return False
+    content=project['script'];path.write_text(content,encoding='utf-8')
+    version.update(content=content,sha256=hashlib.sha256(content.encode('utf-8')).hexdigest(),project_revision=project['revision'],updated_at=now())
+    c.execute('UPDATE script_versions SET project_revision=?,body=? WHERE id=?',(project['revision'],json.dumps(version),version['id']))
+    return True
+
+
 class Writing:
     def __init__(self,store):self.store=store
     def context(self,root,pid,revision,start,end,job,pass_id=None,scope='selection'):

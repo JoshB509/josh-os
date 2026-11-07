@@ -95,7 +95,8 @@ class Store:
             if p['script']!=previous['script'] or not latest or json.loads(latest['body'])['content']!=p['script']:
                 from .writing import record
                 if not c.execute('SELECT 1 FROM script_versions WHERE project_id=?',(pid,)).fetchone():record(self,c,previous,'Before first edit','migration')
-                record(self,c,p,'Saved in editor','editor')
+                from .writing import refresh_draft
+                if not refresh_draft(c,latest,p):record(self,c,p,'Saved in editor','editor')
             c.execute('UPDATE projects SET revision=?,body=? WHERE id=?',(p['revision'],json.dumps(p),pid))
         return p
     def import_image(self,name,data):
