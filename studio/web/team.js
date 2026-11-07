@@ -109,7 +109,7 @@ function renderTeamProfile(){
 function roomChat(a){
   const msgs=roomThread[a.id]||[],busy=roomBusy===a.id,off=roomStatus&&!roomStatus.available,later=a.status==='Coming later';
   const quick=a.id==='sam'?['What are you working on?','How far ahead is the carousel queue?','What is working best right now?','What should we test next?']:['What are you working on?','What do you need from me?'];
-  return `<header class="room-head">${teamAvatar(a,'sm')}<div><b>Chat with ${esc(a.name)}</b><small>${later?'Starts later':off?'Offline on this PC':busy?'Thinking…':'Reads your files and training, but can’t change anything from here'}</small></div></header>
+  return `<header class="room-head">${teamAvatar(a,'sm')}<div><b>Chat with ${esc(a.name)}</b><small>${later?'Starts later':off?'Offline on this PC':busy?'Thinking…':(a.id==='sam'?'Reads your files and training, and uses Chrome to post and check stats':'Reads your files and training, but can’t change anything from here')}</small></div></header>
     <div class="room-thread" id="room-thread">${!roomLoaded[a.id]?deskSkeletonSafe():msgs.length?msgs.map(roomMessage).join(''):`<div class="sam-empty"><p>Ask ${esc(a.name)} what's in progress, talk through ideas, or give direction.</p></div>`}
       ${busy?'<div class="sam-msg agent typing"><span></span><span></span><span></span></div>':''}</div>
     ${off?`<p class="sam-off">${esc(roomStatus.help)}</p>`:''}

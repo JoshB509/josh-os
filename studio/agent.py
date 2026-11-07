@@ -41,7 +41,8 @@ CHROME = {'sam'}
 CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
 CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
     'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
-    'tabs_close_mcp', 'navigate', 'read_page', 'get_page_text', 'find', 'computer'))
+    'tabs_close_mcp', 'navigate', 'read_page', 'get_page_text', 'find', 'computer', 'browser_batch',
+    'form_input', 'file_upload', 'upload_image'))
 DESK_SCHEMA = {
     'type': 'object',
     'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
@@ -243,13 +244,17 @@ class Agents:
             '- When something belongs to someone else on the team, name them. Never claim you have spoken to them.',
             '- Use the snapshot of your work below and your training. Read files when you need detail. Never make up a number,',
             '  a post or a result you cannot see. Say what you would need to check instead.',
-            *(["- You can use Josh's Chrome to look things up, such as YouTube Studio, the channel's community posts and Linklr stats.",
+            *(["- You can use Josh's Chrome to do your work, such as YouTube Studio, posting and scheduling carousels on the community tab,",
+               '  scheduling videos, and reading stats on YouTube and Linklr. Use the carousel files on the E drive for uploads.',
                f"  Use the Chrome on this PC ({socket.gethostname()}), which is the connected browser with device ID {self.chrome_device()}.",
                '  Select it with select_browser straight away without asking Josh. Open a new tab for your work and close it when you are done.',
-               '  Only look and read. Never post, schedule, delete, change settings, or type into a form from this chat.',
+               '  When Josh asks you to post or schedule something, do it. If he did not say which post, file or time, ask first.',
+               '  Never delete anything or change channel or account settings unless he asks for that exact change. Tell him what you did.',
                '  If a page needs a sign-in, ask Josh to sign in himself.'] if agent['id'] in CHROME else []),
-            '- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
-            '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.',
+            *(['- You cannot edit files or Josh OS cards from this chat yet. When a card needs changing, tell Josh what to change.']
+              if agent['id'] in CHROME else
+              ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
+               '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.']),
             '- When Josh gives you a rule or a preference worth keeping, say you will add it to your lessons and suggest the exact wording.',
             '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
             '  No "it isn\'t X, it\'s Y" framing, no colons that split a sentence, no fragment lists, and don\'t say why something matters.',
