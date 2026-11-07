@@ -38,7 +38,7 @@ script=function(){
 };
 function samAgent(){return team?.agents?.find(a=>a.id==='sam')}
 function samPanel(){
-  const a=samAgent()||{name:'Sam',color:'#2383e2',role:'Content & YouTube Manager',photo:''};
+  const a=samAgent()||{name:'Sam',color:'#2383e2',role:'YouTube Channel Manager',photo:''};
   const off=samStatus&&!samStatus.available;
   const quick=samSel?['Tighten this','Make this a stronger signpost','Turn this into a Parker line','Rewrite in Ed\'s rhythm']:['Review my hook','Check every signpost','Where does it drag?','Write the close'];
   return `<header class="sam-head" style="--agent:${esc(a.color)}">${teamAvatar(a,'sm')}<div><b>${esc(a.name)}</b><small>${off?'Offline on this PC':samBusy?'Working on it…':'Using your script-touch-up skill'}</small></div></header>

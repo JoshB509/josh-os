@@ -59,6 +59,34 @@ TRAINING = {
 }
 
 
+PERSONALITIES = Path('team') / 'personalities.md'
+SHARED_SECTIONS = ('purpose', '5.', '6.', '7.')
+
+
+def personality(root, agent):
+    """The Purpose, this person's own section and the shared sections of team/personalities.md."""
+    file = Path(root) / PERSONALITIES
+    if not file.is_file():
+        return ''
+    sections, head, body = [], None, []
+    for line in file.read_text(encoding='utf-8').splitlines():
+        if line.startswith('## '):
+            if head is not None:
+                sections.append((head, body))
+            head, body = line[3:].strip(), []
+        elif head is not None:
+            body.append(line)
+    if head is not None:
+        sections.append((head, body))
+    names = {agent['id'].lower(), str(agent.get('name', '')).lower()}
+    def wanted(h):
+        h = h.lower()
+        title = h.split('.', 1)[-1].strip() if h[:1].isdigit() and '.' in h else h
+        return title in names or h.startswith(SHARED_SECTIONS)
+    picked = [f'## {h}\n' + '\n'.join(b).strip() for h, b in sections if wanted(h)]
+    return '\n\n'.join(picked)
+
+
 class AgentError(RuntimeError):
     pass
 
@@ -141,15 +169,25 @@ class Agents:
         file = self.root / '.claude' / 'skills' / name / 'SKILL.md'
         return file.read_text(encoding='utf-8') if file.is_file() else ''
 
+    def roster(self, agent):
+        """Who else is on the team, so people refer work to each other by name."""
+        others = [a for a in self.team.all()['agents'] if a['id'] != agent['id']]
+        return 'The rest of the team: ' + '; '.join(f"{a['name']} ({a['role']}{', starts later' if a['status'] == 'Coming later' else ''})" for a in others) + '.'
+
     def system_prompt(self, agent, learnings):
         lines = [
             f"You are {agent['name']}, {agent['role']} on Josh's team at CareerOS. You work inside Josh OS, his studio app.",
             f"Your mission: {agent['mission']}",
             f"Your personality: {agent['personality']}",
             'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
+            self.roster(agent),
             '',
             'How to work with Josh:',
-            '- Talk like a sharp colleague. Keep replies short, lead with your recommendation, then ask for a yes.',
+            '- Be yourself, as described in "Who you are" below. Talk like his colleague, keep it short, and give your view.',
+            '  Only ask a question when you need a decision or a missing piece to move the work on.',
+            '- Write chat replies the way you would message a colleague. Plain sentences, no headings and no bold.',
+            '  Use a short list only when you are naming three or more separate things. Most replies are under 120 words.',
+            '- When something belongs to someone else on the team, name them. Never claim you have spoken to them.',
             '- When he selects a passage and asks for a change, put the full rewritten passage in "replacement" so he can drop it in.',
             '  Keep anything he did not ask you to change. Match his formatting, including any # headings.',
             '- When he asks a question or wants your view, answer in "reply" and leave "replacement" null.',
@@ -158,6 +196,9 @@ class Agents:
             '  curiosity lines, audience-communication.md, magnet-index.md, parker-checkout-and-bumps.md). Read them when you need them.',
             '- Never claim a client result, number or fact you cannot see in the material. Put it in [square brackets] for Josh to check.',
         ]
+        persona = personality(self.root, agent)
+        if persona:
+            lines += ['', '=== Who you are (team/personalities.md) ===', persona]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         for name in SKILLS.get(agent['id'], []):
@@ -177,10 +218,14 @@ class Agents:
             f"Your personality: {agent['personality']}",
             'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
             f"Your check-in: {agent['check_in']}",
+            self.roster(agent),
             '',
             'This is the chat on your own page in Josh OS. Josh comes here to ask what you are working on, talk through plans and ideas,',
             'ask about results, and give you direction.',
-            '- Talk like a sharp colleague. Keep replies short and plain, lead with your answer or recommendation.',
+            '- Be yourself, as described in "Who you are" below. Keep replies short and plain, and give your view.',
+            '- Write chat replies the way you would message a colleague. Plain sentences, no headings and no bold.',
+            '  Use a short list only when you are naming three or more separate things. Most replies are under 120 words.',
+            '- When something belongs to someone else on the team, name them. Never claim you have spoken to them.',
             '- Use the snapshot of your work below and your training. Read files when you need detail. Never make up a number,',
             '  a post or a result you cannot see. Say what you would need to check instead.',
             '- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
@@ -189,6 +234,9 @@ class Agents:
             '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
             '  No "it isn\'t X, it\'s Y" framing, no colons that split a sentence, no fragment lists, and don\'t say why something matters.',
         ]
+        persona = personality(self.root, agent)
+        if persona:
+            lines += ['', '=== Who you are (team/personalities.md) ===', persona]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         if training:

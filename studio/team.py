@@ -26,13 +26,21 @@ LEARNING_FIELDS = {'agent_id', 'workflow', 'lesson', 'evidence'}
 PHOTOS = Path(__file__).parent / 'team_photos'
 # The first draft of the team used other names. Old rows move to the new ids.
 RENAMED = {'bob': 'sam', 'eddie': 'tariq', 'vera': 'laia'}
+# Earlier default roles and personalities. Profiles still on these move to the ones in
+# team/personalities.md; anything Josh has edited by hand is left alone.
+OLD_DEFAULTS = {
+    'sam': {'role': ['Content & YouTube Manager'], 'personality': ['Upbeat, direct and organised. Brings a plan with a recommendation, then asks for a yes.']},
+    'tariq': {'personality': ['Calm and precise. Reports what changed and flags anything that needs Josh\'s eye.']},
+    'laia': {'role': ['Email Writer'], 'personality': ['Warm, sharp with words, and honest about weak subject lines.']},
+    'saskia': {'role': ['L&D Content Lead'], 'personality': ['Warm, structured and practical. Thinks in learning outcomes and what the learner does next.']},
+}
 
 SEEDS = [
-    dict(id='sam', name='Sam', role='Content & YouTube Manager', color='#2383e2',
+    dict(id='sam', name='Sam', role='YouTube Channel Manager', color='#2383e2',
          mission='Keep the YouTube channel moving. Sam plans and makes the carousels, helps shape '
                  'video ideas, scripts, titles and thumbnails, posts content, and tracks how each '
                  'piece performs against the channel goals.',
-         personality='Upbeat, direct and organised. Brings a plan with a recommendation, then asks for a yes.',
+         personality='Practical, analytical and confident, with a dry sense of humour. Backs the ideas that will work and challenges the ones that won\'t.',
          responsibilities=['Plan, write and design carousels, then post them once approved',
                            'Help develop video ideas, scripts, titles and thumbnails',
                            'Keep the YouTube board and calendar up to date',
@@ -46,7 +54,7 @@ SEEDS = [
     dict(id='tariq', name='Tariq', role='Video Editor', color='#9065b0',
          mission='Turn recorded footage into finished videos. Tariq runs the editing workflow from '
                  'transcript to clean cut, flubs, keying, animations and the Premiere export.',
-         personality='Calm and precise. Reports what changed and flags anything that needs Josh\'s eye.',
+         personality='Relaxed, creative and slightly sarcastic. Particular about pacing and quality, and pushes back when a change would make the video worse.',
          responsibilities=['Pick up videos once they are recorded',
                            'Run the transcribe, clean cut, flubs and keying passes',
                            'Prepare the animation deck and shot list',
@@ -55,10 +63,10 @@ SEEDS = [
          skills=['video-editing-prep', 'Josh OS editing engine'],
          check_in='When a recording lands, and when an edit is ready for review.',
          status='Draft'),
-    dict(id='laia', name='Laia', role='Email Writer', color='#d9730d',
+    dict(id='laia', name='Laia', role='Email Copywriter', color='#d9730d',
          mission='Write the newsletters and sequences in Josh\'s voice, keep drafts at least two weeks '
                  'ahead, and track how each email performs in Kit.',
-         personality='Warm, sharp with words, and honest about weak subject lines.',
+         personality='Warm, observant and witty. Makes commercial emails sound personal and calls out anything that reads like marketing.',
          responsibilities=['Draft four newsletters a week for review',
                            'Keep the email buffer at least two weeks ahead',
                            'Schedule approved emails in Kit',
@@ -68,11 +76,11 @@ SEEDS = [
          skills=['Email writing scripts', 'Email reference library', 'Kit'],
          check_in='Monday and Thursday, with the buffer and last week\'s results.',
          status='Draft'),
-    dict(id='saskia', name='Saskia', role='L&D Content Lead', color='#b5487a',
+    dict(id='saskia', name='Saskia', role='Learning & Development / Course Designer', color='#b5487a',
          mission='Turn what Josh teaches into course content people finish. Saskia plans and writes the CareerOS '
                  'lessons for Heard at the Top and Promoted in 6, builds the lesson slides, makes the playbooks, '
                  'cheat sheets and worksheets, and keeps lesson recording on track.',
-         personality='Warm, structured and practical. Thinks in learning outcomes and what the learner does next.',
+         personality='Thoughtful, composed and subtly dry. Challenges anything without a clear learning outcome, and turns ideas into lessons people can apply.',
          responsibilities=['Plan each course and lesson around what the learner can do afterwards',
                            'Write and tighten lesson scripts in Josh\'s voice',
                            'Build beat-by-beat lesson slides ready to record',
@@ -119,12 +127,25 @@ class Team:
             c.execute('CREATE TABLE IF NOT EXISTS team_learnings(id TEXT PRIMARY KEY,agent_id TEXT NOT NULL,body TEXT NOT NULL)')
             c.execute('BEGIN IMMEDIATE')
             self._rename(c)
+            self._refresh_defaults(c)
             for i, seed in enumerate(SEEDS):
                 if not c.execute('SELECT 1 FROM team_agents WHERE id=?', (seed['id'],)).fetchone():
                     # New team members join in their place in the list, ahead of anyone after them.
                     c.execute('UPDATE team_agents SET position=position+1 WHERE position>=?', (i,))
                     agent = dict(seed, revision=1, photo=photos[seed['id']], created_at=now(), updated_at=now())
                     c.execute('INSERT INTO team_agents VALUES(?,?,?,?)', (seed['id'], 1, i, json.dumps(agent)))
+
+    def _refresh_defaults(self, c):
+        seeds = {s['id']: s for s in SEEDS}
+        for aid, old in OLD_DEFAULTS.items():
+            row = c.execute('SELECT revision,body FROM team_agents WHERE id=?', (aid,)).fetchone()
+            if not row:
+                continue
+            agent = json.loads(row['body'])
+            changes = {k: seeds[aid][k] for k, values in old.items() if agent.get(k) in values}
+            if changes:
+                agent.update(changes, revision=row['revision'] + 1, updated_at=now())
+                c.execute('UPDATE team_agents SET revision=?,body=? WHERE id=?', (agent['revision'], json.dumps(agent), aid))
 
     def _photo(self, aid):
         """Import the bundled default photo for a team member, if there is one."""

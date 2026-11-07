@@ -67,6 +67,15 @@ class TeamTests(unittest.TestCase):
         self.assertEqual((saskia['name'], saskia['workflows']), ('Saskia', ['courses', 'calendar']))
         self.assertEqual(len(saskia['photo']), 64)
 
+    def test_old_default_roles_update_but_edited_ones_stay(self):
+        self.team.save('laia', {'role': 'Email Writer', 'personality': 'My own words.'}, 1)
+        self.team.save('sam', {'role': 'Content & YouTube Manager'}, 1)
+        Team(self.store)
+        agents = {a['id']: a for a in self.team.all()['agents']}
+        self.assertEqual(agents['laia']['role'], 'Email Copywriter')
+        self.assertEqual(agents['laia']['personality'], 'My own words.')
+        self.assertEqual(agents['sam']['role'], 'YouTube Channel Manager')
+
     def test_lessons_learned(self):
         lid = str(uuid.uuid4())
         item = self.team.learn({'id': lid, 'agent_id': 'sam', 'workflow': 'carousels', 'lesson': 'Lead with a number'})

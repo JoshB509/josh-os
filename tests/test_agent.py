@@ -87,6 +87,19 @@ class AgentTests(unittest.TestCase):
         self.assertIn('saskia_courses.md', text)
         self.assertIn(str(training), dirs)
 
+    def test_personality_file_gives_each_person_their_section_and_the_shared_rules(self):
+        self.fake()
+        (self.root / 'team').mkdir()
+        (self.root / 'team/personalities.md').write_text(
+            '# Profiles\n\n## Purpose\nBe colleagues.\n\n## 1. Sam\nDry humour.\n\n## 3. Laia\nPlayful.\n\n'
+            '## 5. Shared Team Communication Principles\nNo "Great question!".\n\n## 6. Team Dynamics\nDisagree usefully.\n', encoding='utf-8')
+        self.ask()
+        system = json.loads(self.log.read_text(encoding='utf-8'))['system']
+        for text in ['Be colleagues.', 'Dry humour.', 'No "Great question!".', 'Disagree usefully.']:
+            self.assertIn(text, system)
+        self.assertNotIn('Playful.', system)
+        self.assertNotIn('then ask for a yes', system)
+
     def test_stale_selection_and_bad_requests_are_refused(self):
         self.fake()
         with self.assertRaises(ValueError):
