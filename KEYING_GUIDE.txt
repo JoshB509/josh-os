@@ -1,0 +1,59 @@
+DaJoshiResolve - local CorridorKey integration
+
+Editing tab:
+1. Choose the original camera recording and optional better microphone.
+2. Enable local CorridorKey. Set a short source range first (seconds on the
+   original camera clock). The default is five seconds, plus one-second handles.
+3. Render source preview. Adjust the source polygon by dragging its points,
+   bottom crop, feather, presenter scale and horizontal/vertical offsets.
+   Render again to review changes. Check gestures before cropping the table:
+   hands resting on the table may also be removed by a high crop line.
+4. Build editable draft runs keying before speech editing, sync measurement,
+   transcript/acoustic cuts, final timing mapping and HTML shot assembly.
+   Existing approved composites can leave keying disabled.
+
+Saved project revisions retain these controls. Starting an edit checks the saved
+revision. Each run has its own request, status, logs and output folder. Cancel
+stops only that run's child processes. Resume verifies code, settings and source
+identity. A separate GPU lock prevents concurrent keying jobs. OBS being open
+pauses media work; the app never closes or controls OBS/Premiere.
+
+Outputs:
+- KEYING_PREVIEW.mp4: original / framed light / framed dark / framed alpha.
+  Includes the selected range's extra handles; silent, review-only opaque video.
+- keying/raw.mov: straight-alpha ProRes 4444 master before adjustable mask/crop.
+- keying/masked.mov: straight-alpha ProRes 4444 after saved garbage mask/crop.
+- keying/manifest.json: exact first source frame, coverage, frame rate, settings,
+  file hashes, cache identity and reuse count. No approval is inferred.
+- EDITABLE_DRAFT.xml: separate animation clips, disabled original-camera recovery
+  track, keyed presenter track and original microphone tracks. Source framing is
+  inside the presenter nest; outer transforms control full/PiP/side positioning.
+- timing_map.json: original source frames remain authoritative for all stages.
+- REVIEW_PREVIEW.mp4: edited review including audio and animation/layout changes.
+- exceptions.csv: uncertain editorial decisions; use existing override workflow.
+
+Changing mask/crop/framing reuses verified raw frame results when source range,
+resolution, model, runner and despill are unchanged. A different range currently
+creates a separate cache. Cached raw frames use linear premultiplied half-float
+EXR; delivered MOV files are straight alpha with sRGB transfer tagging. Original
+camera and microphone files are never rewritten. Mask/crop are regenerated in
+the app, not editable Premiere effect masks. Presenter framing and layouts are
+represented as separate editable Basic Motion transforms in XML nests.
+
+Current limits:
+- A five-second 25 fps fixture passed native import and playback in Premiere
+  25.3, including alpha, media links and separate nested/outer Motion transforms.
+  Evidence: Evidence/PremiereNativeTest-20261015/native-verification.json.
+  Other rates and new runs still need native review. Human listening and
+  subjective lip-sync remain unverified. The test .prproj was saved by Premiere;
+  the app does not construct native .prproj files.
+- This keying input path supports tagged SDR BT.709 constant-rate source with
+  zero-start timestamps. Unsupported/HDR/irregular VFR input fails explicitly.
+- Timing maps support rational rates. XMEML exports integer and n*1000/1001
+  frame rates; other rational rates currently fail before costly work.
+- No full recording was processed. Keep the first preview short. Raw frame
+  caches and transparent masters consume substantial local disk space.
+- The automatic editor can make uncertain choices; review the exceptions and
+  listen to the resulting edit. New outputs remain unapproved.
+- The software-engineering skill requested for this integration was unavailable
+  in this environment; implementation followed the installed app/test conventions.

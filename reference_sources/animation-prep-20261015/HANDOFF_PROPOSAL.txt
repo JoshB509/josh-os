@@ -1,0 +1,31 @@
+DaJoshiResolve animation and shot-list handoff
+Status: PROPOSED — NOT IMPLEMENTED OR COMPATIBILITY-VERIFIED
+Source request: Josh, message Sentinel_b58a6335f4448191bd28ab0bbf986c8d.
+Intent: after accurate transcription and a finalized cut, the dot creates the creative shot list and HTML; the local app renders and assembles them.
+
+Preserved references
+- SKILL.md: supplied video-editing-prep skill, unchanged.
+- 2026-10_executive-communication-program_vsl_slides_v01.html: supplied reference deck, unchanged.
+- PROVENANCE.json records the original Library identities, versions, byte sizes and SHA-256 hashes.
+These are archived workflow references. This save does not install an adapter, generate a deck, or approve a production edit. Existing source rules remain in place.
+
+Proposed inputs to creative preparation
+1. A finalized retained-word transcript. Give each word a stable ID, exact text, original source-media identity and source timing, plus final timeline timing derived from the authoritative source-to-output map. Distinguish corrected transcript text from uncertain recognition.
+2. The cut revision and timing-map identity/hash, actual rational frame rate, script reference and unresolved exceptions. Preserve omitted source words separately so deleted anchors can be detected.
+3. Approved source/keyed presenter, saved framing and the fixed PiP slot geometry. Source media remains recoverable and separate from graphics.
+
+Proposed creative output
+Follow the supplied skill's creative decisions and house style. Preserve the script wording in the two-column script/shot list. Select talking-head, full-screen animation or PiP as appropriate. Represent animation sections, reveal beats and shot boundaries with stable IDs and retained-word anchors; do not rely only on manually typed timestamps. Specify the intended reveal relative to its word and explicit transition and hold durations. A creative beat may need more than one word anchor.
+
+Proposed local validation and assembly
+Resolve anchors through the finalized timing map and derive frame positions at the actual project rate. Reject missing/ambiguous IDs and out-of-order or out-of-range cues. Flag deleted anchors for review instead of guessing. A changed cut invalidates derived timing approval when its anchors, positions or durations change; unchanged creative content may remain reusable, but must be revalidated against the new map. Tie each approval to the relevant cut, map, deck and shot-list revisions/hashes.
+
+Render a review preview with clean synchronized audio for user approval. Preserve separate movable animation clips and extendable holds in the editable timeline; place the keyed presenter into the fixed PiP slot using editable framing/layout transforms. Keep the original sources and handles recoverable. This approval is a future workflow step, not an approval inferred from saving these references.
+
+Deterministic rendering requirements
+Use an explicit frame/time clock for each reveal, transition and hold, including CSS transitions and any stagger delays. Verify fonts and assets are locally available and ready; prohibit runtime external requests. Repeated renders should agree for a given deck, clock, assets and settings. Exclude navigation number cards, HUD/beat counter and the grey CAMERA placeholder from final graphics. Keep those authoring aids in the unchanged reference; production suppression belongs in a separately verified render mode or adapter. Insert the actual keyed presenter during assembly.
+
+Reference contract and compatibility boundary
+The supplied reference has 21 animation scenes (11 full-screen, 10 PiP), with number cards and beats 0–74. It uses manual go(n), scene data-from/data-to and element data-b/data-off attributes, with wall-clock CSS transitions. Its fixed PiP slot is left 1322, top 202, width 518, height 674 on a 1920×1080 frame. The authoring skill intentionally includes number cards for manual screen recording; the proposed automated render would omit them from final clips.
+
+The presence of go(n) alone does not establish deterministic capture or compatibility. Do not assume the existing 88-beat renderer understands this reference. Before implementing an adapter, verify scene/beat semantics, reveal-off behavior, font readiness, transition clocks, PiP geometry, authoring-aid suppression, holds and source-map alignment on a short fixture. No adapter or new deck was implemented as part of this archival handoff.

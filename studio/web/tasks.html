@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="dj-token" content="__TOKEN__"><title>Tasks &amp; Goals · Josh OS</title><link rel="icon" type="image/png" sizes="256x256" href="/icon.png?v=joshos-20261022"><meta name="theme-color" content="#191919"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/tasks.css"><link rel="stylesheet" href="/brand-fonts.css"><link rel="stylesheet" href="/brand.css"></head><body>
+<aside class="rail"><a class="brand" href="/#board"><img src="/icon.png?v=joshos-20261022" alt=""><span>Josh OS</span></a><nav aria-label="Workspace">
+<a class="nav" href="/#board"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="m6 6 4 2-4 2z"/></svg>YouTube</a>
+<a class="nav" href="/#email"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="m2 4 6 5 6-5"/></svg>Email</a>
+<a class="nav" href="/#calendar"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6h12M5 2v3M11 2v3"/></svg>Calendar</a>
+<a class="nav" href="/#inspiration"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>Library</a>
+<a class="nav" href="/lessons"><svg viewBox="0 0 16 16"><path d="M2 4.5 8 2l6 2.5L8 7zM4 6v4c3 2 5 2 8 0V6"/></svg>Lessons</a>
+<a class="nav active" href="/tasks" aria-current="page"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="m5 8 2 2 4-4"/></svg>Tasks &amp; Goals</a>
+<a class="nav" href="/#archive"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v7h10V6M6 9h4"/></svg>Archive</a>
+</nav><div class="rail-label">Admin</div><nav aria-label="Admin"><a class="nav" href="/admin#clients"><svg viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.8 13.5c.6-2.4 2.2-3.6 4.2-3.6s3.6 1.2 4.2 3.6"/><path d="M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12 9.9c1.2.4 2 1.6 2.3 3.6"/></svg>Clients</a><a class="nav" href="/admin#customers"><svg viewBox="0 0 16 16"><path d="M2 3h1.6l1.6 7.4h7.2L14 5.2H4.3"/><circle cx="6" cy="13" r="1"/><circle cx="11.6" cy="13" r="1"/></svg>Customers</a></nav></aside>
+<main><div class="topbar"><div class="crumbs">Workspace <span aria-hidden="true">/</span> Tasks &amp; Goals</div></div>
+<div class="tasks-page"><header><div class="heading-row"><h1>Tasks &amp; Goals</h1><button class="primary" id="new-task">+ New task</button></div><p>A clear view of what matters, what’s moving, and what can wait.</p></header>
+<div id="load-error" role="alert" hidden><span id="load-error-text"></span> <button id="retry-load">Try again</button></div><div id="tasks-loading" role="status">Loading your plans…</div>
+<div id="tasks-content" hidden><div class="section-head"><h2>Goals</h2><button class="subtle" id="new-goal">+ Add goal</button></div><div class="goals-grid" id="goals"></div>
+<div class="section-head"><h2>Tasks</h2></div><div class="tasks-tools"><input type="search" id="task-search" placeholder="Find a task or goal…" aria-label="Find a task or goal"><small id="task-summary" role="status"></small></div><div id="task-groups"></div>
+<details id="completed-section"><summary id="completed-label">Completed</summary><div id="completed-list"></div></details></div></div></main>
+<dialog id="task-dialog" aria-labelledby="dialog-title"><form id="task-form"><h2 id="dialog-title">New task</h2>
+<label>Title<input id="item-title" required maxlength="240" autocomplete="off" placeholder="What needs to happen?"></label>
+<div class="field-pair"><label>Type<select id="item-kind"><option value="task">Task</option><option value="goal">Goal</option></select></label><label>Status<select id="item-status"></select></label></div>
+<label>Next step <span class="optional">optional</span><textarea id="item-next" maxlength="1000" rows="3" placeholder="One small step, or what you’re waiting for…"></textarea></label>
+<label>Related work <span class="optional">optional</span><select id="item-link"></select></label><label>Due date <span class="optional">optional</span><input id="item-due" type="date"></label>
+<div id="form-error" role="alert"></div><button type="button" id="reload-item" class="subtle" hidden>Discard this draft and load latest</button>
+<div class="dialog-actions"><button type="button" id="cancel-item" class="subtle">Cancel</button><button type="submit" id="save-item" class="primary">Save</button></div></form></dialog>
+<div id="toast" role="status" aria-live="polite"></div><script src="/tasks.js"></script></body></html>

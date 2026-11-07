@@ -1,0 +1,1549 @@
+{
+  "method": "Monotonic script/transcript token alignment; local cue matching; no authored recording times",
+  "reference_tokens": 2447,
+  "matched_reference_tokens": 2360,
+  "reference_coverage": 0.9644462607274213,
+  "cues": [
+    {
+      "animation": 1,
+      "press": 1,
+      "beat": 1,
+      "phrase": "the board at a multi-billion dollar company",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the board at a multi billion dollar company",
+      "estimated_source_seconds": 24.76,
+      "status": "matched",
+      "source_seconds": 24.76,
+      "score": 1.0
+    },
+    {
+      "animation": 1,
+      "press": 2,
+      "beat": 2,
+      "phrase": "I only ever bring four slides",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "i only ever bring four slides",
+      "estimated_source_seconds": 29.18,
+      "status": "matched",
+      "source_seconds": 29.18,
+      "score": 1.0
+    },
+    {
+      "animation": 1,
+      "press": 3,
+      "beat": 3,
+      "phrase": "more than 80,000 professionals",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "more than eighty zero professionals",
+      "estimated_source_seconds": 33.3,
+      "status": "uncertain",
+      "source_seconds": 33.3,
+      "score": 0.8
+    },
+    {
+      "animation": 2,
+      "press": 1,
+      "beat": 5,
+      "phrase": "the 3 things every executive actually wants",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the three things every executive wants",
+      "estimated_source_seconds": 40.76,
+      "status": "matched",
+      "source_seconds": 40.76,
+      "score": 0.9230769230769231
+    },
+    {
+      "animation": 2,
+      "press": 2,
+      "beat": 6,
+      "phrase": "without dumbing down your work",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "without dumbing down your own work",
+      "estimated_source_seconds": 44.62,
+      "status": "matched",
+      "source_seconds": 44.62,
+      "score": 0.9090909090909091
+    },
+    {
+      "animation": 2,
+      "press": 3,
+      "beat": 7,
+      "phrase": "see you as the person to lead it",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "see you as the person to lead it",
+      "estimated_source_seconds": 56.85,
+      "status": "matched",
+      "source_seconds": 56.85,
+      "score": 1.0
+    },
+    {
+      "animation": 3,
+      "press": 1,
+      "beat": 9,
+      "phrase": "You give them the background",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "you give them the background",
+      "estimated_source_seconds": 94.6,
+      "status": "matched",
+      "source_seconds": 94.6,
+      "score": 1.0
+    },
+    {
+      "animation": 3,
+      "press": 2,
+      "beat": 10,
+      "phrase": "how you did it",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "how you did it",
+      "estimated_source_seconds": 96.06,
+      "status": "matched",
+      "source_seconds": 96.06,
+      "score": 1.0
+    },
+    {
+      "animation": 3,
+      "press": 3,
+      "beat": 11,
+      "phrase": "every option",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "every option",
+      "estimated_source_seconds": 97.16,
+      "status": "matched",
+      "source_seconds": 97.16,
+      "score": 1.0
+    },
+    {
+      "animation": 3,
+      "press": 4,
+      "beat": 12,
+      "phrase": "every risk",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "every risk",
+      "estimated_source_seconds": 98.42,
+      "status": "matched",
+      "source_seconds": 98.42,
+      "score": 1.0
+    },
+    {
+      "animation": 3,
+      "press": 5,
+      "beat": 13,
+      "phrase": "and every number",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and every number",
+      "estimated_source_seconds": 99.08,
+      "status": "matched",
+      "source_seconds": 99.08,
+      "score": 1.0
+    },
+    {
+      "animation": 4,
+      "press": 1,
+      "beat": 15,
+      "phrase": "they nod all the way through",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "they nod all the way through",
+      "estimated_source_seconds": 109.06,
+      "status": "matched",
+      "source_seconds": 109.06,
+      "score": 1.0
+    },
+    {
+      "animation": 4,
+      "press": 2,
+      "beat": 16,
+      "phrase": "Now it's too much",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "now it is too much",
+      "estimated_source_seconds": 117.08,
+      "status": "matched",
+      "source_seconds": 117.08,
+      "score": 1.0
+    },
+    {
+      "animation": 4,
+      "press": 3,
+      "beat": 17,
+      "phrase": "now it's a bit light",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "now it is a bit too light",
+      "estimated_source_seconds": 122.86,
+      "status": "matched",
+      "source_seconds": 122.86,
+      "score": 0.9230769230769231
+    },
+    {
+      "animation": 4,
+      "press": 4,
+      "beat": 18,
+      "phrase": "you're sent away to come back with more",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "you are sent away to come back with more",
+      "estimated_source_seconds": 124.82,
+      "status": "matched",
+      "source_seconds": 124.82,
+      "score": 1.0
+    },
+    {
+      "animation": 5,
+      "press": 1,
+      "beat": 20,
+      "phrase": "the thought in their head is",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the thought in their head is",
+      "estimated_source_seconds": 135.72,
+      "status": "matched",
+      "source_seconds": 135.72,
+      "score": 1.0
+    },
+    {
+      "animation": 6,
+      "press": 1,
+      "beat": 22,
+      "phrase": "results like this",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "status": "unmatched",
+      "source_seconds": null
+    },
+    {
+      "animation": 6,
+      "press": 2,
+      "beat": 23,
+      "phrase": "it's only 3 things",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "it is only three things",
+      "estimated_source_seconds": 179.04,
+      "status": "matched",
+      "source_seconds": 179.04,
+      "score": 1.0
+    },
+    {
+      "animation": 7,
+      "press": 1,
+      "beat": 25,
+      "phrase": "all of this stuff at the start",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "all of this stuff at the start",
+      "estimated_source_seconds": 189.78,
+      "status": "matched",
+      "source_seconds": 189.78,
+      "score": 1.0
+    },
+    {
+      "animation": 7,
+      "press": 2,
+      "beat": 26,
+      "phrase": "the background, the options you looked at",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the background the options you looked at",
+      "estimated_source_seconds": 191.44,
+      "status": "matched",
+      "source_seconds": 191.44,
+      "score": 1.0
+    },
+    {
+      "animation": 7,
+      "press": 3,
+      "beat": 27,
+      "phrase": "Just remove it",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "just remove it",
+      "estimated_source_seconds": 195.48,
+      "status": "matched",
+      "source_seconds": 195.48,
+      "score": 1.0
+    },
+    {
+      "animation": 7,
+      "press": 4,
+      "beat": 28,
+      "phrase": "wonder when you're going to get to the point",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "wonder when you are going to get to the point",
+      "estimated_source_seconds": 201.04,
+      "status": "matched",
+      "source_seconds": 201.04,
+      "score": 1.0
+    },
+    {
+      "animation": 8,
+      "press": 1,
+      "beat": 30,
+      "phrase": "a reason to make a decision now",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "a reason to make a decision now",
+      "estimated_source_seconds": 233.18,
+      "status": "matched",
+      "source_seconds": 233.18,
+      "score": 1.0
+    },
+    {
+      "animation": 8,
+      "press": 2,
+      "beat": 31,
+      "phrase": "not 5 slides of background",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "not five slides of background",
+      "estimated_source_seconds": 248.55,
+      "status": "matched",
+      "source_seconds": 248.55,
+      "score": 1.0
+    },
+    {
+      "animation": 8,
+      "press": 3,
+      "beat": 32,
+      "phrase": "it's actually really easy",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "it is actually really easy",
+      "estimated_source_seconds": 256.51,
+      "status": "matched",
+      "source_seconds": 256.51,
+      "score": 1.0
+    },
+    {
+      "animation": 8,
+      "press": 4,
+      "beat": 33,
+      "phrase": "the motivation to act",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the motivation to act",
+      "estimated_source_seconds": 260.67,
+      "status": "matched",
+      "source_seconds": 260.67,
+      "score": 1.0
+    },
+    {
+      "animation": 9,
+      "press": 1,
+      "beat": 35,
+      "phrase": "your brakes are going to fail",
+      "layout": "pip",
+      "script_match": 1.0,
+      "status": "unmatched",
+      "source_seconds": null
+    },
+    {
+      "animation": 9,
+      "press": 2,
+      "beat": 36,
+      "phrase": "heat dissipation differential curves",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "heat dissipation differential curves",
+      "estimated_source_seconds": 273.65,
+      "status": "matched",
+      "source_seconds": 273.65,
+      "score": 1.0
+    },
+    {
+      "animation": 9,
+      "press": 3,
+      "beat": 37,
+      "phrase": "or the history of your car",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "or the history of your car",
+      "estimated_source_seconds": 275.99,
+      "status": "matched",
+      "source_seconds": 275.99,
+      "score": 1.0
+    },
+    {
+      "animation": 9,
+      "press": 4,
+      "beat": 38,
+      "phrase": "because that doesn’t give you a reason",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "because that does not give you a reason",
+      "estimated_source_seconds": 277.75,
+      "status": "matched",
+      "source_seconds": 277.75,
+      "score": 1.0
+    },
+    {
+      "animation": 9,
+      "press": 5,
+      "beat": 39,
+      "phrase": "what’s the problem and why do I need to decide",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "what is the problem and why do i need to",
+      "estimated_source_seconds": 283.55,
+      "status": "matched",
+      "source_seconds": 283.55,
+      "score": 0.9523809523809523
+    },
+    {
+      "animation": 10,
+      "press": 1,
+      "beat": 41,
+      "phrase": "I use a checklist like this one",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "i use a checklist like this one",
+      "estimated_source_seconds": 296.67,
+      "status": "matched",
+      "source_seconds": 296.67,
+      "score": 1.0
+    },
+    {
+      "animation": 10,
+      "press": 2,
+      "beat": 42,
+      "phrase": "pick the one that matters most",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "pick the one that matters most",
+      "estimated_source_seconds": 304.17,
+      "status": "matched",
+      "source_seconds": 304.17,
+      "score": 1.0
+    },
+    {
+      "animation": 10,
+      "press": 3,
+      "beat": 43,
+      "phrase": "a template sentence like this",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "a template sentence like",
+      "estimated_source_seconds": 314.27,
+      "status": "uncertain",
+      "source_seconds": 314.27,
+      "score": 0.8888888888888888
+    },
+    {
+      "animation": 11,
+      "press": 1,
+      "beat": 45,
+      "phrase": "So this is what that looks like filled in",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "this is what that looks like if",
+      "estimated_source_seconds": 325.67,
+      "status": "uncertain",
+      "source_seconds": 325.67,
+      "score": 0.75
+    },
+    {
+      "animation": 11,
+      "press": 2,
+      "beat": 46,
+      "phrase": "if you're in HR and new starters keep leaving",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "you are in hr and the new starters keep leaving",
+      "estimated_source_seconds": 328.25,
+      "status": "matched",
+      "source_seconds": 328.25,
+      "score": 0.9
+    },
+    {
+      "animation": 11,
+      "press": 3,
+      "beat": 47,
+      "phrase": "We've lost eleven of our last forty",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "we have lost eleven of our last forty",
+      "estimated_source_seconds": 331.51,
+      "status": "matched",
+      "source_seconds": 331.51,
+      "score": 1.0
+    },
+    {
+      "animation": 12,
+      "press": 1,
+      "beat": 49,
+      "phrase": "loads of these template sentences",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "loads of these template sentences",
+      "estimated_source_seconds": 364.66,
+      "status": "matched",
+      "source_seconds": 364.66,
+      "score": 1.0
+    },
+    {
+      "animation": 12,
+      "press": 2,
+      "beat": 50,
+      "phrase": "I'll leave it in the description below",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "i will leave it in the description below",
+      "estimated_source_seconds": 371.52,
+      "status": "matched",
+      "source_seconds": 371.52,
+      "score": 1.0
+    },
+    {
+      "animation": 13,
+      "press": 1,
+      "beat": 52,
+      "phrase": "They’d ask ‘What do we need to do’",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "theyd ask what do we need to do",
+      "estimated_source_seconds": 481.88,
+      "status": "matched",
+      "source_seconds": 481.88,
+      "score": 1.0
+    },
+    {
+      "animation": 13,
+      "press": 2,
+      "beat": 53,
+      "phrase": "and i’d explain",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and id explain",
+      "estimated_source_seconds": 484.08,
+      "status": "matched",
+      "source_seconds": 484.08,
+      "score": 1.0
+    },
+    {
+      "animation": 13,
+      "press": 3,
+      "beat": 54,
+      "phrase": "They’d say ‘Ok so what does this mean for the business",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "theyd say okay so what does this mean for the business",
+      "estimated_source_seconds": 492.28,
+      "status": "matched",
+      "source_seconds": 492.28,
+      "score": 0.9090909090909091
+    },
+    {
+      "animation": 13,
+      "press": 4,
+      "beat": 55,
+      "phrase": "and i’d give details like",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and then id give them details like",
+      "estimated_source_seconds": 496.3,
+      "status": "uncertain",
+      "source_seconds": 496.3,
+      "score": 0.8333333333333334
+    },
+    {
+      "animation": 13,
+      "press": 5,
+      "beat": 56,
+      "phrase": "Boring right?",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "boring right",
+      "estimated_source_seconds": 509.3,
+      "status": "matched",
+      "source_seconds": 509.3,
+      "score": 1.0
+    },
+    {
+      "animation": 14,
+      "press": 1,
+      "beat": 58,
+      "phrase": "What I did was",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "what i did was",
+      "estimated_source_seconds": 517.42,
+      "status": "matched",
+      "source_seconds": 517.42,
+      "score": 1.0
+    },
+    {
+      "animation": 14,
+      "press": 2,
+      "beat": 59,
+      "phrase": "I moved the whole model to the appendix",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "i moved the whole model to the appendix",
+      "estimated_source_seconds": 518.8,
+      "status": "matched",
+      "source_seconds": 518.8,
+      "score": 1.0
+    },
+    {
+      "animation": 14,
+      "press": 3,
+      "beat": 60,
+      "phrase": "cut it to four slides",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "cut it down to four slides",
+      "estimated_source_seconds": 521.56,
+      "status": "matched",
+      "source_seconds": 521.56,
+      "score": 0.9090909090909091
+    },
+    {
+      "animation": 15,
+      "press": 1,
+      "beat": 62,
+      "phrase": "every component",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "every component",
+      "estimated_source_seconds": 614.32,
+      "status": "matched",
+      "source_seconds": 614.32,
+      "score": 1.0
+    },
+    {
+      "animation": 15,
+      "press": 2,
+      "beat": 63,
+      "phrase": "how it all fits together",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "how it all fits together",
+      "estimated_source_seconds": 615.54,
+      "status": "matched",
+      "source_seconds": 615.54,
+      "score": 1.0
+    },
+    {
+      "animation": 15,
+      "press": 3,
+      "beat": 64,
+      "phrase": "wondering why any of this matters",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "wondering why any of this matters",
+      "estimated_source_seconds": 627.92,
+      "status": "matched",
+      "source_seconds": 627.92,
+      "score": 1.0
+    },
+    {
+      "animation": 15,
+      "press": 4,
+      "beat": 65,
+      "phrase": "and then they tune out",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and then they tune out",
+      "estimated_source_seconds": 629.66,
+      "status": "matched",
+      "source_seconds": 629.66,
+      "score": 1.0
+    },
+    {
+      "animation": 16,
+      "press": 1,
+      "beat": 67,
+      "phrase": "The motivation was",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the motivation was",
+      "estimated_source_seconds": 656.88,
+      "status": "matched",
+      "source_seconds": 656.88,
+      "score": 1.0
+    },
+    {
+      "animation": 16,
+      "press": 2,
+      "beat": 68,
+      "phrase": "What would fix it?",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "what would fix it",
+      "estimated_source_seconds": 683.98,
+      "status": "matched",
+      "source_seconds": 683.98,
+      "score": 1.0
+    },
+    {
+      "animation": 16,
+      "press": 3,
+      "beat": 69,
+      "phrase": "What do we get if we do?",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "what do we get if we do",
+      "estimated_source_seconds": 685.24,
+      "status": "matched",
+      "source_seconds": 685.24,
+      "score": 1.0
+    },
+    {
+      "animation": 16,
+      "press": 4,
+      "beat": 70,
+      "phrase": "Your job is just to answer the questions",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "your job is just to answer the questions",
+      "estimated_source_seconds": 695.28,
+      "status": "matched",
+      "source_seconds": 695.28,
+      "score": 1.0
+    },
+    {
+      "animation": 17,
+      "press": 1,
+      "beat": 72,
+      "phrase": "So “a new onboarding programme",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "so a new onboarding",
+      "estimated_source_seconds": 699.32,
+      "status": "uncertain",
+      "source_seconds": 699.32,
+      "score": 0.8888888888888888
+    },
+    {
+      "animation": 17,
+      "press": 2,
+      "beat": 73,
+      "phrase": "with a buddy system",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "with a buddy system",
+      "estimated_source_seconds": 701.76,
+      "status": "matched",
+      "source_seconds": 701.76,
+      "score": 1.0
+    },
+    {
+      "animation": 17,
+      "press": 3,
+      "beat": 74,
+      "phrase": "But we need to add the benefit",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "but we need to add the benefit",
+      "estimated_source_seconds": 707.96,
+      "status": "matched",
+      "source_seconds": 707.96,
+      "score": 1.0
+    },
+    {
+      "animation": 17,
+      "press": 4,
+      "beat": 75,
+      "phrase": "More new starters stay past probation",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "more new starters stay past probation",
+      "estimated_source_seconds": 710.72,
+      "status": "matched",
+      "source_seconds": 710.72,
+      "score": 1.0
+    },
+    {
+      "animation": 17,
+      "press": 5,
+      "beat": 76,
+      "phrase": "you’re thinking strategically at their altitude",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "you are thinking strategically at their altitude",
+      "estimated_source_seconds": 721.36,
+      "status": "matched",
+      "source_seconds": 721.36,
+      "score": 1.0
+    },
+    {
+      "animation": 18,
+      "press": 1,
+      "beat": 78,
+      "phrase": "the survey response rate",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the survey response rate",
+      "estimated_source_seconds": 729.66,
+      "status": "matched",
+      "source_seconds": 729.66,
+      "score": 1.0
+    },
+    {
+      "animation": 18,
+      "press": 2,
+      "beat": 79,
+      "phrase": "the exit interview themes",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the exit interview themes",
+      "estimated_source_seconds": 731.3,
+      "status": "matched",
+      "source_seconds": 731.3,
+      "score": 1.0
+    },
+    {
+      "animation": 18,
+      "press": 3,
+      "beat": 80,
+      "phrase": "the benchmark against three other companies",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the benchmarking against three other companies",
+      "estimated_source_seconds": 732.84,
+      "status": "uncertain",
+      "source_seconds": 732.84,
+      "score": 0.8333333333333334
+    },
+    {
+      "animation": 18,
+      "press": 4,
+      "beat": 81,
+      "phrase": "All of that is still in the appendix",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "all of that is in the appendix",
+      "estimated_source_seconds": 734.76,
+      "status": "matched",
+      "source_seconds": 734.76,
+      "score": 0.9333333333333333
+    },
+    {
+      "animation": 19,
+      "press": 1,
+      "beat": 83,
+      "phrase": "the twelve stages",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the twelve stages",
+      "estimated_source_seconds": 784.4,
+      "status": "matched",
+      "source_seconds": 784.4,
+      "score": 1.0
+    },
+    {
+      "animation": 19,
+      "press": 2,
+      "beat": 84,
+      "phrase": "the dependencies",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the dependencies",
+      "estimated_source_seconds": 785.26,
+      "status": "matched",
+      "source_seconds": 785.26,
+      "score": 1.0
+    },
+    {
+      "animation": 19,
+      "press": 3,
+      "beat": 85,
+      "phrase": "that sounds like something to do next year",
+      "layout": "pip",
+      "script_match": 1.0,
+      "status": "unmatched",
+      "source_seconds": null
+    },
+    {
+      "animation": 19,
+      "press": 4,
+      "beat": 86,
+      "phrase": "and it gets parked",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and then it gets parked",
+      "estimated_source_seconds": 796.26,
+      "status": "uncertain",
+      "source_seconds": 796.26,
+      "score": 0.8888888888888888
+    },
+    {
+      "animation": 20,
+      "press": 1,
+      "beat": 88,
+      "phrase": "First is what you need from them and by when",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "first is what you need from them and by when",
+      "estimated_source_seconds": 813.44,
+      "status": "matched",
+      "source_seconds": 813.44,
+      "score": 1.0
+    },
+    {
+      "animation": 20,
+      "press": 2,
+      "beat": 89,
+      "phrase": "Then the second is why it's small",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "the second is why this is a small",
+      "estimated_source_seconds": 816.46,
+      "status": "uncertain",
+      "source_seconds": 816.46,
+      "score": 0.75
+    },
+    {
+      "animation": 20,
+      "press": 3,
+      "beat": 90,
+      "phrase": "what it costs, what you're reusing",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "what it costs what you are",
+      "estimated_source_seconds": 820.66,
+      "status": "matched",
+      "source_seconds": 820.66,
+      "score": 0.9230769230769231
+    },
+    {
+      "animation": 21,
+      "press": 1,
+      "beat": 92,
+      "phrase": "The example looks like this",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the example looks like this",
+      "estimated_source_seconds": 824.82,
+      "status": "matched",
+      "source_seconds": 824.82,
+      "score": 1.0
+    },
+    {
+      "animation": 21,
+      "press": 2,
+      "beat": 93,
+      "phrase": "(press again straight away to slide across to slide 3)",
+      "layout": "graphic",
+      "script_match": 0,
+      "timing_rule": "Explicit immediate press; 250ms after preceding beat",
+      "status": "matched",
+      "source_seconds": 825.07,
+      "score": 1.0
+    },
+    {
+      "animation": 21,
+      "press": 3,
+      "beat": 94,
+      "phrase": "We can pilot it with the March intake",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "we can pilot it with the march intake",
+      "estimated_source_seconds": 827.2,
+      "status": "matched",
+      "source_seconds": 827.2,
+      "score": 1.0
+    },
+    {
+      "animation": 21,
+      "press": 4,
+      "beat": 95,
+      "phrase": "two hours of manager time per new starter",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "two hours of manager time per new starter",
+      "estimated_source_seconds": 831.9,
+      "status": "matched",
+      "source_seconds": 831.9,
+      "score": 1.0
+    },
+    {
+      "animation": 21,
+      "press": 5,
+      "beat": 96,
+      "phrase": "if it doesn't move the numbers by June, we stop",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "if it does not move the numbers by june",
+      "estimated_source_seconds": 834.64,
+      "status": "matched",
+      "source_seconds": 834.64,
+      "score": 0.9
+    },
+    {
+      "animation": 21,
+      "press": 6,
+      "beat": 97,
+      "phrase": "the faster they say yes",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the faster they can say yes",
+      "estimated_source_seconds": 840.58,
+      "status": "matched",
+      "source_seconds": 840.58,
+      "score": 0.9090909090909091
+    },
+    {
+      "animation": 22,
+      "press": 1,
+      "beat": 99,
+      "phrase": "the exact sentences for every situation",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "the exact sentences for every situation",
+      "estimated_source_seconds": 856.57,
+      "status": "matched",
+      "source_seconds": 856.57,
+      "score": 1.0
+    },
+    {
+      "animation": 22,
+      "press": 2,
+      "beat": 100,
+      "phrase": "they're in the download as well",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "they are in the download as well",
+      "estimated_source_seconds": 864.17,
+      "status": "matched",
+      "source_seconds": 864.17,
+      "score": 1.0
+    },
+    {
+      "animation": 23,
+      "press": 1,
+      "beat": 102,
+      "phrase": "when you give them those three, in that order",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "when you give them those three things in that order",
+      "estimated_source_seconds": 868.75,
+      "status": "matched",
+      "source_seconds": 868.75,
+      "score": 0.9473684210526315
+    },
+    {
+      "animation": 23,
+      "press": 2,
+      "beat": 103,
+      "phrase": "They stop sending you away",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "they stop sending you away",
+      "estimated_source_seconds": 878.57,
+      "status": "matched",
+      "source_seconds": 878.57,
+      "score": 1.0
+    },
+    {
+      "animation": 23,
+      "press": 3,
+      "beat": 104,
+      "phrase": "start asking your opinion",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "start asking your opinion",
+      "estimated_source_seconds": 882.51,
+      "status": "matched",
+      "source_seconds": 882.51,
+      "score": 1.0
+    },
+    {
+      "animation": 24,
+      "press": 1,
+      "beat": 106,
+      "phrase": "It works for reports",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "it works for reports",
+      "estimated_source_seconds": 896.39,
+      "status": "matched",
+      "source_seconds": 896.39,
+      "score": 1.0
+    },
+    {
+      "animation": 24,
+      "press": 2,
+      "beat": 107,
+      "phrase": "emails",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "emails",
+      "estimated_source_seconds": 898.09,
+      "status": "matched",
+      "source_seconds": 898.09,
+      "score": 1.0
+    },
+    {
+      "animation": 24,
+      "press": 3,
+      "beat": 108,
+      "phrase": "and the Monday update",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "and the monday update",
+      "estimated_source_seconds": 898.53,
+      "status": "matched",
+      "source_seconds": 898.53,
+      "score": 1.0
+    },
+    {
+      "animation": 24,
+      "press": 4,
+      "beat": 109,
+      "phrase": "goes through the first time",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "goes through first time",
+      "estimated_source_seconds": 906.03,
+      "status": "uncertain",
+      "source_seconds": 906.03,
+      "score": 0.8888888888888888
+    },
+    {
+      "animation": 25,
+      "press": 1,
+      "beat": 111,
+      "phrase": "check every deck and email against what executives look for",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "check every deck and email against what executives look for",
+      "estimated_source_seconds": 936.93,
+      "status": "matched",
+      "source_seconds": 936.93,
+      "score": 1.0
+    },
+    {
+      "animation": 25,
+      "press": 2,
+      "beat": 112,
+      "phrase": "it's free in the description",
+      "layout": "graphic",
+      "script_match": 1.0,
+      "matched_transcript": "it is free in the description",
+      "estimated_source_seconds": 943.01,
+      "status": "matched",
+      "source_seconds": 943.01,
+      "score": 1.0
+    },
+    {
+      "animation": 26,
+      "press": 1,
+      "beat": 114,
+      "phrase": "Someone senior cuts in on your first slide",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "someone senior cuts in on your first slide",
+      "estimated_source_seconds": 955.77,
+      "status": "matched",
+      "source_seconds": 955.77,
+      "score": 1.0
+    },
+    {
+      "animation": 26,
+      "press": 2,
+      "beat": 115,
+      "phrase": "you're on the spot",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "you are now on the spot",
+      "estimated_source_seconds": 960.59,
+      "status": "matched",
+      "source_seconds": 960.59,
+      "score": 0.9090909090909091
+    },
+    {
+      "animation": 26,
+      "press": 3,
+      "beat": 116,
+      "phrase": "thirty seconds of scrambling",
+      "layout": "pip",
+      "script_match": 1.0,
+      "matched_transcript": "thirty seconds of scrambling",
+      "estimated_source_seconds": 962.61,
+      "status": "matched",
+      "source_seconds": 962.61,
+      "score": 1.0
+    }
+  ],
+  "rows": [
+    {
+      "row": 0,
+      "source_start": 9.14,
+      "source_end": 23.0,
+      "animation": null
+    },
+    {
+      "row": 1,
+      "source_start": 23.0,
+      "source_end": 35.1,
+      "animation": 1
+    },
+    {
+      "row": 2,
+      "source_start": 38.32,
+      "source_end": 62.49,
+      "animation": 2
+    },
+    {
+      "row": 3,
+      "source_start": 63.09,
+      "source_end": 71.63,
+      "animation": null
+    },
+    {
+      "row": 4,
+      "source_start": 71.63,
+      "source_end": 104.8,
+      "animation": 3
+    },
+    {
+      "row": 5,
+      "source_start": 108.44,
+      "source_end": 132.62,
+      "animation": 4
+    },
+    {
+      "row": 6,
+      "source_start": 132.62,
+      "source_end": 142.1,
+      "animation": 5
+    },
+    {
+      "row": 7,
+      "source_start": 144.26,
+      "source_end": 170.3,
+      "animation": null
+    },
+    {
+      "row": 8,
+      "source_start": 170.3,
+      "source_end": 182.48,
+      "animation": 6
+    },
+    {
+      "row": 9,
+      "source_start": 186.02,
+      "source_end": 210.44,
+      "animation": 7
+    },
+    {
+      "row": 10,
+      "source_start": 213.6,
+      "source_end": 228.58,
+      "animation": null
+    },
+    {
+      "row": 11,
+      "source_start": 228.58,
+      "source_end": 261.91,
+      "animation": 8
+    },
+    {
+      "row": 12,
+      "source_start": 261.91,
+      "source_end": 292.31,
+      "animation": 9
+    },
+    {
+      "row": 13,
+      "source_start": 292.31,
+      "source_end": 323.83,
+      "animation": 10
+    },
+    {
+      "row": 14,
+      "source_start": 325.67,
+      "source_end": 343.59,
+      "animation": 11
+    },
+    {
+      "row": 15,
+      "source_start": 345.05,
+      "source_end": 361.67,
+      "animation": null
+    },
+    {
+      "row": 16,
+      "source_start": 363.6,
+      "source_end": 386.16,
+      "animation": 12
+    },
+    {
+      "row": 17,
+      "source_start": 387.82,
+      "source_end": 407.84,
+      "animation": null
+    },
+    {
+      "row": 18,
+      "source_start": 407.84,
+      "source_end": 425.02,
+      "animation": null
+    },
+    {
+      "row": 19,
+      "source_start": 425.02,
+      "source_end": 455.64,
+      "animation": null
+    },
+    {
+      "row": 20,
+      "source_start": 455.64,
+      "source_end": 474.8,
+      "animation": null
+    },
+    {
+      "row": 21,
+      "source_start": 481.88,
+      "source_end": 492.28,
+      "animation": 13
+    },
+    {
+      "row": 22,
+      "source_start": 492.28,
+      "source_end": 506.04,
+      "animation": null
+    },
+    {
+      "row": 23,
+      "source_start": 509.3,
+      "source_end": 517.42,
+      "animation": null
+    },
+    {
+      "row": 24,
+      "source_start": 517.42,
+      "source_end": 523.0,
+      "animation": 14
+    },
+    {
+      "row": 25,
+      "source_start": 523.0,
+      "source_end": 540.8,
+      "animation": null
+    },
+    {
+      "row": 26,
+      "source_start": 547.62,
+      "source_end": 571.88,
+      "animation": null
+    },
+    {
+      "row": 27,
+      "source_start": 573.02,
+      "source_end": 583.58,
+      "animation": null
+    },
+    {
+      "row": 28,
+      "source_start": 583.58,
+      "source_end": 608.82,
+      "animation": null
+    },
+    {
+      "row": 29,
+      "source_start": 608.82,
+      "source_end": 637.7,
+      "animation": 15
+    },
+    {
+      "row": 30,
+      "source_start": 638.88,
+      "source_end": 654.48,
+      "animation": null
+    },
+    {
+      "row": 31,
+      "source_start": 654.48,
+      "source_end": 698.7,
+      "animation": 16
+    },
+    {
+      "row": 32,
+      "source_start": 699.32,
+      "source_end": 726.88,
+      "animation": 17
+    },
+    {
+      "row": 33,
+      "source_start": 726.88,
+      "source_end": 741.38,
+      "animation": 18
+    },
+    {
+      "row": 34,
+      "source_start": 762.54,
+      "source_end": 773.82,
+      "animation": null
+    },
+    {
+      "row": 35,
+      "source_start": 773.82,
+      "source_end": 803.76,
+      "animation": 19
+    },
+    {
+      "row": 36,
+      "source_start": 803.76,
+      "source_end": 824.82,
+      "animation": 20
+    },
+    {
+      "row": 37,
+      "source_start": 824.82,
+      "source_end": 826.56,
+      "animation": 21
+    },
+    {
+      "row": 38,
+      "source_start": 827.2,
+      "source_end": 849.26,
+      "animation": null
+    },
+    {
+      "row": 39,
+      "source_start": 855.03,
+      "source_end": 867.15,
+      "animation": 22
+    },
+    {
+      "row": 40,
+      "source_start": 868.21,
+      "source_end": 894.05,
+      "animation": 23
+    },
+    {
+      "row": 41,
+      "source_start": 894.05,
+      "source_end": 907.73,
+      "animation": 24
+    },
+    {
+      "row": 42,
+      "source_start": 935.91,
+      "source_end": 944.03,
+      "animation": 25
+    },
+    {
+      "row": 43,
+      "source_start": 947.27,
+      "source_end": 968.15,
+      "animation": 26
+    },
+    {
+      "row": 44,
+      "source_start": 968.15,
+      "source_end": 973.57,
+      "animation": null
+    },
+    {
+      "row": 45,
+      "source_start": 973.57,
+      "source_end": 987.63,
+      "animation": null
+    }
+  ],
+  "missing_cues": [
+    {
+      "animation": 6,
+      "press": 1,
+      "beat": 22,
+      "phrase": "results like this",
+      "layout": "graphic"
+    },
+    {
+      "animation": 9,
+      "press": 1,
+      "beat": 35,
+      "phrase": "your brakes are going to fail",
+      "layout": "pip"
+    },
+    {
+      "animation": 19,
+      "press": 3,
+      "beat": 85,
+      "phrase": "that sounds like something to do next year",
+      "layout": "pip"
+    }
+  ],
+  "script_matches_shotlist": 0.9123788217747949,
+  "placed_cues": 88,
+  "total_cues": 91,
+  "exceptions": [
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 33.3,
+      "reason": "Approximate cue 0.80: more than 80,000 professionals"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: results like this"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: your brakes are going to fail"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 314.27,
+      "reason": "Approximate cue 0.89: a template sentence like this"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 325.67,
+      "reason": "Approximate cue 0.75: So this is what that looks like filled in"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 496.3,
+      "reason": "Approximate cue 0.83: and i’d give details like"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 699.32,
+      "reason": "Approximate cue 0.89: So “a new onboarding programme"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 732.84,
+      "reason": "Approximate cue 0.83: the benchmark against three other companies"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: that sounds like something to do next year"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 796.26,
+      "reason": "Approximate cue 0.89: and it gets parked"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 816.46,
+      "reason": "Approximate cue 0.75: Then the second is why it's small"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 906.03,
+      "reason": "Approximate cue 0.89: goes through the first time"
+    }
+  ],
+  "source_markdown": "E:\\CareerOS\\12_YouTube\\13_three-things-executives-need\\2026-10_youtube_storytelling-v2_shot-list_v01.md",
+  "source_sha256": "afe47959ae50be2146c9cb176d58bbf6ead053833d51da722e1153c1e76c2892",
+  "transcript": "E:\\Videos\\DaJoshiResolve\\Runs\\Storytelling-2.0-native-test-20261014\\transcript.json",
+  "transcript_sha256": "0e722ec825b14449d423440aaefbedd21130b78c6886c7de9eb9fb34ec6e91c1",
+  "manual_edit_polish": false
+}

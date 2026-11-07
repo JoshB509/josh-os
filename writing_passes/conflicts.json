@@ -1,0 +1,70 @@
+{
+  "policy": "Never silently relax original constraints. Surface only conflicts relevant to current request; unaffected work continues.",
+  "items": [
+    {
+      "id": "C01",
+      "conflict": "Original quotas can produce formulaic prose, but are explicit.",
+      "default": "Keep R05/R13/R19/R20/R24/R30. Final flow diagnoses awkwardness and routes scoped repair; user decides changes to rules."
+    },
+    {
+      "id": "C02",
+      "conflict": "Some historical examples use banned abstraction, fragments, forbidden words, hype or guaranteed outcomes.",
+      "default": "Current explicit house style and audience no-guarantees rule outrank example wording; write new examples."
+    },
+    {
+      "id": "C03",
+      "conflict": "Source asks for 80,000 professionals/9,500 reviews and supplies unverified first-person examples.",
+      "default": "Keep required hook authority slot; ask for approved current claim or mark exact placeholder. Never fabricate or silently delete the requirement."
+    },
+    {
+      "id": "C04",
+      "conflict": "Ten magnets listed but total nine; built-asset claims conflict; all Draft.",
+      "default": "Inventory only. Confirm chosen actual contents and live/free destination before claiming download."
+    },
+    {
+      "id": "C05",
+      "conflict": "Audience course includes swipe file; curiosity masterclass explicitly lacks one.",
+      "default": "Require product identity for any such offer claim."
+    },
+    {
+      "id": "C06",
+      "conflict": "50–70 words and under 25 seconds may conflict at natural speech pace.",
+      "default": "Report both observations; do not claim measured timing from word count or silently change targets."
+    },
+    {
+      "id": "C07",
+      "conflict": "One-in-three signpost limit unspecified for fewer than three signposts; approximate placement tolerances unspecified.",
+      "default": "Report counts/positions and flag applicability. Do not invent hard rounding/window rules."
+    },
+    {
+      "id": "C08",
+      "conflict": "No repeated pain/result wording versus required callbacks.",
+      "default": "Repeat referent with new wording; preserve genuine callback and rule. If exact phrase repetition is essential request exception."
+    },
+    {
+      "id": "C09",
+      "conflict": "One central point versus multi-step frameworks.",
+      "default": "One central argument, one subpoint per section; retain necessary teaching steps."
+    },
+    {
+      "id": "C10",
+      "conflict": "No mechanism in promises versus teaching mechanism clearly.",
+      "default": "Apply prohibition to signposts/promises; explain method in teaching body."
+    },
+    {
+      "id": "C11",
+      "conflict": "Optional story, repeated client signals/CTAs and next-video close may not fit a narrow edit/course format.",
+      "default": "Preserve full-script rules for full scripts. For narrow edits evaluate document-wide constraints read-only and change only requested scope; flag format-specific uncertainty before imposing promotional defaults."
+    },
+    {
+      "id": "C12",
+      "conflict": "Missing evidence for required client signals, next video or magnet.",
+      "default": "Block those spans with precise missing evidence; continue unrelated passes; final state cannot be ready with unsupported claims."
+    },
+    {
+      "id": "C13",
+      "conflict": "Source lines 10–12 give natural conversational quality priority over rules, except house style, while detailed quotas are explicit.",
+      "default": "Preserve both statements. Attempt compliant scoped repair first; if irreconcilable, mark conflict and request explicit exception rather than silently dropping quotas or silently claiming the natural-flow goal no longer applies."
+    }
+  ]
+}

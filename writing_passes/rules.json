@@ -1,0 +1,887 @@
+{
+  "rules": [
+    {
+      "id": "R01",
+      "requirement": "Rewrite a whole lesson from its brief with a fresh skeleton and fresh examples. Edit old lines only for a requested touch-up.",
+      "source": "S1",
+      "source_lines": [
+        22,
+        25
+      ],
+      "owner_passes": [
+        "structure",
+        "draft"
+      ],
+      "verification": "Scope matches request.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R02",
+      "requirement": "Before any whole-script writing or rewriting, ask whether a lead magnet is promoted unless already answered. If yes, require its name, viewer function and contents; never infer contents from its name. A paragraph/section touch-up does not trigger this question.",
+      "source": "S1",
+      "source_lines": [
+        26,
+        27
+      ],
+      "owner_passes": [
+        "structure"
+      ],
+      "verification": "Blocking preflight; preserve known answer.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R03",
+      "requirement": "Skeleton includes hook in three beats, one or two sentences per section idea, one example/scene, close, optional story location, three confirmed magnet slots and all idea-to-mechanics turns. If idea needs more than a paragraph, simplify and let example carry it.",
+      "source": "S1",
+      "source_lines": [
+        28,
+        29
+      ],
+      "owner_passes": [
+        "structure",
+        "explanation"
+      ],
+      "verification": "Each section has one teaching point; all slots explicit.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R04",
+      "requirement": "Each section has a signpost, grounding line, short idea, movement and closing line/handoff. Use B1–B12 or Parker for entrance, B13 grounding, B14/B3 close.",
+      "source": "S1",
+      "source_lines": [
+        30,
+        38
+      ],
+      "owner_passes": [
+        "draft",
+        "signposts"
+      ],
+      "verification": "Section contract complete.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R05",
+      "requirement": "Inside sections use a movement device every two to four sentences, never the same device twice in a row. Mix B15–B30. Maximum four sentences without a move is retained; do not silently downgrade this quota.",
+      "source": "S1",
+      "source_lines": [
+        35,
+        40
+      ],
+      "owner_passes": [
+        "draft",
+        "connective"
+      ],
+      "verification": "Track movement spans and types; final review confirms semantic function, not keyword presence.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R06",
+      "requirement": "Keep one running example, image or number and call back to it across the script. When there is a story it usually supplies that example. Open loops must be genuine and paid off by giving the thing.",
+      "source": "S1",
+      "source_lines": [
+        40,
+        40
+      ],
+      "owner_passes": [
+        "structure",
+        "draft",
+        "connective"
+      ],
+      "verification": "Example and loop ledgers resolve.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R07",
+      "requirement": "Every paragraph picks up from the previous paragraph with a spoken link. Introduce a thing before naming it, then define it, then show it.",
+      "source": "S1",
+      "source_lines": [
+        44,
+        46
+      ],
+      "owner_passes": [
+        "explanation",
+        "connective"
+      ],
+      "verification": "Inspect every join and introduced entity.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R08",
+      "requirement": "Match signposts to lesson position. Early entrances set up and announce; warnings, rankings and step labels follow established parts. Judge with the paragraphs before and after.",
+      "source": "S1",
+      "source_lines": [
+        48,
+        48
+      ],
+      "owner_passes": [
+        "signposts",
+        "connective"
+      ],
+      "verification": "Context window required.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R09",
+      "requirement": "Say concrete events that cause feelings; never announce the feeling with labels such as here is the bit that stings.",
+      "source": "S1",
+      "source_lines": [
+        50,
+        50
+      ],
+      "owner_passes": [
+        "draft",
+        "signposts",
+        "connective"
+      ],
+      "verification": "Semantic concreteness review.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R10",
+      "requirement": "Do not use I said I would show you, remember I said, because I said or equivalent announcements of a routine payoff. Give the payoff directly.",
+      "source": "S1",
+      "source_lines": [
+        52,
+        52
+      ],
+      "owner_passes": [
+        "draft",
+        "connective"
+      ],
+      "verification": "Pattern scan plus semantic review.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R11",
+      "requirement": "Every pain and result is a concrete event, spoken response or inbox occurrence in the audience world. Replace vague outcomes using Part C.",
+      "source": "S1",
+      "source_lines": [
+        54,
+        54
+      ],
+      "owner_passes": [
+        "explanation",
+        "draft",
+        "hook",
+        "signposts",
+        "lead_magnets",
+        "connective"
+      ],
+      "verification": "Concrete result, not insight/mechanism/identity alone.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R12",
+      "requirement": "Do not repeat the same pain/result wording in a lesson. Rotate the relevant A/K family. Callbacks retain the referent while varying wording.",
+      "source": "S1",
+      "source_lines": [
+        56,
+        56
+      ],
+      "owner_passes": [
+        "draft",
+        "connective"
+      ],
+      "verification": "Repeated phrase review with referent ledger.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R13",
+      "requirement": "Signpost pull is pain, result, stakes or question in the line or next line. So you can / so you do not occurs in no more than one signpost in three and never adjacent signposts.",
+      "source": "S1",
+      "source_lines": [
+        58,
+        58
+      ],
+      "owner_passes": [
+        "signposts"
+      ],
+      "verification": "Count and adjacency; for fewer than three signposts flag applicability instead of inventing a rounding rule.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R14",
+      "requirement": "Do not make signposts about the mechanism, presenter, meta diagnosis, insight/understanding as prize or something the viewer must decode.",
+      "source": "S1",
+      "source_lines": [
+        60,
+        60
+      ],
+      "owner_passes": [
+        "signposts"
+      ],
+      "verification": "Check every signpost in context.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R15",
+      "requirement": "Hook has opener, quick authority, then I will show you one to three things; at least one Parker line; about 50–70 words. Scene/build-up belongs in first section.",
+      "source": "S1",
+      "source_lines": [
+        62,
+        62
+      ],
+      "owner_passes": [
+        "hook"
+      ],
+      "verification": "Three beats, promises/count, word count.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R16",
+      "requirement": "No download, subscribe or click CTA straight after hook; first real value comes first.",
+      "source": "S1",
+      "source_lines": [
+        64,
+        64
+      ],
+      "owner_passes": [
+        "draft",
+        "lead_magnets",
+        "final_flow"
+      ],
+      "verification": "First value precedes first CTA.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R17",
+      "requirement": "Every idea-to-tangible-mechanics turn uses a Parker line: tangible thing, result and relevant objection. No forcing an objection when none fits.",
+      "source": "S1",
+      "source_lines": [
+        66,
+        66
+      ],
+      "owner_passes": [
+        "signposts"
+      ],
+      "verification": "Mechanics-turn coverage.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R18",
+      "requirement": "At most one main story, optional. Unannounced, connective start after grounding signpost, pain before scene, thought behind beats, mechanism withheld until handoff and later callbacks.",
+      "source": "S1",
+      "source_lines": [
+        68,
+        68
+      ],
+      "owner_passes": [
+        "story",
+        "draft"
+      ],
+      "verification": "Story count and beat ledger.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R19",
+      "requirement": "Use two or three subtle client signals per full script; no other offer detail.",
+      "source": "S1",
+      "source_lines": [
+        70,
+        70
+      ],
+      "owner_passes": [
+        "signposts"
+      ],
+      "verification": "Count retained; missing factual support blocks affected signals rather than fabrication.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R20",
+      "requirement": "A selected confirmed magnet is mentioned three times after initial value, around middle and around 80 percent. Sell result rather than contents, each with clear free-description CTA.",
+      "source": "S1",
+      "source_lines": [
+        72,
+        72
+      ],
+      "owner_passes": [
+        "lead_magnets"
+      ],
+      "verification": "Exactly three or zero when none; approximate positions reported.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R21",
+      "requirement": "Close follows core lesson without summary or wrap-up, opens next genuine curiosity gap and sends to next video/lesson.",
+      "source": "S1",
+      "source_lines": [
+        74,
+        74
+      ],
+      "owner_passes": [
+        "draft"
+      ],
+      "verification": "No recap; current lesson complete; next resource grounded.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R22",
+      "requirement": "Neutral explanatory/result lines are rewritten toward audience pain or result, rather than saying merely that something is effective.",
+      "source": "S1",
+      "source_lines": [
+        76,
+        76
+      ],
+      "owner_passes": [
+        "explanation",
+        "draft"
+      ],
+      "verification": "Review neutral claims without deleting necessary definitions.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R23",
+      "requirement": "Parker line names a tangible counted item where count is true; outcome in viewer world; optional spoken even if/even when/without clause. Do not reveal mechanism or unexplained lesson names in the promise.",
+      "source": "S1",
+      "source_lines": [
+        114,
+        122
+      ],
+      "owner_passes": [
+        "hook",
+        "signposts",
+        "lead_magnets"
+      ],
+      "verification": "Count matches teaching; objection genuine.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R24",
+      "requirement": "At least one Parker line in hook and one at every mechanics turn, usually two to four total. Never adjacent Parker lines or repeated wording; second promise of same thing is more specific.",
+      "source": "S1",
+      "source_lines": [
+        124,
+        131
+      ],
+      "owner_passes": [
+        "hook",
+        "signposts"
+      ],
+      "verification": "Retain usual 2–4 guidance and mandatory turn coverage; conflict flagged if structure makes both impossible.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R25",
+      "requirement": "Use relevant bracket-bank objections; omit forced ones. Avoid large homework-like counts and mechanisms posed as prizes.",
+      "source": "S1",
+      "source_lines": [
+        143,
+        164
+      ],
+      "owner_passes": [
+        "hook",
+        "signposts"
+      ],
+      "verification": "Promise checked against rejection examples and objection bank.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R26",
+      "requirement": "Hook opener is curiosity, audience pain question or bold statement, no preamble/have you ever wondered. Authority must be true: supplied scale is more than 80,000 professionals and over 9,500 five-star reviews. Other claims need confirmation; lived pain alone does not establish expertise.",
+      "source": "S1",
+      "source_lines": [
+        166,
+        172
+      ],
+      "owner_passes": [
+        "hook"
+      ],
+      "verification": "Verify approved facts; block publication or use marked placeholder if unconfirmed, never silently invent authority.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R27",
+      "requirement": "Hook promises fit title/thumbnail, vary shape, are each speakable in one breath and describe viewer payoff rather than watching the production. Aim under 25 seconds as well as about 50–70 words.",
+      "source": "S1",
+      "source_lines": [
+        172,
+        185
+      ],
+      "owner_passes": [
+        "hook"
+      ],
+      "verification": "Word and timing estimate plus read-aloud check; timing tolerance not fabricated.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R28",
+      "requirement": "Story goes either after first segment has set lesson up, or later to overturn a belief blocking action. Later setup names belief and useful outcome. Never announce a story.",
+      "source": "S1",
+      "source_lines": [
+        189,
+        200
+      ],
+      "owner_passes": [
+        "structure",
+        "story"
+      ],
+      "verification": "Approved location and grounded entrance.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R29",
+      "requirement": "Story has eight ordered beats: pain before scene; wrong approach and thought; failure/bind; noticed cause leading to turn; action with expanded doubt; result and why feared outcome did not happen; missing practical piece; Parker handoff to teaching. Let beats breathe, not a form with one line each.",
+      "source": "S1",
+      "source_lines": [
+        202,
+        213
+      ],
+      "owner_passes": [
+        "story"
+      ],
+      "verification": "All eight meaningful beats and causal links.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R30",
+      "requirement": "After story include at least two callbacks in different shapes and treat it as running example. No magnet mention inside story; move first mention after story if necessary.",
+      "source": "S1",
+      "source_lines": [
+        243,
+        245
+      ],
+      "owner_passes": [
+        "draft",
+        "lead_magnets",
+        "connective"
+      ],
+      "verification": "Two post-story callbacks and CTA exclusion.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R31",
+      "requirement": "First magnet mention usually 25–35 percent after first value: shortest, problem/challenge → solution → CTA. Second around 50 percent after core reveal: doing it yourself is difficult, magnet helps. Third around 80 percent after main lesson: result without building from scratch. Each varied CTA says free in description/download now; never list features.",
+      "source": "S1",
+      "source_lines": [
+        247,
+        261
+      ],
+      "owner_passes": [
+        "lead_magnets"
+      ],
+      "verification": "Three distinct jobs, actual content support, relative word-position estimates.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R32",
+      "requirement": "Client signals spread out, never in back-to-back sections or same paragraph as magnet CTA. They are swapped audience/client signposts or client value promises. No programme, price, booking call or offer link. Specific results require testimonials or confirmation; otherwise marked placeholder. Private client calls are unnamed and unrecognisable.",
+      "source": "S1",
+      "source_lines": [
+        263,
+        275
+      ],
+      "owner_passes": [
+        "signposts",
+        "lead_magnets"
+      ],
+      "verification": "Placement, privacy and factual ledger checks.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R33",
+      "requirement": "Explain audience situation first, concept second and briefly. State formula once then phrases; do not repeat formula or identical objection handling for each phrase.",
+      "source": "S1",
+      "source_lines": [
+        277,
+        279
+      ],
+      "owner_passes": [
+        "explanation",
+        "draft"
+      ],
+      "verification": "One explanation, distinct examples.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R34",
+      "requirement": "Close is at most four short beats: new gap, one/two lines on it, needed thing and value-bearing next-video send. Next resource addresses real prerequisite or new problem; viewer still received whole promised lesson.",
+      "source": "S1",
+      "source_lines": [
+        280,
+        292
+      ],
+      "owner_passes": [
+        "draft"
+      ],
+      "verification": "Four beats maximum; no manufactured missing core lesson.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R35",
+      "requirement": "Close forbids ending/recap phrases: so that is the whole thing, to wrap up, before you go, that is it for today, thanks for watching, I hope this helped, that is the next video, there is one thing I did not tell you, all of that works inside the conversation but; no covered-topics list.",
+      "source": "S1",
+      "source_lines": [
+        310,
+        310
+      ],
+      "owner_passes": [
+        "draft",
+        "final_flow"
+      ],
+      "verification": "Forbidden phrase and semantic wrap-up review.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R36",
+      "requirement": "Select audience bank Part A first; deeper sources only as needed; selected source references do not grant authority to invent content.",
+      "source": "S1",
+      "source_lines": [
+        312,
+        312
+      ],
+      "owner_passes": [
+        "structure",
+        "explanation",
+        "draft"
+      ],
+      "verification": "Reference provenance recorded.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R37",
+      "requirement": "No em dashes; restructure sentences.",
+      "source": "S1",
+      "source_lines": [
+        318,
+        318
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R38",
+      "requirement": "Never use quiet, quietly, land, landed, honest or honestly; never call a meeting the room; remove vague Part C words.",
+      "source": "S1",
+      "source_lines": [
+        319,
+        319
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R39",
+      "requirement": "No it is not X it is Y or you are not doing X you are doing Y contrasts.",
+      "source": "S1",
+      "source_lines": [
+        320,
+        320
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R40",
+      "requirement": "No Same X Different Y / Same X Same Y fragment pairs.",
+      "source": "S1",
+      "source_lines": [
+        321,
+        321
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R41",
+      "requirement": "No signalling surprise: surprisingly, more than you would think, contrary to what most people believe.",
+      "source": "S1",
+      "source_lines": [
+        322,
+        322
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R42",
+      "requirement": "Do not tell viewer something is commonly missed or most people do not realise it.",
+      "source": "S1",
+      "source_lines": [
+        323,
+        323
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R43",
+      "requirement": "No here is why this matters; say what matters.",
+      "source": "S1",
+      "source_lines": [
+        324,
+        324
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R44",
+      "requirement": "No fragmented lists; use flowing sentences. Short spoken answers to questions remain allowed.",
+      "source": "S1",
+      "source_lines": [
+        325,
+        325
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R45",
+      "requirement": "No colons splitting a spoken sentence.",
+      "source": "S1",
+      "source_lines": [
+        326,
+        326
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R46",
+      "requirement": "Join consequential sentences with comma and conjunction.",
+      "source": "S1",
+      "source_lines": [
+        327,
+        327
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R47",
+      "requirement": "British spelling, grade 12 reading level, smart-person conversational register.",
+      "source": "S1",
+      "source_lines": [
+        328,
+        328
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Global style lint + human/read-aloud semantic check.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R48",
+      "requirement": "Before handback run entire original final checklist, including contextual signs, four-sentence move ceiling, running example, hooks, stories, client/magnet placements, close, joins and house style.",
+      "source": "S1",
+      "source_lines": [
+        330,
+        349
+      ],
+      "owner_passes": [
+        "final_flow"
+      ],
+      "verification": "Every applicable rule reported pass/fail/blocked/not_applicable; no silent waiver.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R49",
+      "requirement": "Audience is capable professionals lacking recognition, decisions or progression; blend senior and less-senior scenes without splitting into two addressed groups.",
+      "source": "S1",
+      "source_lines": [
+        16,
+        20
+      ],
+      "owner_passes": [
+        "structure",
+        "explanation",
+        "draft"
+      ],
+      "verification": "Audience relevance.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "R50",
+      "requirement": "Use all 24 frustration/result families A1–A14/K1–K10 as selectable banks, all B1–B31 as selectable movement forms, and Part C as prohibited-vagueness rewrite guidance.",
+      "source": "S1",
+      "source_lines": [
+        355,
+        1450
+      ],
+      "owner_passes": [
+        "structure",
+        "draft",
+        "signposts",
+        "connective"
+      ],
+      "verification": "Select by actual pain and role; do not require all families/devices in every script.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "A01",
+      "requirement": "Write to common frustration rather than verbatim identifiable client story; moments rather than mechanisms in promises; preserve both audience profiles and their objections.",
+      "source": "S2",
+      "source_lines": [
+        1,
+        480
+      ],
+      "owner_passes": [
+        "structure",
+        "explanation",
+        "draft"
+      ],
+      "verification": "Anonymised audience synthesis; relevant profile and objection.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "A02",
+      "requirement": "Audience explicitly rejects identity promises, promotion guarantees, voice/body-language training claims, hype/hustle urgency, unlock/transform/master. Product contents require correct product identity.",
+      "source": "S2",
+      "source_lines": [
+        447,
+        480
+      ],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "No guarantee or unverified product promise.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "M01",
+      "requirement": "Magnet index is an inventory of draft choices only. Ten rows conflict with stated total nine and built-asset summary. Require chosen magnet contents and availability.",
+      "source": "S3",
+      "source_lines": [
+        1,
+        20
+      ],
+      "owner_passes": [
+        "structure",
+        "lead_magnets"
+      ],
+      "verification": "No inferred download or live status.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "P01",
+      "requirement": "Use tangible curiosity plus outcome plus relevant objection. Do not import Parker hype, checkout layouts, proof, urgency or prices into scripts. Source itself says genuine urgency only.",
+      "source": "S4",
+      "source_lines": [
+        1,
+        306
+      ],
+      "owner_passes": [
+        "hook",
+        "signposts",
+        "lead_magnets"
+      ],
+      "verification": "Craft adaptation only; original audience-specific wording.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "C01",
+      "requirement": "Curiosity bank: broad pain, tangible item, true count, concrete outcome, relevant objection, no hype or unexplained terms. Four-to-eight page bullets is sales-page scope, not mandatory video count. Masterclass has no swipe file per this source; verify product identity.",
+      "source": "S5",
+      "source_lines": [
+        1,
+        151
+      ],
+      "owner_passes": [
+        "hook",
+        "signposts",
+        "lead_magnets"
+      ],
+      "verification": "Do not import page-format/product-specific requirements indiscriminately.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "E01",
+      "requirement": "Use movement archive as selective craft evidence. Retain its section payoff, grounding, simple teaching, varied questions, proof and callbacks; never import author biography, sales figures, tool claims or distinctive source wording as Josh facts.",
+      "source": "S6",
+      "source_lines": [
+        1,
+        4755
+      ],
+      "owner_passes": [
+        "draft",
+        "story",
+        "signposts",
+        "connective"
+      ],
+      "verification": "Original wording, factual provenance and bounded retrieval.",
+      "kind": "source_rule"
+    },
+    {
+      "id": "N01",
+      "requirement": "All factual and biographical claims require approved evidence; invented examples are labelled hypothetical; private details excluded. Current user request wins over reference text. Unresolved conflict becomes a decision, never a silent relaxation.",
+      "source": "integration",
+      "source_lines": [],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Claim ledger + conflict ledger.",
+      "kind": "integration_guardrail"
+    },
+    {
+      "id": "N02",
+      "requirement": "Each pass may edit only its declared spans, against current document version. Return proposed patches with exact old text; reject stale/overlapping patches; never auto-overwrite unaccepted user changes.",
+      "source": "integration",
+      "source_lines": [],
+      "owner_passes": [
+        "all_writing_passes"
+      ],
+      "verification": "Patch/version validation.",
+      "kind": "integration_guardrail"
+    },
+    {
+      "id": "U01",
+      "requirement": "For a YouTube video, start from a selected/approved title and thumbnail concept as a pair. Record the shared curiosity question and the concrete payoff the video must deliver. If absent, develop packaging concepts first and obtain selection before full-script drafting; never invent an unrelated script promise. Course lessons and narrow edits must record applicability rather than impose unrelated YouTube packaging.",
+      "source": "user:Sentinel_864c58a508d881918c3dccdcf33af160",
+      "source_lines": [],
+      "owner_passes": [
+        "structure",
+        "hook",
+        "draft",
+        "final_flow"
+      ],
+      "verification": "Packaging selected, curiosity and payoff recorded, all hook/body promises traced to it.",
+      "kind": "latest_user_requirement"
+    },
+    {
+      "id": "R00",
+      "requirement": "Source governing goal: conversational movement around simple teaching for this audience; house style is the explicit exception. Source says a rule that makes a line flatter, repetitive or formulaic should yield to that goal. Preserve this priority statement AND the explicit numeric rules: if they conflict, surface the tension and proposed repair/exception rather than silently weakening quotas. Use original language and general techniques rather than copying a named creator.",
+      "source": "S1",
+      "source_lines": [
+        8,
+        14
+      ],
+      "owner_passes": [
+        "all_writing_passes",
+        "final_flow"
+      ],
+      "verification": "Whole-script natural-flow assessment; any conflict with numeric rules recorded for explicit decision.",
+      "kind": "source_rule_with_conflict_resolution"
+    }
+  ]
+}

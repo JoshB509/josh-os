@@ -1,0 +1,77 @@
+DaJoshiResolve core editing increment - 16 October 2026
+
+Installed scope
+- Sources, explicit Pass 1 review/approval, staged silence candidate, semantic
+  rejection, canonical word map, exact-map preview and clean-cut approval.
+- Pass 1 evidence must be an uncut composite with the same cadence and duration,
+  a supplied verified sync report and word timestamps in selected-audio seconds.
+  Human appearance/sync/word checks are explicit attestations, never inferred.
+- Run silence-only cut creates a new owned job. It measures microphone RMS,
+  removes only quiet intervals outside protected words, and keeps untranscribed
+  sound and repeated wording. No model or semantic heuristic silently chooses takes.
+- Import the completed job as a new review candidate. Explicit rejection ranges
+  are in original video seconds, rounded outward on the video frame grid. They
+  are actually subtracted from the map and XML. semantic_decisions.json records
+  before/after digests and actual omission checks. Render this exact candidate
+  creates new review media from that map; old previews never become new approval.
+- Only fully contained words are remapped into the current output clock. Partial
+  boundary words block approval. words.json retains output and source coordinates.
+- The approved uncut Pass 1 composite is visible; original video is preserved on
+  a disabled linked recovery track. Source microphone is separately editable.
+- Import manual timing map accepts {mapping, source_identities, note}. mapping
+  follows timing_map.json; source_identities is the files object from Copy video
+  context. Headers, fingerprints, source clock and alignment must match. Exact
+  frame spans survive without replanning. XML/native Premiere-project parsing
+  and reconciliation are NOT implemented; first export/construct a validated map.
+- Approved clean timing cannot be automatically recut. Rendering binds an exact
+  artifact digest and never invokes the silence planner. All subsequent timing
+  edits create a new unapproved candidate. New upstream candidates/source changes
+  invalidate dependent approvals. Visual-only inputs do not rewrite kept spans.
+- Jobs use isolated folders, owned-process cancellation and explicit resume.
+  Resume checks code/settings/request identity and the exact current workflow
+  snapshot. Changed sources, project revision or upstream approval block reuse.
+  Cancellation can resume unchanged evidence; stale work needs a new job.
+
+Audio precision and fades
+- Default review and XML use hard joins. The renderer additionally writes
+  CLEAN_AUDIO.wav with exact output sample count derived from rational video
+  boundaries. Nearest-sample mapping can differ by up to one sample per source
+  span; one zero sample is used if needed, never borrowed rejected speech.
+- Optional review fade is 0-20 ms total duration, default 0. Each linear fade
+  uses explicit source pre/post handles centered on an existing output join.
+  Both envelope regions must be quiet (peak <= .002), outside all word bounds
+  and semantic rejection ranges, with enough nonoverlapping source handles.
+  Otherwise that join stays hard and audio_joins.json records the reason.
+- Fades never move video frames, shorten duration, overlap spoken words or
+  repeat rejected speech. Join records include source boundaries, sample map,
+  requested duration, curve and actual application.
+- IMPORTANT: XMEML audio fade/envelope export is NOT implemented. Optional fades
+  are rendered into review audio/preview only. Candidate XML still has hard joins;
+  listen to the XML timeline independently before approval. Review-only audio
+  is not silently substituted for the editable microphone track.
+
+Renderer
+- Version 2 render_contract on JSON/CSV shot rows declares scene/active/removed
+  selectors, inherited-state selector, settle_ms, motion_frames, phase_frames,
+  handle_frames and optional even viewport width/height.
+- Defaults preserve full requested shot motion; there is no three-second cap.
+  Explicit phase resumes split motion. Holds freeze the final rendered state.
+- Scene isolation requires exactly one declared active scene. Finite inherited
+  CSS entrances settle while infinite animation duration remains intact. Decks
+  must declare correct selectors; arbitrary HTML is not automatically understood.
+- Asset handles are extendable capacity, not instructions to prolong the shot.
+
+Remaining limitations
+- Automatic full Pass 1 key/background/shadow/moving-light composition remains
+  unconnected. Short key previews and supplied full-composite report import work.
+- Source transcript words are remapped; this is NOT a fresh transcription of
+  rendered output. ASR/re-alignment import and an in-app semantic model are not
+  connected. Resolve boundary issues before approval; never claim stale words
+  are validated. Explicit complete-word removal or a corrected manual map can
+  resolve a boundary; linguistic review still requires a person/assistant.
+- Clean-cut-bound visual plan validation/approval and final visual assembly are
+  not connected. Existing legacy engine and prior runs remain preserved.
+- Schema/XML validation, rendered fixture evidence, native editor playback,
+  human listening and editorial approval remain separate statuses.
+- No production rerun, native editor control, screenshots, uploads, external
+  publishing/scheduling, account settings or credential changes in this increment.

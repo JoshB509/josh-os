@@ -1,0 +1,21 @@
+{
+  "video": "E:\\Videos\\Promotion Policy\\C0323\\C0323_green.mp4",
+  "audio": "E:\\Videos\\Promotion Policy\\C0323\\00168_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+  "transcript": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\transcript.json",
+  "start": 24,
+  "end": 36,
+  "preview": true,
+  "regression_flags": [
+    {
+      "kind": "v03_unresolved_join",
+      "reason": "Prior v03 output 09:17.28 remains unresolved. Different timeline; do not falsely remap as source time."
+    },
+    {
+      "kind": "v03_unresolved_join",
+      "reason": "Prior v03 output 09:20.16 remains unresolved. Different timeline; do not falsely remap as source time."
+    }
+  ],
+  "shots": "E:\\Videos\\DaJoshiResolve\\examples\\shots.csv",
+  "deck": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\outputs\\Promotion Rule Project\\References\\2026-10_youtube_promotion-rule_slides_v01.html",
+  "reference": "E:\\Videos\\Promotion Policy\\C0323.MP4"
+}

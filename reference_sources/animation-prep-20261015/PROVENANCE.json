@@ -1,0 +1,51 @@
+{
+  "saved_at": "2026-10-15T12:08:54.541599+00:00",
+  "source_message": "Sentinel_b58a6335f4448191bd28ab0bbf986c8d",
+  "role": "Supplied animation/shot-list skill and reference HTML; unchanged archived references",
+  "status": "Handoff proposed; adapter not implemented; no new deck generated",
+  "files": [
+    {
+      "name": "SKILL.md",
+      "library_file_id": "libfile_e48fcbc331508191b2ed61f5f9d42565",
+      "file_id": "file_000000004dbc81f48ded7c58ac4cd6d1",
+      "version": 0,
+      "bytes": 7865,
+      "sha256": "245c636ff8e5d5f0a80f27936b1145ba7e46aa24ca71949e18bd1845aaaa5ec9",
+      "xattrs": [
+        {
+          "name": "user.library-file-version",
+          "value": "0"
+        }
+      ],
+      "native_xattrs_applied": false
+    },
+    {
+      "name": "2026-10_executive-communication-program_vsl_slides_v01.html",
+      "library_file_id": "libfile_b7d3a942cea08191b6ce34ce85082cc2",
+      "file_id": "file_00000000eec48210b1f349e85bbbe688",
+      "version": 0,
+      "bytes": 195113,
+      "sha256": "ec68a58038a0c4ce7f879d4b880f754b70ead3f6153ce645d8264555afbb317e",
+      "xattrs": [
+        {
+          "name": "user.library-file-version",
+          "value": "0"
+        }
+      ],
+      "native_xattrs_applied": false
+    }
+  ],
+  "static_contract_inspection": {
+    "scenes": 42,
+    "number_cards": 21,
+    "full_screen": 11,
+    "pip": 10,
+    "first_beat": 0,
+    "last_beat": 74,
+    "manual_go": true,
+    "data_off_elements": 2,
+    "wall_clock_css_transitions": true
+  },
+  "runtime_compatibility_tested": false,
+  "windows_metadata_note": "Library identity/version retained in this sidecar; native Unix xattrs unavailable on Windows."
+}

@@ -1,0 +1,135 @@
+{
+  "principle": "Changes mark dependent artifacts/checks dirty; they do not automatically execute every downstream pass. Preserve valid accepted work and rerun the smallest owner scope. Read-only final checks always rerun after accepted edits before readiness.",
+  "events": [
+    {
+      "change": "selected title, thumbnail, shared curiosity question or promised payoff",
+      "rerun": [
+        "packaging selection if unresolved",
+        "structure affected outline only",
+        "hook affected promise",
+        "draft sections that no longer deliver promise"
+      ],
+      "recheck": [
+        "promise-to-packaging coverage",
+        "all actual taught item counts",
+        "final_flow"
+      ],
+      "preserve": "Unchanged valid prose; do not regenerate entire script merely because wording of title changes."
+    },
+    {
+      "change": "brief, main point, audience or major order",
+      "rerun": [
+        "structure affected outline",
+        "explanation affected cards",
+        "story if relevance/slot changes",
+        "draft affected sections"
+      ],
+      "recheck": [
+        "all promises, signposts, callbacks, placements and final_flow"
+      ]
+    },
+    {
+      "change": "teaching fact, framework count or example",
+      "rerun": [
+        "explanation affected card",
+        "draft affected section"
+      ],
+      "recheck": [
+        "hook and Parker promises referencing change",
+        "story/callbacks referencing it",
+        "connective affected joins",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "story details or placement",
+      "rerun": [
+        "story block",
+        "draft affected callback spans"
+      ],
+      "recheck": [
+        "signpost entrance/handoff",
+        "magnet collision/percentages",
+        "connective joins",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "hook wording only, same promises",
+      "rerun": [
+        "hook only"
+      ],
+      "recheck": [
+        "hook/body join",
+        "Parker repetition/adjacency",
+        "total word counts/CTA percentages",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "single signpost",
+      "rerun": [
+        "signposts boundary with neighbouring boundaries"
+      ],
+      "recheck": [
+        "global signpost ratio, adjacency, Parker counts",
+        "client spacing if affected",
+        "connective local joins",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "magnet selected, removed or facts changed",
+      "rerun": [
+        "lead_magnets only; update structure slots without rebuilding body"
+      ],
+      "recheck": [
+        "first-value/story/client collisions",
+        "connective insertion/re-entry joins",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "connective wording only",
+      "rerun": [
+        "connective requested span"
+      ],
+      "recheck": [
+        "touched shared rules",
+        "movement count/types",
+        "affected specialist counts/promises",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "authority/client claim invalidated",
+      "rerun": [
+        "claim owner hook or signposts on exact spans"
+      ],
+      "recheck": [
+        "all uses of invalid claim",
+        "final_flow readiness"
+      ]
+    },
+    {
+      "change": "user edits while pass running",
+      "rerun": [
+        "reject stale patches, refresh actual affected span/context; re-propose only necessary pass"
+      ],
+      "recheck": [
+        "dirty ledgers for actual changes",
+        "final_flow"
+      ]
+    },
+    {
+      "change": "source skill rule updated",
+      "rerun": [
+        "none automatically"
+      ],
+      "recheck": [
+        "all artifacts linked to changed rule ID; route failures to owner",
+        "final_flow"
+      ]
+    }
+  ]
+}

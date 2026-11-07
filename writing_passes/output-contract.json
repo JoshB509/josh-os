@@ -1,0 +1,56 @@
+{
+  "description": "JSON-shaped return specification, not a model invocation. Implementer may encode as a schema.",
+  "fields": {
+    "pass_id": "one manifest pass ID",
+    "base_document_version": "exact revision read",
+    "status": "proposed | blocked | skipped | checked",
+    "patches": [
+      {
+        "span_id": "existing or reserved target ID",
+        "old_text": "exact text from base version; empty only for reserved insertion",
+        "new_text": "proposed replacement",
+        "reason_rule_ids": [
+          "Rxx"
+        ],
+        "affects": [
+          "section_id",
+          "ledger_key"
+        ]
+      }
+    ],
+    "artifacts": "pass-specific plans/ledgers; not spoken script",
+    "checks": [
+      {
+        "rule_id": "Rxx",
+        "status": "pass | fail | blocked | not_applicable",
+        "evidence": "span ID, observed count or explanation; never unsupported assertion",
+        "reason_if_not_applicable": "required when skipped"
+      }
+    ],
+    "repair_requests": [
+      {
+        "owner_pass": "manifest ID",
+        "scope": "specific span/ledger",
+        "reason": "why current pass cannot fix safely"
+      }
+    ],
+    "blocked_questions": [
+      "minimal necessary missing fact or decision"
+    ],
+    "references_used": [
+      "source ID + exact range or paragraph ID"
+    ],
+    "next_dirty_checks": [
+      "affected rule IDs"
+    ],
+    "readiness": "ready_for_review | blocked | not_assessed"
+  },
+  "patch_application": [
+    "Reject stale base version; refresh affected context and re-propose.",
+    "Check old_text matches target span exactly.",
+    "Reject overlapping patches or undeclared writable scope.",
+    "Preview or use explicit app-authorized edit workflow; preserve undo and user edits.",
+    "Recompute dirty checks after application."
+  ],
+  "readiness_policy": "Only final_flow may set ready_for_review; every applicable rule must pass, no failed or blocked checks, no unresolved required facts/conflicts, no stale patches, and current script version must equal checked version. not_applicable always needs a reason. Other passes return not_assessed. Any unresolved dirty check also prevents readiness."
+}

@@ -1,0 +1,967 @@
+[
+  {
+    "script": "Most professionals are walking into meetings with executives and making the same mistake that makes them look like they're not ready to lead. They explain everything, and the more they explain, the less the executive gets it.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "I know this because I get the board at a multi-billion dollar company to sign off on very technical work and I only ever bring four slides, and I've taught the same approach to more than 80,000 professionals.",
+    "shot": "**Insert Animation 1** (picture in picture, you in the right-hand box)<br>The board, then four slides, then the 80,000 counting up.<br><br>Press 1 on “the board at a multi-billion dollar company”<br>Press 2 on “I only ever bring four slides”<br>Press 3 on “more than 80,000 professionals”",
+    "animation": 1,
+    "cues": [
+      {
+        "animation": 1,
+        "press": 1,
+        "beat": 1,
+        "phrase": "the board at a multi-billion dollar company",
+        "layout": "pip"
+      },
+      {
+        "animation": 1,
+        "press": 2,
+        "beat": 2,
+        "phrase": "I only ever bring four slides",
+        "layout": "pip"
+      },
+      {
+        "animation": 1,
+        "press": 3,
+        "beat": 3,
+        "phrase": "more than 80,000 professionals",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "So in this video I'll show you the 3 things every executive actually wants before they'll make a decision, without dumbing down your work or making it sound less impressive, so they get your work the first time and see you as the person to lead it, even if your work is too technical to fit in a sentence.",
+    "shot": "**Insert Animation 2** (full screen)<br>Three question-mark cards, then the two promises.<br><br>Press 1 on “the 3 things every executive actually wants”<br>Press 2 on “without dumbing down your work”<br>Press 3 on “see you as the person to lead it”",
+    "animation": 2,
+    "cues": [
+      {
+        "animation": 2,
+        "press": 1,
+        "beat": 5,
+        "phrase": "the 3 things every executive actually wants",
+        "layout": "graphic"
+      },
+      {
+        "animation": 2,
+        "press": 2,
+        "beat": 6,
+        "phrase": "without dumbing down your work",
+        "layout": "graphic"
+      },
+      {
+        "animation": 2,
+        "press": 3,
+        "beat": 7,
+        "phrase": "see you as the person to lead it",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "To begin, let me show you the biggest mistake smart professionals make with executives, and it's the one that makes them look like they're not ready to lead.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So when you take your work to someone senior, you want to show you've done it properly, and you definitely don't want to get caught out by a question you haven't got the answer to. So you explain everything. You give them the background, how you did it, every option, every risk and every number, because if they can see all of it, surely they'll back it.",
+    "shot": "Talking head, then cut to the animation from “You give them the background”.<br><br>**Insert Animation 3** (picture in picture, you in the right-hand box)<br>Your deck fills up with slides until there are ten.<br><br>Press 1 on “You give them the background”<br>Press 2 on “how you did it”<br>Press 3 on “every option”<br>Press 4 on “every risk”<br>Press 5 on “and every number”",
+    "animation": 3,
+    "cues": [
+      {
+        "animation": 3,
+        "press": 1,
+        "beat": 9,
+        "phrase": "You give them the background",
+        "layout": "pip"
+      },
+      {
+        "animation": 3,
+        "press": 2,
+        "beat": 10,
+        "phrase": "how you did it",
+        "layout": "pip"
+      },
+      {
+        "animation": 3,
+        "press": 3,
+        "beat": 11,
+        "phrase": "every option",
+        "layout": "pip"
+      },
+      {
+        "animation": 3,
+        "press": 4,
+        "beat": 12,
+        "phrase": "every risk",
+        "layout": "pip"
+      },
+      {
+        "animation": 3,
+        "press": 5,
+        "beat": 13,
+        "phrase": "and every number",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "But they nod all the way through and still don't get it. So you explain it harder, with more detail, and that makes it worse. Now it's too much and they don't know what you want from them, so you cut it down, and now it's a bit light and you're sent away to come back with more. And after a few rounds of that, you start to wonder whether the problem is you.",
+    "shot": "Back to talking head from “And after a few rounds of that”.<br><br>**Insert Animation 4** (picture in picture, you in the right-hand box)<br>The executive nods, your update grows long, shrinks short, then the speech bubble.<br><br>Press 1 on “they nod all the way through”<br>Press 2 on “Now it's too much”<br>Press 3 on “now it's a bit light”<br>Press 4 on “you're sent away to come back with more”",
+    "animation": 4,
+    "cues": [
+      {
+        "animation": 4,
+        "press": 1,
+        "beat": 15,
+        "phrase": "they nod all the way through",
+        "layout": "pip"
+      },
+      {
+        "animation": 4,
+        "press": 2,
+        "beat": 16,
+        "phrase": "Now it's too much",
+        "layout": "pip"
+      },
+      {
+        "animation": 4,
+        "press": 3,
+        "beat": 17,
+        "phrase": "now it's a bit light",
+        "layout": "pip"
+      },
+      {
+        "animation": 4,
+        "press": 4,
+        "beat": 18,
+        "phrase": "you're sent away to come back with more",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "And when executives watch you explain everything, the thought in their head is \"if you can't tell what matters, why should we trust you to lead it?\"",
+    "shot": "**Insert Animation 5** (full screen)<br>The executive and the speech bubble.<br><br>Press 1 on “the thought in their head is”",
+    "animation": 5,
+    "cues": [
+      {
+        "animation": 5,
+        "press": 1,
+        "beat": 20,
+        "phrase": "the thought in their head is",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "But as I'm about to show you, there's a much better way. It's going to get executives to understand your work the first time, and it instantly makes you look like the person to lead it, instead of the person who did all the work, because instead of detail, you’re going to give the senior decision makers the exact three things they actually want from you.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So now let me show you this system. It's the one I use every time I take something to the board, it's the same one that got my clients results like this [client results on screen, Josh to pick], and it's only 3 things, which is really easy, right?",
+    "shot": "**Insert Animation 6** (full screen)<br>Real reviews cycle, then three question-mark cards and “Only 3 things”.<br><br>Press 1 on “results like this”<br>Press 2 on “it's only 3 things”",
+    "animation": 6,
+    "cues": [
+      {
+        "animation": 6,
+        "press": 1,
+        "beat": 22,
+        "phrase": "results like this",
+        "layout": "graphic"
+      },
+      {
+        "animation": 6,
+        "press": 2,
+        "beat": 23,
+        "phrase": "it's only 3 things",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "So first, take your slide deck or your report and all of this stuff at the start, like the background, the options you looked at and all the work you did to get here. Just remove it. You're not going to need it there. All it does is make your audience wonder when you're going to get to the point, and while they're wondering, they've stopped listening, which is exactly when you get sent away for more detail.",
+    "shot": "**Insert Animation 7** (full screen)<br>The ten-slide deck, the first five turn red and fly into the Appendix folder, then the rest move up.<br><br>Press 1 on “all of this stuff at the start”<br>Press 2 on “the background, the options you looked at”<br>Press 3 on “Just remove it”<br>Press 4 on “wonder when you're going to get to the point”",
+    "animation": 7,
+    "cues": [
+      {
+        "animation": 7,
+        "press": 1,
+        "beat": 25,
+        "phrase": "all of this stuff at the start",
+        "layout": "graphic"
+      },
+      {
+        "animation": 7,
+        "press": 2,
+        "beat": 26,
+        "phrase": "the background, the options you looked at",
+        "layout": "graphic"
+      },
+      {
+        "animation": 7,
+        "press": 3,
+        "beat": 27,
+        "phrase": "Just remove it",
+        "layout": "graphic"
+      },
+      {
+        "animation": 7,
+        "press": 4,
+        "beat": 28,
+        "phrase": "wonder when you're going to get to the point",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And once you've done that, now you can give them the first thing they actually want. And this is going to make an executive sit up in seconds, because it proves you already know why this matters to them before they've had to ask.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So your goal here isn’t to explain the background, it’s to give them a reason to make a decision now, before you've said a single word about your idea, and all you need to do that is a single sentence, not 5 slides of background. And that might sound difficult, to cram all the information into one line, but it's actually really easy, because all you're doing is giving them the motivation to act.",
+    "shot": "**Insert Animation 8** (picture in picture, you in the right-hand box)<br>Your goal card, five Background slides squash into one sentence, then the motivation.<br><br>Press 1 on “a reason to make a decision now”<br>Press 2 on “not 5 slides of background”<br>Press 3 on “it's actually really easy”<br>Press 4 on “the motivation to act”",
+    "animation": 8,
+    "cues": [
+      {
+        "animation": 8,
+        "press": 1,
+        "beat": 30,
+        "phrase": "a reason to make a decision now",
+        "layout": "pip"
+      },
+      {
+        "animation": 8,
+        "press": 2,
+        "beat": 31,
+        "phrase": "not 5 slides of background",
+        "layout": "pip"
+      },
+      {
+        "animation": 8,
+        "press": 3,
+        "beat": 32,
+        "phrase": "it's actually really easy",
+        "layout": "pip"
+      },
+      {
+        "animation": 8,
+        "press": 4,
+        "beat": 33,
+        "phrase": "the motivation to act",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "Think about a mechanic who tells you your brakes are going to fail in about a month. You don't need to know how brakes work, they don’t explain the heat dissipation differential curves, or the history of your car, because that doesn’t give you a reason to make a decision. What you actually need to know is, what’s the problem and why do I need to decide. And if you do this right, that's what makes executives understand your work.",
+    "shot": "**Insert Animation 9** (picture in picture, you in the right-hand box)<br>A brake disc glowing red with the mechanic’s line, two details struck through, then the gold card.<br><br>Press 1 on “your brakes are going to fail”<br>Press 2 on “heat dissipation differential curves”<br>Press 3 on “or the history of your car”<br>Press 4 on “because that doesn’t give you a reason”<br>Press 5 on “what’s the problem and why do I need to decide”",
+    "animation": 9,
+    "cues": [
+      {
+        "animation": 9,
+        "press": 1,
+        "beat": 35,
+        "phrase": "your brakes are going to fail",
+        "layout": "pip"
+      },
+      {
+        "animation": 9,
+        "press": 2,
+        "beat": 36,
+        "phrase": "heat dissipation differential curves",
+        "layout": "pip"
+      },
+      {
+        "animation": 9,
+        "press": 3,
+        "beat": 37,
+        "phrase": "or the history of your car",
+        "layout": "pip"
+      },
+      {
+        "animation": 9,
+        "press": 4,
+        "beat": 38,
+        "phrase": "because that doesn’t give you a reason",
+        "layout": "pip"
+      },
+      {
+        "animation": 9,
+        "press": 5,
+        "beat": 39,
+        "phrase": "what’s the problem and why do I need to decide",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "And I'll show you how you can turn your technical work into motivation to act. I use a checklist like this one. It lists everything executives look for in a piece of work, so I just pick the one that matters most to the person I'm presenting to, and then all I have to do is throw it into a template sentence like this. \"We're [the situation], and [the problem] is going to cost us [what they care about] unless we act [by when].\"",
+    "shot": "Talking head, then cut to the animation from “I use a checklist like this one”.<br><br>**Insert Animation 10** (full screen)<br>The checklist ticks through, one row lights up, then the template sentence with its blanks.<br><br>Press 1 on “I use a checklist like this one”<br>Press 2 on “pick the one that matters most”<br>Press 3 on “a template sentence like this”",
+    "animation": 10,
+    "cues": [
+      {
+        "animation": 10,
+        "press": 1,
+        "beat": 41,
+        "phrase": "I use a checklist like this one",
+        "layout": "graphic"
+      },
+      {
+        "animation": 10,
+        "press": 2,
+        "beat": 42,
+        "phrase": "pick the one that matters most",
+        "layout": "graphic"
+      },
+      {
+        "animation": 10,
+        "press": 3,
+        "beat": 43,
+        "phrase": "a template sentence like this",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "So this is what that looks like filled in, if you're in HR and new starters keep leaving, it's \"We've lost eleven of our last forty new starters before probation, and covering their shifts with agency staff will cost us £200k this year unless we fix onboarding before the March intake.\"",
+    "shot": "**Insert Animation 11** (full screen)<br>Slide 1 of the deck you’re building. The old detail flies into the Appendix, then the motivation goes in as the headline.<br><br>Press 1 on “So this is what that looks like filled in”<br>Press 2 on “if you're in HR and new starters keep leaving”<br>Press 3 on “We've lost eleven of our last forty”",
+    "animation": 11,
+    "cues": [
+      {
+        "animation": 11,
+        "press": 1,
+        "beat": 45,
+        "phrase": "So this is what that looks like filled in",
+        "layout": "graphic"
+      },
+      {
+        "animation": 11,
+        "press": 2,
+        "beat": 46,
+        "phrase": "if you're in HR and new starters keep leaving",
+        "layout": "graphic"
+      },
+      {
+        "animation": 11,
+        "press": 3,
+        "beat": 47,
+        "phrase": "We've lost eleven of our last forty",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And that is so much better than \"Today I'm going to take you through the onboarding review\", followed by ten minutes on how you ran the survey, what system was used and what departments we surveyed.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "And there are loads of these template sentences for different situations. If you want this toolkit, I'll leave it in the description below so you can download it for free. It's got everything executives look for in your work and the sentences that give it to them, and it's what I check every deck against before it goes to the board.",
+    "shot": "**Insert Animation 12** (full screen)<br>Template cards, then the gold button.<br><br>Press 1 on “loads of these template sentences”<br>Press 2 on “I'll leave it in the description below”",
+    "animation": 12,
+    "cues": [
+      {
+        "animation": 12,
+        "press": 1,
+        "beat": 49,
+        "phrase": "loads of these template sentences",
+        "layout": "graphic"
+      },
+      {
+        "animation": 12,
+        "press": 2,
+        "beat": 50,
+        "phrase": "I'll leave it in the description below",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "So the second thing is going to make your work sound as big as it was, because you're going to show executives what it gets them, instead of everything it took. And I'm going to show you how to do that, even if your work is highly detailed.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "Now, before you close this video and tell me your work is too technical, and they can't back something they don't understand, then you're right, and you're still going to give them everything they need. It just stops getting in the way of the decision.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "And I know that, because I used to think the same thing. A few years ago I got sent back on the same deck five times. It was a forecasting model, and every round I added more on how it worked, because I was sure that once they understood the method, they'd trust it. So there I am at eleven at night before the next meeting, on revision five, looking at forty-five slides and thinking, if this goes like the last five, the project's dead.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "But going back through every comment they'd made, I noticed something. Nobody had once asked how the model worked. They kept asking why it needed doing now, what it would get us and what we needed from them. But I answered every question with more details",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "They’d ask ‘What do we need to do’ and i’d explain how the forecasting model uses regression and historical data to anticipate market trends and highlight risk markets.",
+    "shot": "Runs across this paragraph and the next two. Back to talking head from “I bet I just lost you”.<br><br>**Insert Animation 13** (picture in picture, you in the right-hand box)<br>The executive’s questions in black bubbles, your jargon answers in grey, then the Zzz.<br><br>Press 1 on “They’d ask ‘What do we need to do’”<br>Press 2 on “and i’d explain”<br>Press 3 on “They’d say ‘Ok so what does this mean for the business”<br>Press 4 on “and i’d give details like”<br>Press 5 on “Boring right?”",
+    "animation": 13,
+    "cues": [
+      {
+        "animation": 13,
+        "press": 1,
+        "beat": 52,
+        "phrase": "They’d ask ‘What do we need to do’",
+        "layout": "pip"
+      },
+      {
+        "animation": 13,
+        "press": 2,
+        "beat": 53,
+        "phrase": "and i’d explain",
+        "layout": "pip"
+      },
+      {
+        "animation": 13,
+        "press": 3,
+        "beat": 54,
+        "phrase": "They’d say ‘Ok so what does this mean for the business",
+        "layout": "pip"
+      },
+      {
+        "animation": 13,
+        "press": 4,
+        "beat": 55,
+        "phrase": "and i’d give details like",
+        "layout": "pip"
+      },
+      {
+        "animation": 13,
+        "press": 5,
+        "beat": 56,
+        "phrase": "Boring right?",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "They’d say ‘Ok so what does this mean for the business and i’d give details like ‘It means that each market has a risk indicator based on predicted performance using advanced modeling to forecast seasonal changes’",
+    "shot": "Animation 13 continues (see above)",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "Boring right? I bet I just lost you right there, but keep watching because I’ll show you what you actually need to do when you have technical information to explain.",
+    "shot": "Animation 13 continues, then talking head from “I bet I just lost you”",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "What I did was, I moved the whole model to the appendix and cut it to four slides.",
+    "shot": "**Insert Animation 14** (full screen)<br>45 slides, 41 fly into the Appendix, the last 4 grow into a row.<br><br>Press 1 on “What I did was”<br>Press 2 on “I moved the whole model to the appendix”<br>Press 3 on “cut it to four slides”",
+    "animation": 14,
+    "cues": [
+      {
+        "animation": 14,
+        "press": 1,
+        "beat": 58,
+        "phrase": "What I did was",
+        "layout": "graphic"
+      },
+      {
+        "animation": 14,
+        "press": 2,
+        "beat": 59,
+        "phrase": "I moved the whole model to the appendix",
+        "layout": "graphic"
+      },
+      {
+        "animation": 14,
+        "press": 3,
+        "beat": 60,
+        "phrase": "cut it to four slides",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And I was terrified, because it felt like I was hiding the hardest work I'd ever done, and I was sure someone would ask how it worked and I'd look like I'd skipped the difficult part.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "But nobody asked. The CFO had one question, which was what should the business do then, and I resisted the urge to explain the model and instead explained what benefit the business would get by using the tool, and afterwards they asked me to send the appendix over, because now they wanted to read it. The crazy thing was, it was exactly the same work I'd been bringing them for weeks.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "And I learned that what executives wanted all along was to know what changes in the business. And I'll show you how you can give them that.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So what you need to know is, these are the three things executives want instead of information. The first part is the motivation to make a decision, which you've already got from the start. Then the next part is what everyone gets wrong, because this is where you tell them what they get.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "And most people's instinct here is to explain the technical detail of their idea, every component, how it all fits together and how it works. But I want you to fight that instinct, because the goal of this part is to show them what changes in the business, and how it works doesn't tell them that. So they're sitting there wondering why any of this matters, and then they tune out. And when that happens, it makes you look like someone who can't tell what matters, which is exactly what you were trying to avoid.",
+    "shot": "**Insert Animation 15** (picture in picture, you in the right-hand box)<br>Component boxes connect up, the executive gets a question mark, then greys out.<br><br>Press 1 on “every component”<br>Press 2 on “how it all fits together”<br>Press 3 on “wondering why any of this matters”<br>Press 4 on “and then they tune out”",
+    "animation": 15,
+    "cues": [
+      {
+        "animation": 15,
+        "press": 1,
+        "beat": 62,
+        "phrase": "every component",
+        "layout": "pip"
+      },
+      {
+        "animation": 15,
+        "press": 2,
+        "beat": 63,
+        "phrase": "how it all fits together",
+        "layout": "pip"
+      },
+      {
+        "animation": 15,
+        "press": 3,
+        "beat": 64,
+        "phrase": "wondering why any of this matters",
+        "layout": "pip"
+      },
+      {
+        "animation": 15,
+        "press": 4,
+        "beat": 65,
+        "phrase": "and then they tune out",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "So what should you do instead? Well, let me show you. Here's what I do. First, I pick the one or two things that change in the business, the results they'd notice without anyone having to explain them.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "Let's go back to the HR example. The motivation was \"We've lost eleven of our last forty new starters before probation, and it's going to cost us £200k in agency staff.\" Now think about how you'd react to that if you were the COO. You've immediately got questions, right? What would fix it? What do we get if we do? And that's exactly the point, because a strong reason to decide makes them want the rest, so now you don't need to throw everything at them. Your job is just to answer the questions you've set up.",
+    "shot": "Talking head for “Let’s go back to the HR example”, then cut to the animation.<br><br>**Insert Animation 16** (picture in picture, you in the right-hand box)<br>The motivation card, then the two questions it sets up.<br><br>Press 1 on “The motivation was”<br>Press 2 on “What would fix it?”<br>Press 3 on “What do we get if we do?”<br>Press 4 on “Your job is just to answer the questions”",
+    "animation": 16,
+    "cues": [
+      {
+        "animation": 16,
+        "press": 1,
+        "beat": 67,
+        "phrase": "The motivation was",
+        "layout": "pip"
+      },
+      {
+        "animation": 16,
+        "press": 2,
+        "beat": 68,
+        "phrase": "What would fix it?",
+        "layout": "pip"
+      },
+      {
+        "animation": 16,
+        "press": 3,
+        "beat": 69,
+        "phrase": "What do we get if we do?",
+        "layout": "pip"
+      },
+      {
+        "animation": 16,
+        "press": 4,
+        "beat": 70,
+        "phrase": "Your job is just to answer the questions",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "So \"a new onboarding programme with a buddy system, week-two check-ins and a ninety-day review\" that’s how it works. But we need to add the benefit, which is \"More new starters stay past probation, and we stop paying agency rates to cover their shifts\", that’s what changes in the business, and that’s what signals to leadership that you’re thinking strategically at their altitude and you’re not just implementing other people’s ideas.",
+    "shot": "**Insert Animation 17** (full screen)<br>Back on the deck. It slides across from slide 1 to slide 2, how it works drops to the bottom, the outcome goes in as the headline, then the slide glows.<br><br>Press 1 on “So “a new onboarding programme”<br>Press 2 on “with a buddy system”<br>Press 3 on “But we need to add the benefit”<br>Press 4 on “More new starters stay past probation”<br>Press 5 on “you’re thinking strategically at their altitude”",
+    "animation": 17,
+    "cues": [
+      {
+        "animation": 17,
+        "press": 1,
+        "beat": 72,
+        "phrase": "So “a new onboarding programme",
+        "layout": "graphic"
+      },
+      {
+        "animation": 17,
+        "press": 2,
+        "beat": 73,
+        "phrase": "with a buddy system",
+        "layout": "graphic"
+      },
+      {
+        "animation": 17,
+        "press": 3,
+        "beat": 74,
+        "phrase": "But we need to add the benefit",
+        "layout": "graphic"
+      },
+      {
+        "animation": 17,
+        "press": 4,
+        "beat": 75,
+        "phrase": "More new starters stay past probation",
+        "layout": "graphic"
+      },
+      {
+        "animation": 17,
+        "press": 5,
+        "beat": 76,
+        "phrase": "you’re thinking strategically at their altitude",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And that's exactly what I did here. I didn't give them the survey response rate, the exit interview themes or the benchmark against three other companies. All of that is still in the appendix. I just answered the question the first sentence set up.",
+    "shot": "**Insert Animation 18** (picture in picture, you in the right-hand box)<br>Three bits of detail appear, then all fly into the Appendix folder.<br><br>Press 1 on “the survey response rate”<br>Press 2 on “the exit interview themes”<br>Press 3 on “the benchmark against three other companies”<br>Press 4 on “All of that is still in the appendix”",
+    "animation": 18,
+    "cues": [
+      {
+        "animation": 18,
+        "press": 1,
+        "beat": 78,
+        "phrase": "the survey response rate",
+        "layout": "pip"
+      },
+      {
+        "animation": 18,
+        "press": 2,
+        "beat": 79,
+        "phrase": "the exit interview themes",
+        "layout": "pip"
+      },
+      {
+        "animation": 18,
+        "press": 3,
+        "beat": 80,
+        "phrase": "the benchmark against three other companies",
+        "layout": "pip"
+      },
+      {
+        "animation": 18,
+        "press": 4,
+        "beat": 81,
+        "phrase": "All of that is still in the appendix",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "And once you've given them the outcome, now you're ready for the third thing, and this is what gets you out of the meeting with a decision, because it leaves them nothing to say no to.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So most people like to provide a full implementation plan, but you’re not going to do that. So instead, take the project plan, the twelve stages, the dependencies and every planning step, and leave them out. The second an executive sees all of that, they're thinking \"that sounds like something to do next year\", and it gets parked. And this tells leadership you don’t get the business because you’re not prioritising the right things.",
+    "shot": "**Insert Animation 19** (picture in picture, you in the right-hand box)<br>A twelve-stage plan builds, dependency lines, the speech bubble, then the PARKED stamp.<br><br>Press 1 on “the twelve stages”<br>Press 2 on “the dependencies”<br>Press 3 on “that sounds like something to do next year”<br>Press 4 on “and it gets parked”",
+    "animation": 19,
+    "cues": [
+      {
+        "animation": 19,
+        "press": 1,
+        "beat": 83,
+        "phrase": "the twelve stages",
+        "layout": "pip"
+      },
+      {
+        "animation": 19,
+        "press": 2,
+        "beat": 84,
+        "phrase": "the dependencies",
+        "layout": "pip"
+      },
+      {
+        "animation": 19,
+        "press": 3,
+        "beat": 85,
+        "phrase": "that sounds like something to do next year",
+        "layout": "pip"
+      },
+      {
+        "animation": 19,
+        "press": 4,
+        "beat": 86,
+        "phrase": "and it gets parked",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "So instead of the details of the plan, the actual goal is to show them how easy it is to get there, and there's two parts to it. First is what you need from them and by when. Then the second is why it's small, meaning what it costs, what you're reusing and what happens if it doesn't work.",
+    "shot": "**Insert Animation 20** (picture in picture, you in the right-hand box)<br>The two parts, then the three things that make it small.<br><br>Press 1 on “First is what you need from them and by when”<br>Press 2 on “Then the second is why it's small”<br>Press 3 on “what it costs, what you're reusing”",
+    "animation": 20,
+    "cues": [
+      {
+        "animation": 20,
+        "press": 1,
+        "beat": 88,
+        "phrase": "First is what you need from them and by when",
+        "layout": "pip"
+      },
+      {
+        "animation": 20,
+        "press": 2,
+        "beat": 89,
+        "phrase": "Then the second is why it's small",
+        "layout": "pip"
+      },
+      {
+        "animation": 20,
+        "press": 3,
+        "beat": 90,
+        "phrase": "what it costs, what you're reusing",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "The example looks like this:",
+    "shot": "Runs across this line and the next paragraph.<br><br>**Insert Animation 21** (full screen)<br>Back on the deck. Slide 2, then it slides to slide 3. The plan flies into the Appendix, the pilot goes in, the two details, then APPROVED.<br><br>Press 1 on “The example looks like this”<br>Press 2 on “(press again straight away to slide across to slide 3)”<br>Press 3 on “We can pilot it with the March intake”<br>Press 4 on “two hours of manager time per new starter”<br>Press 5 on “if it doesn't move the numbers by June, we stop”<br>Press 6 on “the faster they say yes”",
+    "animation": 21,
+    "cues": [
+      {
+        "animation": 21,
+        "press": 1,
+        "beat": 92,
+        "phrase": "The example looks like this",
+        "layout": "graphic"
+      },
+      {
+        "animation": 21,
+        "press": 2,
+        "beat": 93,
+        "phrase": "(press again straight away to slide across to slide 3)",
+        "layout": "graphic"
+      },
+      {
+        "animation": 21,
+        "press": 3,
+        "beat": 94,
+        "phrase": "We can pilot it with the March intake",
+        "layout": "graphic"
+      },
+      {
+        "animation": 21,
+        "press": 4,
+        "beat": 95,
+        "phrase": "two hours of manager time per new starter",
+        "layout": "graphic"
+      },
+      {
+        "animation": 21,
+        "press": 5,
+        "beat": 96,
+        "phrase": "if it doesn't move the numbers by June, we stop",
+        "layout": "graphic"
+      },
+      {
+        "animation": 21,
+        "press": 6,
+        "beat": 97,
+        "phrase": "the faster they say yes",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "\"We can pilot it with the March intake using managers we've already got, so it costs us two hours of manager time per new starter, and if it doesn't move the numbers by June, we stop.\" The smaller and clearer that sounds, the faster they say yes, because they already want the outcome and now there's nothing standing in the way of it.",
+    "shot": "Animation 21 continues (see above)",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "And if you want the exact sentences for every situation, with the things executives actually care about, in templates you can just add your own details to, they're in the download as well. Again, it's free in the description.",
+    "shot": "**Insert Animation 22** (full screen)<br>Filled-in templates, then the gold button.<br><br>Press 1 on “the exact sentences for every situation”<br>Press 2 on “they're in the download as well”",
+    "animation": 22,
+    "cues": [
+      {
+        "animation": 22,
+        "press": 1,
+        "beat": 99,
+        "phrase": "the exact sentences for every situation",
+        "layout": "graphic"
+      },
+      {
+        "animation": 22,
+        "press": 2,
+        "beat": 100,
+        "phrase": "they're in the download as well",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And when you give them those three, in that order, watch what happens to the questions. They stop sending you away to come back with more detail and start asking your opinion. Which is exactly why nobody asked me how the model worked, because it was never the detail they wanted, it was what does this mean for the business and why should we act?",
+    "shot": "Back to talking head from “Which is exactly why nobody asked me”.<br><br>**Insert Animation 23** (full screen)<br>The three finished slides, the red bubble gets struck out, then the gold bubble.<br><br>Press 1 on “when you give them those three, in that order”<br>Press 2 on “They stop sending you away”<br>Press 3 on “start asking your opinion”",
+    "animation": 23,
+    "cues": [
+      {
+        "animation": 23,
+        "press": 1,
+        "beat": 102,
+        "phrase": "when you give them those three, in that order",
+        "layout": "graphic"
+      },
+      {
+        "animation": 23,
+        "press": 2,
+        "beat": 103,
+        "phrase": "They stop sending you away",
+        "layout": "graphic"
+      },
+      {
+        "animation": 23,
+        "press": 3,
+        "beat": 104,
+        "phrase": "start asking your opinion",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "And this system doesn't just work for slides. It works for reports, emails and the Monday update too, and it's where my clients have seen the biggest change, because the update that used to come back three times goes through the first time.",
+    "shot": "**Insert Animation 24** (picture in picture, you in the right-hand box)<br>Slides, reports, emails and the Monday update, then three times becomes first time.<br><br>Press 1 on “It works for reports”<br>Press 2 on “emails”<br>Press 3 on “and the Monday update”<br>Press 4 on “goes through the first time”",
+    "animation": 24,
+    "cues": [
+      {
+        "animation": 24,
+        "press": 1,
+        "beat": 106,
+        "phrase": "It works for reports",
+        "layout": "pip"
+      },
+      {
+        "animation": 24,
+        "press": 2,
+        "beat": 107,
+        "phrase": "emails",
+        "layout": "pip"
+      },
+      {
+        "animation": 24,
+        "press": 3,
+        "beat": 108,
+        "phrase": "and the Monday update",
+        "layout": "pip"
+      },
+      {
+        "animation": 24,
+        "press": 4,
+        "beat": 109,
+        "phrase": "goes through the first time",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "So if you want to check every deck and email against what executives look for before you send it, that's exactly what the toolkit does, and it's free in the description.",
+    "shot": "**Insert Animation 25** (full screen)<br>The checklist next to your deck while it scans, then the gold button.<br><br>Press 1 on “check every deck and email against what executives look for”<br>Press 2 on “it's free in the description”",
+    "animation": 25,
+    "cues": [
+      {
+        "animation": 25,
+        "press": 1,
+        "beat": 111,
+        "phrase": "check every deck and email against what executives look for",
+        "layout": "graphic"
+      },
+      {
+        "animation": 25,
+        "press": 2,
+        "beat": 112,
+        "phrase": "it's free in the description",
+        "layout": "graphic"
+      }
+    ],
+    "layout": "graphic"
+  },
+  {
+    "script": "But everything we’ve just done is the preparation, and it gets you into the meeting with the right slides. The trouble is, the meeting is where it can all come apart. Someone senior cuts in on your first slide with a question you didn’t see coming, you’re on the spot, and thirty seconds of scrambling for an answer makes the whole week of work look shaky.",
+    "shot": "Talking head, then cut to the animation from “Someone senior cuts in”.<br><br>**Insert Animation 26** (picture in picture, you in the right-hand box)<br>Slide 1 wobbles, a red question mark from someone senior, then the timer runs down.<br><br>Press 1 on “Someone senior cuts in on your first slide”<br>Press 2 on “you're on the spot”<br>Press 3 on “thirty seconds of scrambling”",
+    "animation": 26,
+    "cues": [
+      {
+        "animation": 26,
+        "press": 1,
+        "beat": 114,
+        "phrase": "Someone senior cuts in on your first slide",
+        "layout": "pip"
+      },
+      {
+        "animation": 26,
+        "press": 2,
+        "beat": 115,
+        "phrase": "you're on the spot",
+        "layout": "pip"
+      },
+      {
+        "animation": 26,
+        "press": 3,
+        "beat": 116,
+        "phrase": "thirty seconds of scrambling",
+        "layout": "pip"
+      }
+    ],
+    "layout": "pip"
+  },
+  {
+    "script": "Which means you need to know what to say when that question comes, before it comes.",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  },
+  {
+    "script": "So go and watch this video next, and I’ll show you exactly what to say when an executive challenges you in the meeting, so you answer in one sentence and the conversation comes straight back to your decision, even if you didn’t actually know the answer. [NEXT VIDEO, Josh to confirm]",
+    "shot": "Talking head",
+    "animation": null,
+    "cues": []
+  }
+]

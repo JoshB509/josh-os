@@ -1,0 +1,68 @@
+{
+  "video": "E:\\CareerOS\\12_YouTube\\13_three-things-executives-need\\input\\2026-10-14 18-03-19.mp4",
+  "shots": "E:\\Videos\\DaJoshiResolve\\Inputs\\Storytelling-2.0-json-20261014-v2\\shot-list.json",
+  "deck": "E:\\CareerOS\\12_YouTube\\13_three-things-executives-need\\2026-10_youtube_storytelling-v2_slides_v01.html",
+  "script": "E:\\CareerOS\\12_YouTube\\13_three-things-executives-need\\2026-10-13_youtube_three-things-executives-need_script_final.md",
+  "preview": true,
+  "start": 0,
+  "transcript": "E:\\Videos\\DaJoshiResolve\\Runs\\Storytelling-2.0-native-test-20261014\\transcript.json",
+  "regression_flags": [
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 33.3,
+      "reason": "Approximate cue 0.80: more than 80,000 professionals"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: results like this"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: your brakes are going to fail"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 314.27,
+      "reason": "Approximate cue 0.89: a template sentence like this"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 325.67,
+      "reason": "Approximate cue 0.75: So this is what that looks like filled in"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 496.3,
+      "reason": "Approximate cue 0.83: and i’d give details like"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 699.32,
+      "reason": "Approximate cue 0.89: So “a new onboarding programme"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 732.84,
+      "reason": "Approximate cue 0.83: the benchmark against three other companies"
+    },
+    {
+      "kind": "unmatched_animation_cue",
+      "reason": "Cue not placed: that sounds like something to do next year"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 796.26,
+      "reason": "Approximate cue 0.89: and it gets parked"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 816.46,
+      "reason": "Approximate cue 0.75: Then the second is why it's small"
+    },
+    {
+      "kind": "uncertain_animation_cue",
+      "source_seconds": 906.03,
+      "reason": "Approximate cue 0.89: goes through the first time"
+    }
+  ]
+}

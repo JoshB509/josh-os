@@ -1,0 +1,90 @@
+DaJoshiResolve: timeline-only export repair plan
+Inspection only, 15 October 2026. No editing-engine changes or reruns authorized
+or performed during the light-mode UI work.
+
+CURRENT RESULT
+The unchanged Storytelling JSON retry made its edit decisions and rendered 88
+separate animation assets, then failed in dajoshi/export.py::xml_rate. No XML or
+full review preview was produced. The cut algorithm was not manually polished.
+
+1. REPAIR THE CLOCK, NOT JUST THE ERROR MESSAGE
+Installed media.py::probe prefers average_rate over guessed_rate. This records
+14882500/496083 (about 30.00002016 fps), which export.py rejects because it is
+neither an integer nor a supported n*1000/1001 rate.
+Existing probe evidence: base_rate=30, guessed_rate=30, time_base=1/90000;
+29,765 video packets; 19,842 PTS deltas of 2,970 ticks (33ms), 9,921 of 3,060
+ticks (34ms), and one of 9,000 ticks (100ms). Last PTS was 89,298,000 ticks
+(992.2s), while reported container duration was 992.166s.
+This points to a nominal 30fps clock with millisecond timestamp rounding and an
+end gap/bounds inconsistency, not demonstrated sustained variable-rate capture.
+
+Required implementation: preserve measured PTS and reported average separately
+from the chosen sequence/media clock; validate all PTS against the nominal grid,
+reject duplicate/reversed timestamps, record gaps, and establish safe video AND
+audio bounds including the end discrepancy. Use 30fps only after that check.
+Do not round arbitrary files to 30, silently remove the exporter guard, or merely
+replace the fps field in the old timing map/XML. Truly irregular VFR needs its
+own verified original-referencing mapping, or an explicit early failure.
+
+Rebuild one authoritative source-to-output map from the same source-second cut
+decisions/transcript/acoustic evidence on the validated clock. Keep audio seconds
+and cut padding protected. Test first/last frames, the end gap, cut joins, cue
+mapping and cumulative drift. Premiere must agree on source-time interpretation.
+
+2. MAKE TIMELINE-ONLY THE REQUEST
+worker.py already gates the full-video render behind cfg.get('preview', True).
+studio/jobs.py currently hardcodes preview=True. Change that handoff/default to
+preview=False (and the classic checkbox/default if it remains part of the flow).
+After a successful XML export, finish with XML/assets/reports; do not call the
+preview() function or produce REVIEW_PREVIEW.mp4. Make the completion message
+explicit that a timeline was exported, rather than treating no preview as failure.
+This switch alone does NOT fix the current earlier frame-rate export failure.
+
+3. KEEP THE NECESSARY ANIMATION ASSETS
+HTML beats are not directly playable video clips in a Premiere XML timeline.
+Render each needed beat to an independent animation clip with an extendable hold,
+or reuse a verified equivalent asset. These are required media, not a flattened
+render of the entire edit. Preserve clips as movable timeline items.
+The existing 88 clips cannot be assumed valid under a corrected timing map:
+check their actual rate, duration, required span, hold handles, deck identity and
+render settings. Conform/regenerate only those needing it; do not simply relabel
+their rate. Retain reports for the three unmatched cues rather than silently
+inventing timing or claiming all 91 cues were placed.
+
+4. HARDEN THE XML BEFORE EXPENSIVE RENDERS
+The installed exporter still emits sequence audio numOutputChannels, which is
+not in the cached official FCP XML v5 DTD. Use valid audio channel/sample metadata
+and validate both schema and semantics: unique clip/file IDs, resolved file refs,
+linked audio/video indices, positive ranges, source bounds, sequence duration,
+and the animation/sequence timing relationship. Write atomically after validation.
+Run clock and export-capability preflight before rendering the animation batch.
+Do not use handwritten .prproj generation as a workaround.
+
+Keep camera/audio clip file references pointing at the original selected MP4/WAV,
+with source in/out values and full source duration for recoverable handles.
+Keep graphics on separate tracks. Full-screen graphics can retain disabled camera
+clips for reversal. Do not point the camera track at a flattened edit or a preview.
+Validate embedded stereo mapping and any separate-mic offset against that same map.
+
+The current PiP transform is a generic bottom-right placement. Storytelling's
+declared slot is x=1322,y=202,w=518,h=674 on 1920x1080. Represent its intended
+layout explicitly and verify editable Motion/crop or nests in Premiere, preserving
+aspect ratio and original media. XML does not guarantee arbitrary effect fidelity.
+
+5. PROVE THE IMPORT ROUTE, THEN RUN THE FULL TIMELINE
+First export a short original-linked fixture covering a cut, stereo audio,
+full/PiP/full-screen-graphic layouts, and a movable/extendable animation hold.
+In Premiere, verify import without damaged-project warnings; original paths;
+trim-handle recovery; linked sync and playback at beginning, middle and end;
+editable transforms/layout reversal; independent graphics and extendable holds;
+then save, close/reopen the test project and play it again. Do not disturb an
+active editing/recording session. DTD validation alone is not native validation.
+Once that passes, create a NEW isolated Storytelling run with preview=false.
+Reuse source-verified transcript/audio caches where compatible. The old run's
+code/request identity should remain intact; do not bypass its resume guard.
+
+ACCEPTANCE
+EDITABLE_DRAFT.xml plus independent animation media and timing/exceptions reports;
+original camera/microphone file references; no full-video rendering; verified
+clock/source bounds; validated XML; native Premiere import/playback/handles/layout
+checks recorded honestly. No claim of flawless automatic editorial judgment.

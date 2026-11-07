@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="dj-token" content="__TOKEN__"><title>Admin · Josh OS</title><link rel="icon" type="image/png" sizes="256x256" href="/icon.png?v=joshos-20261022"><meta name="theme-color" content="#ffffff"><link rel="stylesheet" href="/brand-fonts.css"><link rel="stylesheet" href="/admin.css"></head>
+<body class="admin">
+<aside class="side">
+  <a class="brand" href="/#board"><img src="/icon.png?v=joshos-20261022" alt=""><span>Josh OS</span></a>
+  <nav aria-label="Workspace">
+    <div class="side-label">Workspace</div>
+    <a class="side-link" href="/#board"><svg viewBox="0 0 16 16"><rect x="1.8" y="3.5" width="12.4" height="9" rx="2.2"/><path d="m6.8 6.3 3.2 1.7-3.2 1.7z"/></svg>YouTube</a>
+    <a class="side-link" href="/#email"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="m2 4 6 5 6-5"/></svg>Email</a>
+    <a class="side-link" href="/#calendar"><svg viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg>Calendar</a>
+    <a class="side-link" href="/#inspiration"><svg viewBox="0 0 16 16"><rect x="2" y="2.5" width="5" height="5" rx="1.2"/><rect x="9" y="2.5" width="5" height="5" rx="1.2"/><rect x="2" y="9.5" width="5" height="4" rx="1.2"/><rect x="9" y="9.5" width="5" height="4" rx="1.2"/></svg>Library</a>
+    <a class="side-link" href="/lessons"><svg viewBox="0 0 16 16"><path d="M2 4.5 8 2l6 2.5L8 7z"/><path d="M4.5 5.6v3.6C5.6 10.4 6.7 11 8 11s2.4-.6 3.5-1.8V5.6M14 4.5v4"/></svg>Lessons</a>
+    <a class="side-link" href="/tasks"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="m5 8 2 2 4-4"/></svg>Tasks &amp; Goals</a>
+    <a class="side-link" href="/#archive"><svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/></svg>Archive</a>
+    <div class="side-label">Admin</div>
+    <a class="side-link" href="#clients" data-section="clients"><svg viewBox="0 0 16 16"><circle cx="6" cy="5.5" r="2.5"/><path d="M1.8 13.5c.6-2.4 2.2-3.6 4.2-3.6s3.6 1.2 4.2 3.6"/><path d="M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12 9.9c1.2.4 2 1.6 2.3 3.6"/></svg>Clients</a>
+    <a class="side-link" href="#customers" data-section="customers"><svg viewBox="0 0 16 16"><path d="M2 3h1.6l1.6 7.4h7.2L14 5.2H4.3"/><circle cx="6" cy="13" r="1"/><circle cx="11.6" cy="13" r="1"/></svg>Customers</a>
+  </nav>
+  <div class="side-foot" id="side-sync"></div>
+</aside>
+<main class="main" id="main" tabindex="-1"><div class="loading">Loading…</div></main>
+
+<dialog id="connect" class="modal" aria-labelledby="connect-title"><form id="connect-form" method="dialog">
+  <h2 id="connect-title">Keep this live</h2>
+  <p class="modal-lede">Add read-only keys and Josh OS refreshes Stripe and Calendly every 30 minutes. Keys stay in Data\admin.json on this PC and are never shown in the browser.</p>
+  <div class="field">
+    <label for="stripe-key">Stripe restricted key</label>
+    <div class="field-row"><input id="stripe-key" autocomplete="off" spellcheck="false" placeholder="rk_live_…"><span class="field-state" id="stripe-state"></span></div>
+    <p class="help">Stripe → Developers → API keys → Create restricted key. Give it Read on Charges, Checkout Sessions and Customers, nothing else.</p>
+  </div>
+  <div class="field">
+    <label for="calendly-token">Calendly personal access token</label>
+    <div class="field-row"><input id="calendly-token" autocomplete="off" spellcheck="false" placeholder="eyJraWQiOi…"><span class="field-state" id="calendly-state"></span></div>
+    <p class="help">Calendly → Integrations → API and webhooks → Generate new token.</p>
+  </div>
+  <p class="form-error" id="connect-error" role="alert"></p>
+  <div class="modal-actions"><button type="button" class="btn btn-quiet" id="connect-cancel">Cancel</button><button class="btn btn-primary" id="connect-save">Save and sync</button></div>
+</form></dialog>
+
+<dialog id="edit" class="modal" aria-labelledby="edit-title"><form id="edit-form" method="dialog">
+  <h2 id="edit-title">Edit details</h2>
+  <p class="modal-lede">Emails link this client to their Stripe payments and Calendly bookings. Add every address they use.</p>
+  <div class="field"><label for="edit-emails">Emails</label><input id="edit-emails" autocomplete="off" spellcheck="false" placeholder="name@example.com, work@company.com"></div>
+  <div class="field-pair">
+    <div class="field"><label for="edit-programme">Programme</label><input id="edit-programme" autocomplete="off"></div>
+    <div class="field"><label for="edit-status">Status</label><select id="edit-status"><option>Active</option><option>New</option><option>Paused</option><option>Completed</option><option>Lapsed</option></select></div>
+  </div>
+  <div class="field-pair">
+    <div class="field"><label for="edit-company">Company</label><input id="edit-company" autocomplete="off"></div>
+    <div class="field"><label for="edit-joined">Joined</label><input id="edit-joined" type="date"></div>
+  </div>
+  <p class="form-error" id="edit-error" role="alert"></p>
+  <div class="modal-actions"><button type="button" class="btn btn-quiet" id="edit-cancel">Cancel</button><button class="btn btn-primary">Save</button></div>
+</form></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="/admin.js"></script>
+</body></html>

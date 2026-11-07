@@ -1,0 +1,24 @@
+/* Calendar slots (18 Oct 2026). Thin two-line cards stacked in fixed slots per day: video, email, client calls, tasks.
+   The earlier planning styles were superseded by style.css on 16 Oct 2026. */
+.calendar.slotted .day{min-height:0;padding:4px 5px 6px}
+.calendar.slotted .day-num{height:20px;padding:0 3px;margin-bottom:3px;font-size:12px;line-height:20px}
+.calendar.slotted .day.today .day-num{width:20px;height:20px;padding:0;margin-bottom:3px;font-size:11.5px;line-height:20px}
+.slots{display:flex;flex-direction:column;gap:5px}
+.slot{display:flex;flex-direction:column;gap:3px;min-width:0}
+.slot-empty{display:flex;align-items:center;justify-content:center;height:34px;border-radius:5px;background:var(--hover);opacity:.4;color:var(--faint);transition:opacity .12s}
+.slot-empty svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .12s}
+.day:hover .slot-empty{opacity:.75}
+.day:hover .slot-empty svg{opacity:1}
+.day.outside .slot-empty{opacity:.2}
+.t-video{--type:#e03e3e}.t-email{--type:#2383e2}.t-call{--type:#0f7b6c}.t-task{--type:#d9730d}
+.cal-project.slot-card{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:1px;width:100%;min-width:0;height:34px;min-height:0;margin:0;padding:2px 7px 2px 8px;border-radius:5px;border:0;border-left:3px solid var(--type);background:var(--card);box-shadow:var(--card-shadow);text-align:left;white-space:nowrap;overflow:hidden;line-height:1.25;cursor:grab}
+.cal-project.slot-card:hover{background:var(--side)}
+div.cal-project.slot-card{cursor:default}
+.unscheduled .cal-project.slot-card{margin-top:5px}
+.slot-title{display:block;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:500;color:var(--text)}
+.slot-status{display:flex;align-items:center;gap:4px;min-width:0;font-size:11px;font-weight:400;color:var(--muted)}
+.slot-status>span{overflow:hidden;text-overflow:ellipsis}
+.slot-status svg{flex:none;width:10px;height:10px;color:var(--st,currentColor);fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.slot-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:8px 0 12px;font-size:12px;color:var(--muted)}
+.slot-legend i{display:inline-block;width:3px;height:11px;border-radius:2px;background:var(--type);margin-right:6px;vertical-align:-1px}
+.slot-legend-note{color:var(--faint)}

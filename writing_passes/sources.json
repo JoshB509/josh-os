@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "status": "proposed_for_integration",
+  "sources": [
+    {
+      "id": "S1",
+      "filename": "script-touch-up_SKILL.md",
+      "sha256": "1dfdded481d4fe06c8ceae27876a623e81965077e774694ddfb99ea2995c0b83",
+      "lines": 1450,
+      "role": "Governing user-supplied script rules and banks"
+    },
+    {
+      "id": "S2",
+      "filename": "audience-communication.md",
+      "sha256": "f57a2a2a1234d0f0dd04eb970bbaeaed6069718c6d462222d4491b872f5ff850",
+      "lines": 480,
+      "role": "Audience evidence; private names and quotes"
+    },
+    {
+      "id": "S3",
+      "filename": "magnet-index.md",
+      "sha256": "c617a5e8e5bc9ab9b898cea7a1a48ec363d9c590e044de02f2058a8cd358f3ec",
+      "lines": 20,
+      "role": "Draft offer inventory; contents not verified"
+    },
+    {
+      "id": "S4",
+      "filename": "parker-checkout-and-bumps.md",
+      "sha256": "f0d12009a8313edb4bffd129cebc24981426993f937c5ff50e2d5fa4fd94afeb",
+      "lines": 306,
+      "role": "Third-party checkout reference"
+    },
+    {
+      "id": "S5",
+      "filename": "curiosity-lines (1).md",
+      "sha256": "74340c93d48a89501b7049d3966974c741683fad5d3fe590f4a4e16b39a206e0",
+      "lines": 151,
+      "role": "Audience-adapted curiosity examples"
+    },
+    {
+      "id": "S6",
+      "filename": "ed-lawrence-movement-library.md",
+      "sha256": "aed9759a01bc3f36e323021b08626f28822ffe5a1c2b7402d0d0aa8abd732eb8",
+      "lines": 4755,
+      "role": "Third-party movement archive"
+    }
+  ]
+}

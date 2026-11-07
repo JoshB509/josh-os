@@ -1,0 +1,10 @@
+{
+  "version": "0.1.0-alpha",
+  "app": "E:\\Videos\\DaJoshiResolve",
+  "shortcut": "C:\\Users\\Anigma PC\\Desktop\\DaJoshiResolve (Alpha).lnk",
+  "launcher_selftest_passed": true,
+  "native_premiere_tested": false,
+  "runtime": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\video-env\\Scripts\\python.exe",
+  "model": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\models\\models--Systran--faster-whisper-medium.en\\snapshots\\a29b04bd15381511a9af671baec01072039215e3",
+  "installed_at": "2026-10-14T21:29:29.4040559+04:00"
+}

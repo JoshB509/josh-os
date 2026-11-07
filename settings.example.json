@@ -1,0 +1,6 @@
+{
+  "python": "C:\\path\\to\\video-env\\Scripts\\python.exe",
+  "ffmpeg": "C:\\path\\to\\DaJoshiResolve\\tools\\ffmpeg.exe",
+  "model": "C:\\path\\to\\models\\faster-whisper-medium.en",
+  "status": "Alpha: native Premiere import/playback verification pending. Rust toolchain unavailable. No cloud inference."
+}

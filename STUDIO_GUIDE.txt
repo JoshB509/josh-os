@@ -1,0 +1,166 @@
+DaJoshiResolve Studio — local project workspace
+Version 0.2.0-studio; editing engine remains 0.1.0-alpha unchanged.
+
+OPEN
+Use the existing DaJoshiResolve (Alpha) desktop shortcut, or run
+E:\Videos\DaJoshiResolve\DaJoshiResolve.exe.
+It opens a dedicated Chrome/Edge app window backed by a local-only server.
+No account, API key, paid inference or publishing connection is used.
+The sidebar's Open classic editor button opens the previous native editor.
+Dropping source files onto the desktop launcher also opens that classic editor.
+
+WORKFLOW
+1. New video creates a project. Cancel creates nothing.
+2. Use Overview for notes and a planned publication date.
+3. Add alternative titles and star the chosen title.
+4. Import PNG, JPEG or WebP thumbnails. Images are copied into this app's Data
+   folder; originals are never moved. Add up to three, arrange them with the
+   left-arrow buttons, and choose a title underneath each comparison card.
+5. Paste/write the script in Script. Save project (or Ctrl+S) commits changes.
+6. Drag a board card to a visible stage, or choose any stage inside a project.
+   The board scrolls horizontally to show all stages.
+7. Editing accepts local source paths, JSON/CSV shots, an HTML deck, and optional
+   audio/reference/transcript. Browse opens this app's own file chooser.
+   Build editable draft saves the project and starts the existing worker.
+   Starting again during an active run returns the same run, not a duplicate.
+8. Run history shows actual worker status. Cancel safely requests cancellation;
+   Resume saved run reuses the same request and completed stages. A changed
+   editing engine/request is rejected by the editor's own cache identity guard.
+
+DATA
+Projects, revisions, scripts, title choices, thumbnail choices and run history:
+E:\Videos\DaJoshiResolve\Data\studio.sqlite
+Copied thumbnail images: Data\assets
+Script snapshots for editing: Data\scripts
+Worker console logs: Data\logs
+Editing outputs: Runs\Studio-<unique id>
+Project JSON export is a portable text snapshot, NOT a full media backup.
+Archiving only hides a project from the board; Archive can restore it.
+Closing the app window does not cancel a running edit. Its local worker and
+small local server may continue until Windows exits. Reopening reconnects.
+If two windows edit a project, stale saves are rejected instead of overwriting
+the newer version; reload the project to recover the latest saved version.
+
+STORYTELLING 2.0 — ACTUAL UNCHANGED-EDITOR TEST
+Original Markdown test: Runs\Storytelling-2.0-native-test-20261014
+JSON retry: Runs\Storytelling-2.0-json-test-20261014
+Converted input: Inputs\Storytelling-2.0-json-20261014-v2\shot-list.json
+Conversion report is beside the JSON. It mapped 88/91 cues automatically from
+the first run's local transcript; three unmatched cues are explicitly reported.
+All 91 original cue instructions remain in markdown_structure.json.
+No manual timing polish or editing-algorithm changes were made for this retry.
+The retry planned cuts and rendered 88 animation clips, then failed XML export:
+the current exporter cannot represent source rate 14882500/496083 exactly.
+No editable XML or complete review preview was produced. The exact error,
+timing map, decisions, exceptions and rendered clips are preserved in the run.
+The project is preloaded in Studio, including both failed runs. Starting it again
+uses the same experimental editing engine and does not fix that rate limitation.
+
+LIMITATIONS
+Publication dates are local planning only; nothing is automatically uploaded.
+No script generation, AI API integrations, email/document discovery or accounts.
+The editor still has its original alpha limitations: arbitrary/VFR rate export,
+native Premiere import/effects/playback, and full editorial quality are not proven.
+The scheduler does not change the editor's selection algorithm or render results.
+Rust was unavailable; no Rust/build dependencies were installed. The app uses
+the installed C# launcher, local Python, SQLite and an installed Chrome/Edge.
+The Python runtime and cached Whisper model still live in the earlier work
+environment listed in settings.json; moving/removing that environment will break
+the launcher/editor until those paths are updated.
+Reference screenshot materialization failed because the supplied Library helper
+uses os.setxattr, unavailable on Windows. Descriptions were accessible, but their
+original pixels were not inspected. Demo screenshots use labelled test thumbnails.
+
+VERIFIED
+13 backend tests: persistence, stages, stale saves, dates, thumbnail selection,
+duplicate imports/starts, archive/restore, cancellation/resume, and HTTP access.
+11 browser acceptance checks: project creation/cancel/edit, title/script/date
+persistence, three-column thumbnails, reordering/reload, invalid input rejection,
+board dragging and calendar. No JavaScript errors or external resource requests.
+One real installed-worker handoff: duplicate start returned the same run, immediate
+safe cancellation succeeded, and the editing code hash remained unchanged.
+Evidence and labelled demo screenshots are in Evidence\Studio.
+
+
+USER APPROVAL AND WORKFLOW UPDATE - 15 OCTOBER 2026
+Josh approved the five-second CorridorKey test: "perfect no notes".
+Source message: Sentinel_7a5d6cbf3af481918ccb54a5a5eb1667
+Current agreed order: CorridorKey -> adjustable garbage mask -> centre/size
+presenter and crop table -> transcript cuts with waveform refinement ->
+final timestamps -> approved animations/layouts -> editable XML.
+This supersedes earlier cut-first/key-after-planning proposals in trial notes.
+Integration remains PENDING / NOT IMPLEMENTED. No full recording run started.
+Authoritative workflow: E:\Videos\DaJoshiResolve\specs\APPROVED_EDITING_WORKFLOW.txt
+Exact approval: Engines\CorridorKey\USER-APPROVAL.json
+
+
+CorridorKey integration installed 20261015-151045: see KEYING_GUIDE.txt. Editing tab has saved source range, mask/crop/framing and source preview controls. Native Premiere behavior remains unverified.
+
+CURRENT PLANNING GOAL — 15 October 2026
+Two uploads per week. Flexible five-video mix: two proven communication formats; one communication video with a somewhat different approach; one career growth/promotion video; one genuinely different content-format experiment. Overall: 3 communication / 1 promotion / 1 experiment. An experiment is an audience/content test, not a technical editing fixture.
+This replaces the previous six-per-month goal. The mix repeats flexibly; no release weekdays or dates are prescribed. Existing project dates and any publishing arrangements are unchanged. Visible on the board and local calendar after reload. Source: Sentinel_67bcff006aa8819198e60d52e92488a7.
+
+CURRENT PLANNING CORRECTION - 15 October 2026
+October 15-31: communication-only sprint, at least five videos. Storytelling 2.0 first; release as ready, including consecutive days. No fixed dates or weekdays. Noncommunication videos move to November or later.
+From November 2026: two uploads per week; flexible five-video mix of two proven communication formats, one communication video with a different approach, one promotion video and one content-format experiment. Technical fixtures do not count.
+This date qualification supersedes the earlier unqualified twice-weekly goal. Source: Sentinel_56785a52b34c8191893dd3c7c7574f2d
+
+
+WORKFLOW SPECIFICATION UPDATE - 16 OCTOBER 2026
+The current agreed workflow is Pass 1 (synced clean mic, keyed presenter,
+background/shadow/subtle light and accurate word timing) -> Josh approval ->
+Pass 2 (natural silence cuts/audio joins, tightened transcript, semantic
+false-start removal and listening QA) -> approved clean cut -> visual shot design.
+The approved kept timeline is authoritative; visual work cannot silently retime it.
+Graphics need explicit exits to presenter and recurring progressive checkpoints.
+These are requirements for staged implementation, NOT claims that the gates or
+new editing behavior have been implemented. Earlier implementation-status notes
+above are historical; consult the current spec and existing fixture evidence.
+Authoritative documents:
+specs/APPROVED_EDITING_WORKFLOW.txt
+specs/REUSABLE_EDITING_RULES.txt
+specs/IMPLEMENTATION_BACKLOG.txt
+specs/CONTENT_CALENDAR_INTEGRATIONS.txt
+Next app work after clean-cut reliability: email inspiration, shared video/email
+calendar with drafts/audiences/approval snapshots, Linklr-generated tracked links,
+and Kit scheduling or verified manual actions. Local plans remain separate from
+verified remote delivery. Kit setup/persistent access requires explicit approval.
+Linklr owns Parker eligibility; no enrollment or real send/schedule is authorized
+by this documentation update. Existing production projects and code are untouched.
+
+
+LESSONS PAGE - NOTION-STYLE UPDATE, 16 OCTOBER 2026
+One navigator on the left, grouped by track and part, with Ctrl+K to search.
+Each lesson is a page: status, planned date, length, slides and script as
+properties, then one Record button, then the takes table and the cued script.
+Record switches OBS to the Lessons profile, collection and slides-plus-facecam
+scene, binds the lesson for take import, opens the slides file and switches the
+page into a full-width script view with the red CHANGE cues. It does not start
+OBS recording; start and stop with the Stream Deck as before. The bar at the top
+shows Ready / Recording from OBS, plus Reopen slides, Add take and Done.
+Cued scripts are local copies of each Notion page's "slide cues" section:
+Data\lesson-cues\<lesson id>.md (48 lessons, copied 16 Oct, wording checked
+against the local script files). If a script changes in Notion, these need
+refreshing; lessons without a cue file fall back to the plain local script and
+Record opens the Notion page instead.
+Backend change: studio\lessons.py (cues on lesson detail; Record skips opening
+Notion when the cued script is local). Previous files are in
+Backups\lessons-page-before-notion-*. The local server must be restarted to
+load the lessons.py change.
+
+
+WHOLE APP - NOTION-STYLE UPDATE, 16 OCTOBER 2026
+One sidebar across the app: YouTube (was Projects), Calendar, Library, Lessons,
+Archive, plus a list of videos in progress. style.css holds the whole look in
+light and dark; planning.css and workflow.css are now empty placeholders.
+notion.js handles page names, breadcrumbs and the sidebar video list.
+Thumbnails: the server now sends small cached JPEG previews when an image is
+requested with ?w= (Data\previews), and lets the browser cache thumbnail images.
+Saved thumbnails drop from about 1.8 MB to about 46 KB each in the board and library.
+Previous files: Backups\studio-before-notion-*. Restart the local server to load
+the server.py change.
+Creator Hooks images: the 465 video thumbnails were downloaded once into
+References\CreatorHooks\thumbs (YouTube's copy; 8 removed videos use the
+newsletter image). The library shows them with the source template underneath.
+Ideas are tucked away by default on the board, list, calendar and sidebar;
+Show / the Ideas toggle in the sidebar brings them back, remembered per browser.

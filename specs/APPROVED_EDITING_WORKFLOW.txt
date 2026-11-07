@@ -1,0 +1,133 @@
+DaJoshiResolve - agreed editing workflow specification
+Updated 16 October 2026. Requirements, not a completion report.
+Source: Josh, Sentinel_a11fc6bb26ac819197fe7b56c96d91a8.
+
+AUTHORITY AND STATUS
+This revision supersedes the old continuous key/cut/animate workflow order.
+It defines two approval gates: Pass 1 approval and approved clean cut.
+Existing implementation is partial. Updating these documents does not implement
+the gates, run media work, approve any new output or alter production projects.
+Implementation backlog: specs/IMPLEMENTATION_BACKLOG.txt.
+Reusable editorial contract: specs/REUSABLE_EDITING_RULES.txt.
+
+HISTORICAL APPROVAL TO PRESERVE
+Josh approved the five-second CorridorKey fixture with "perfect no notes"
+(Sentinel_7a5d6cbf3af481918ccb54a5a5eb1667).
+Fixture: Engines/CorridorKey/tests/promotion-25s-5s-v3; 125 frames at 25 fps,
+camera 00:25.000-00:30.000, 1080p derived from 4K. Exact hashes and approval:
+Engines/CorridorKey/USER-APPROVAL.json. This is approval of that demonstrated
+result, not blanket approval of a full recording, future masks or new outputs.
+KEYING_GUIDE.txt records later installed controls and limited native fixture
+evidence. Historical reports must retain their scope and original status.
+
+PASS 1 - SYNCHRONIZED PRESENTER MASTER
+1. Fingerprint original video and supplied clean microphone audio. Validate
+   source bounds, cadence/PTS, audio sample rate and supported export clock.
+2. Measure the clean mic's alignment to the actual video/reference. Check drift
+   at multiple points and report confidence and residuals; never reuse a fixed
+   offset from another composite. Uncertain sync blocks approval/export.
+3. Key the foreground with CorridorKey. Apply adjustable garbage mask, safe
+   table crop, presenter framing, background, shadow and subtle shifting light.
+   Preserve raw alpha/master and settings; check hands, hair and gesture envelope.
+   Spatial treatment must not change source timing. Keep original recovery media.
+4. Produce accurate word timestamps against this synchronized, uncut master.
+   Retain original audio/video coordinates and alignment provenance. Validate
+   monotonicity, bounds, low-confidence words and sampled word/waveform alignment.
+5. Present a reviewable Pass 1 result, sync evidence and exceptions. Josh approves
+   this exact revision before Pass 2. Record actor, time and input/output hashes.
+   Earlier keying-fixture approval must not auto-approve this pass.
+
+PASS 2 - BUILD THE CLEAN CUT
+1. Remove unwanted silence and tighten pacing while preserving intelligibility,
+   consonant attacks, word tails, meaningful pauses and natural breathing.
+2. Refine joins using waveform evidence. Use tiny AUDIO crossfades only where
+   suitable and supported by safe handles. Do not apply indiscriminate video
+   dissolves. Keep the chosen timeline duration and audio/video sync unchanged.
+   Crossfade duration/curve/bounds must be explicit and reviewable, not a magic
+   global preset. Insufficient handles or overlapping speech require a different
+   boundary or a flagged join; never reintroduce rejected speech through handles.
+3. Transcribe the actual tightened cut, with source/output coordinate mapping.
+   Give that transcript, audio and join context to the assistant for a semantic
+   false-start sweep: incomplete/rephrased attempts, stumbles and duplicate takes.
+   Preserve intentional repetition, useful improvisation and meaningful emphasis.
+4. Record each rejected range with reason, evidence and coordinate-space/version.
+   Apply the removals to the retained ranges and exported timeline. A flag or
+   exception row alone is not a removal. Ambiguous cases remain visible for review.
+5. Rebuild the exact kept timeline and validate final words. Remap retained words
+   only when fully contained in validated spans; retranscribe/re-align boundary
+   words and changed joins, or the full cut if needed. Do not keep stale timestamps
+   or pretend a word spanning a removal remains whole. Resolve uncertain words.
+6. Perform listening and join QA: every cut, clean speech onset/tail, no clicks,
+   unintended echoes/double words, excessive dead air, clipped speech or sync drift.
+   Record automated checks, human listening and unresolved issues separately.
+7. Present the clean cut, transcript, map and QA to Josh. Approval freezes this
+   exact revision as the authority for all subsequent visual design.
+
+APPROVED CLEAN CUT CONTRACT
+The exact kept timeline is authoritative, not the script, an earlier transcript,
+an animation's duration or reconstructed automatic edits. Store immutable clean
+cut ID/revision, source fingerprints, rational frame/PTS and audio-sample mapping,
+ordered retained spans, cut/join decisions, validated word timing, QA and approval.
+The output duration and retained sequence must agree across audio, video and XML.
+Audio transitions include a separate handle/envelope map without silently changing
+the approved output clock or adding rejected speech. Disclose timing precision.
+
+Any subsequent edit of words, kept ranges, sync, speed or duration creates a NEW
+clean-cut revision, invalidates dependent approvals/shot mappings and requires
+explicit review. Visual changes alone cannot silently trim or extend the clean
+cut. An approved manually polished timeline must be imported and reconciled to
+the same contract; never regenerate it by rerunning the original auto-cut plan.
+
+AFTER CLEAN-CUT APPROVAL - SHOT LIST AND HTML
+Design shots from the approved final transcript and timeline. Each graphic has
+an explicit purpose, entry, end, state and exit back to presenter (or a specified
+next shot). Use sufficient reading time, then return to Josh; do not sit on an
+animation waiting for the next beat. Frozen asset handles are editing capacity,
+not an instruction to hold them on the timeline indefinitely.
+
+For multi-part explanations, create a recurring checkpoint graphic: initial
+overview, completed parts, current part and next part. Return to it at section
+transitions to orient the viewer and reset attention. Preserve visual identity
+and cumulative state across returns; do not replay the whole introduction.
+Make section/step labels come from the actual content, not invented structures.
+
+Render shots independently with declared incoming state, scene isolation,
+motion duration, hold and exit. Preserve phase across split clips where needed.
+Validate no outgoing/incoming scene leakage. Keep graphics independently editable
+with source handles and reversible presenter layouts. Export editable XML via
+the existing supported route; do not fabricate native Premiere project files.
+
+PRESERVATION AND QA
+Preserve originals, approved composites, manual v05/v06 projects and prior runs.
+Never overwrite a production project to prove a new reusable workflow. Use new
+isolated fixtures/runs; respect OBS and active Premiere sessions. No app control
+or restart is authorized by this specification update.
+Back up affected data before implementation; apply additive, versioned migrations.
+Use existing Python/SQLite/JS architecture and owned-process job control.
+Cache identity must include sources, map, settings, model/code and visual state.
+No blind resume or reuse after a revision changes.
+Automated schema checks, native import/playback, listening QA and Josh's editorial
+approval are distinct statuses. Passing one must never mark the others complete.
+
+NEXT APP WORK (AFTER CLEAN-CUT RELIABILITY)
+Email inspiration library with original attribution/assets, source text beside
+adaptations, source-linked drafts and search. Include the requested closer-to-Ed
+first-email rewrite as an editorial follow-up after locating the exact example;
+preserve its rhetorical sequence and specificity without inventing source claims.
+Shared calendar with separate video and email lanes, local drag/date planning,
+and clearly distinct planned versus externally confirmed scheduled states.
+Kit integration for email broadcast scheduling is a later milestone. Account
+connection, credentials and persistent access require explicit setup approval.
+No emails/videos are sent, scheduled or published by this specification task.
+
+CALENDAR / DELIVERY EXTENSION - 16 OCTOBER 2026
+Source: Sentinel_1d806d1f192c81919008cf3331f84297.
+Detailed contract: specs/CONTENT_CALENDAR_INTEGRATIONS.txt.
+Each email calendar item holds an editable draft, explicit audience/segment,
+planned schedule/timezone, Linklr tracked links, exact approval snapshot and
+separate remote Kit draft/schedule/sent status with verification evidence.
+Approval binds copy, audience, time and links; material changes invalidate it.
+Use supported APIs where verified. Otherwise show manual action required with a
+verified destination and action button, followed by honest status verification.
+Browser/computer automation is only a possible later route, not promised access
+or authorization. Linklr owns Parker eligibility; do not enroll people.

@@ -1,0 +1,839 @@
+{
+  "version": "1.0.0",
+  "status": "proposal_not_executed",
+  "default_order": [
+    "structure",
+    "explanation",
+    "story",
+    "draft",
+    "hook",
+    "signposts",
+    "lead_magnets",
+    "connective",
+    "final_flow"
+  ],
+  "global_rule_ids": [
+    "R37",
+    "R38",
+    "R39",
+    "R40",
+    "R41",
+    "R42",
+    "R43",
+    "R44",
+    "R45",
+    "R46",
+    "R47",
+    "R09",
+    "R10",
+    "R11",
+    "R12",
+    "A02",
+    "N01",
+    "N02",
+    "R00"
+  ],
+  "passes": [
+    {
+      "id": "structure",
+      "order": 1,
+      "depends_on": [],
+      "inputs": [
+        "request_scope",
+        "brief",
+        "audience_summary",
+        "lead_magnet_decision",
+        "existing_document_if_touchup",
+        "selected_packaging_brief"
+      ],
+      "writable_scope": [
+        "outline",
+        "section_cards",
+        "story_slot",
+        "mechanics_turns",
+        "hook_plan",
+        "close_plan",
+        "magnet_slots",
+        "reference_plan"
+      ],
+      "protected": [
+        "No whole-script structure or writing until full-script magnet preflight answered",
+        "Existing user facts and requested teaching/order",
+        "No fabricated resource or proof",
+        "Full YouTube structure blocked until title/thumbnail pair selected; may develop concepts first.",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R01",
+        "R02",
+        "R03",
+        "R06",
+        "R28",
+        "R36",
+        "R49",
+        "R50",
+        "A01",
+        "M01",
+        "U01"
+      ],
+      "refs": [
+        "S1 audience and selected A/K families",
+        "S2 core frustrations, desired outcomes and objections",
+        "S3 choices only",
+        "S6 one relevant flow map if useful"
+      ],
+      "output": [
+        "outline with stable section IDs",
+        "one central thesis",
+        "section teaching point, tangible payoff, example, prereqs",
+        "story decision and slot",
+        "mechanics/hook/close/magnet plans",
+        "blocking questions"
+      ],
+      "checks": [
+        "All brief requirements represented",
+        "Single central argument",
+        "Required lead-magnet decision known",
+        "No unsupported teaching or resource content",
+        "Title + thumbnail curiosity question and payoff are preserved and delivered."
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "explanation",
+      "order": 2,
+      "depends_on": [
+        "structure"
+      ],
+      "inputs": [
+        "approved_outline",
+        "brief_teaching",
+        "section_cards",
+        "audience_summary",
+        "known_framework_facts"
+      ],
+      "writable_scope": [
+        "section teaching cards",
+        "definitions",
+        "worked example plans"
+      ],
+      "protected": [
+        "Outline order",
+        "One central point",
+        "Known facts",
+        "Story slot and pending offer state",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R03",
+        "R07",
+        "R11",
+        "R22",
+        "R33",
+        "A01",
+        "R36",
+        "R49"
+      ],
+      "refs": [
+        "S2 selected workplace situations",
+        "S1 relevant A/K and Part C",
+        "S6 4084–4104 and 4544–4548 only when useful"
+      ],
+      "output": [
+        "per-section one/two-sentence idea",
+        "one simple explanation",
+        "one example/scene",
+        "one usable action",
+        "definition and count ledger"
+      ],
+      "checks": [
+        "Audience situation before concept",
+        "Formula stated once",
+        "No duplicate objection handling",
+        "Mechanism taught in body but not used as promised prize",
+        "No complex teaching introduced solely for rhetoric"
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "story",
+      "order": 3,
+      "depends_on": [
+        "structure",
+        "explanation"
+      ],
+      "inputs": [
+        "outline",
+        "explanation_cards",
+        "story_slot",
+        "approved_story_facts_or_hypothetical_permission"
+      ],
+      "writable_scope": [
+        "single story block",
+        "story entrance proposal",
+        "story handoff proposal",
+        "callback anchors"
+      ],
+      "protected": [
+        "Maximum one story",
+        "Actual personal history",
+        "Section teaching and explanation facts",
+        "No magnet within story",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R18",
+        "R28",
+        "R29",
+        "R30",
+        "E01"
+      ],
+      "refs": [
+        "S1 story rules and rejected-story examples",
+        "S6 3540–3557 and 3566–3623",
+        "Selected A/K pain"
+      ],
+      "output": [
+        "story block or explicit skipped state",
+        "eight-beat ledger",
+        "verified details list",
+        "at least two later callback anchor proposals",
+        "handoff specification"
+      ],
+      "checks": [
+        "Optional story genuinely helps",
+        "Pain before scene",
+        "Thought behind each beat",
+        "Turn grows from observed event",
+        "Doubt developed",
+        "Result explains why fear did not occur",
+        "Mechanism held until teaching",
+        "No invented first-person story"
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "draft",
+      "order": 4,
+      "depends_on": [
+        "structure",
+        "explanation",
+        "story"
+      ],
+      "inputs": [
+        "outline",
+        "explanation_cards",
+        "story_output_or_skipped",
+        "approved_facts",
+        "audience_summary",
+        "scope",
+        "current_document_version",
+        "selected_packaging_brief"
+      ],
+      "writable_scope": [
+        "requested script body sections",
+        "planned close",
+        "placeholder hook/signpost/magnet spans"
+      ],
+      "protected": [
+        "Approved teaching/outline unless user requested rebuild",
+        "Story factual details and beats",
+        "Hook/offer specialist ownership",
+        "Current document version",
+        "Do not silently change packaging curiosity or promised payoff.",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R01",
+        "R04",
+        "R05",
+        "R06",
+        "R16",
+        "R18",
+        "R21",
+        "R22",
+        "R30",
+        "R33",
+        "R34",
+        "R35",
+        "R49",
+        "R50",
+        "A01",
+        "E01",
+        "U01",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R36"
+      ],
+      "refs": [
+        "S1 relevant A/K and B13–B30",
+        "S1 B31 and close rules",
+        "S6 at most two context-rich example segments"
+      ],
+      "output": [
+        "versioned draft sections with stable span IDs",
+        "movement-device annotations",
+        "loop/example/claim ledgers",
+        "close with no more than four beats",
+        "specialist placeholder list"
+      ],
+      "checks": [
+        "One main idea per section",
+        "Movement every 2–4 sentences, never same device adjacent",
+        "No invented claims",
+        "Two post-story callbacks if story used",
+        "Current lesson pays its promises",
+        "No recap close",
+        "Title + thumbnail curiosity question and payoff are preserved and delivered."
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "hook",
+      "order": 5,
+      "depends_on": [
+        "draft"
+      ],
+      "inputs": [
+        "draft_read_only",
+        "title_thumbnail",
+        "verified_authority",
+        "actual_taught_items_and_counts",
+        "first_section"
+      ],
+      "writable_scope": [
+        "hook only"
+      ],
+      "protected": [
+        "Body facts/order",
+        "Actual lesson payoff",
+        "First-value-before-CTA rule",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R15",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "C01",
+        "P01",
+        "U01",
+        "R11"
+      ],
+      "refs": [
+        "S1 hook rules and rejected hooks",
+        "S5 relevant curiosity lines/objections",
+        "S4 take/leave principles only",
+        "S6 opening/promise technique if needed"
+      ],
+      "output": [
+        "hook patch",
+        "three-beat labels",
+        "promise-to-body links",
+        "word count and spoken-time estimate",
+        "authority evidence IDs"
+      ],
+      "checks": [
+        "50–70 word target retained",
+        "Under-25-second target assessed",
+        "1–3 promises and at least one Parker line",
+        "No opening scene or irrelevant biography",
+        "Counts and title promise supported",
+        "Missing authority remains blocked/marked rather than invented",
+        "Title + thumbnail curiosity question and payoff are preserved and delivered."
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "signposts",
+      "order": 6,
+      "depends_on": [
+        "draft",
+        "hook"
+      ],
+      "inputs": [
+        "current_draft",
+        "section_cards",
+        "previous/current/next paragraphs per boundary",
+        "mechanics_turns",
+        "hook_promises",
+        "client_claim_evidence",
+        "planned_magnet_slots"
+      ],
+      "writable_scope": [
+        "section entrances",
+        "grounding lines",
+        "section handoffs",
+        "client-signal spans",
+        "Parker transitions"
+      ],
+      "protected": [
+        "Teaching blocks and story facts",
+        "Hook accepted wording",
+        "Meaningful order",
+        "No offer names/prices/bookings",
+        "First-value boundary",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R04",
+        "R08",
+        "R13",
+        "R14",
+        "R17",
+        "R19",
+        "R23",
+        "R24",
+        "R25",
+        "R32",
+        "R50",
+        "C01",
+        "P01",
+        "E01",
+        "R09",
+        "R11"
+      ],
+      "refs": [
+        "S1 B1–B14, selected pain/results, Parker rules",
+        "Relevant rejected signposts",
+        "S5 objection bank",
+        "S6 transition/grounding categories only as needed"
+      ],
+      "output": [
+        "scoped boundary patches",
+        "signpost type/pull ledger",
+        "Parker-turn map",
+        "two or three supported client signals or exact blockers",
+        "updated loop ledger"
+      ],
+      "checks": [
+        "Different moves at successive signposts",
+        "No more than one in three so-you-can/so-you-do-not and none adjacent",
+        "Pull in line or immediately next",
+        "No mechanism/presenter/insight as prize",
+        "Every mechanics turn Parker",
+        "Usually 2–4 Parker total, no adjacent/repeated wording",
+        "2–3 client signals, spaced sections and no magnet paragraph"
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "lead_magnets",
+      "order": 7,
+      "depends_on": [
+        "draft",
+        "hook",
+        "signposts"
+      ],
+      "inputs": [
+        "current_draft",
+        "confirmed_magnet_or_none",
+        "verified_contents_result_free_status_destination",
+        "first_value_marker",
+        "story_span",
+        "client_signal_spans",
+        "core_reveals"
+      ],
+      "writable_scope": [
+        "three planned magnet insertions and immediate re-entry joins"
+      ],
+      "protected": [
+        "If none, no magnet copy anywhere",
+        "No CTA before value or inside story",
+        "No feature/contents list",
+        "No unsupported download/live/free claim",
+        "Client-signal paragraphs",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R02",
+        "R16",
+        "R20",
+        "R30",
+        "R31",
+        "R32",
+        "M01",
+        "P01",
+        "C01",
+        "R11",
+        "R23"
+      ],
+      "refs": [
+        "S1 lead-magnet rules and three-role examples",
+        "S3 chosen inventory row only",
+        "Verified chosen asset, when supplied",
+        "Relevant S5 payoff/objection pattern"
+      ],
+      "output": [
+        "three insertion patches or skipped-none state",
+        "position percentages",
+        "distinct job and CTA ledger",
+        "offer-fact provenance",
+        "blocked availability/content questions"
+      ],
+      "checks": [
+        "Exactly three when applicable",
+        "First usually 25–35 percent after value, second near 50 after core reveal, third near 80 after main lesson",
+        "Distinct wording/results with clear truthful CTA each",
+        "No story or client-paragraph collision",
+        "Unsupported timing/layout conflict reported"
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "connective",
+      "order": 8,
+      "depends_on": [
+        "draft",
+        "hook",
+        "signposts",
+        "lead_magnets"
+      ],
+      "inputs": [
+        "whole_current_script",
+        "all_specialist_ledgers",
+        "protected_spans",
+        "reference_palette"
+      ],
+      "writable_scope": [
+        "paragraph joins",
+        "sentence connections",
+        "within-section movement",
+        "callback wording",
+        "minimal neighbouring text to repair a join"
+      ],
+      "protected": [
+        "Accepted hook and promise count",
+        "Teaching meaning and counts",
+        "Eight story beats and story facts",
+        "Signpost diversity and Parker/client/magnet counts/locations",
+        "Close no-summary contract",
+        "Verified facts",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R30",
+        "R50",
+        "E01"
+      ],
+      "refs": [
+        "S1 joins and house style",
+        "B15–B30 selected for missing function",
+        "Selected A/K variations",
+        "At most two useful contextual S6 segments"
+      ],
+      "output": [
+        "minimal patches",
+        "per-paragraph join audit",
+        "movement density/type ledger",
+        "callback/loop audit",
+        "requests to owner pass for out-of-scope repair"
+      ],
+      "checks": [
+        "Every paragraph connects to prior",
+        "Introduce → name → define → show",
+        "Move every 2–4 sentences, no adjacent same type",
+        "No repeated pain/result phrasing",
+        "At least two distinct post-story callbacks",
+        "Read aloud as one conversation",
+        "Earlier specialist invariants unchanged"
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    },
+    {
+      "id": "final_flow",
+      "order": 9,
+      "depends_on": [
+        "connective"
+      ],
+      "inputs": [
+        "whole_current_script",
+        "brief",
+        "all_ledgers",
+        "rules",
+        "accepted_versions",
+        "missing_facts",
+        "conflicts"
+      ],
+      "writable_scope": [],
+      "protected": [
+        "Read-only gate: no silently rewriting complete script",
+        "All current user edits",
+        "All source constraints",
+        "Global full-script preflight applies even when this pass is run standalone."
+      ],
+      "rules": [
+        "R48",
+        "R16",
+        "R35",
+        "U01"
+      ],
+      "refs": [
+        "All rule summaries and original final checklist",
+        "Fetch exact source paragraph only for disputed check",
+        "No full archive needed"
+      ],
+      "output": [
+        "rule-by-rule results pass/fail/blocked/not_applicable",
+        "whole-script read-aloud assessment",
+        "minimal repair requests routed to owners",
+        "ready_for_review or blocked status",
+        "unresolved claims/conflicts"
+      ],
+      "checks": [
+        "Every applicable registry rule checked",
+        "All counters and ledgers agree with actual document",
+        "Whole script natural despite local success",
+        "No unresolved promises or factual placeholders passed as final",
+        "No patch applied without version check",
+        "Title + thumbnail curiosity question and payoff are preserved and delivered."
+      ],
+      "shared_rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "A02",
+        "N01",
+        "N02",
+        "R00"
+      ],
+      "mode": "on_demand_specialist",
+      "model_requirement": "No requirement for separate model, external GPT or automatic execution. A selected pass can be performed manually or by available assistant; deterministic checks are not model calls.",
+      "skipping": "Story may be skipped explicitly; lead_magnets may be skipped only when decision is none; a narrow edit invokes only affected owners and checks. Missing facts block dependent spans, not unrelated work."
+    }
+  ],
+  "packaging_preflight": {
+    "required_for": "full YouTube video creation/rewrite",
+    "inputs": [
+      "selected_title",
+      "selected_thumbnail_concept",
+      "shared_curiosity_question",
+      "promised_viewer_payoff"
+    ],
+    "status": "unknown | concepts_proposed | selected",
+    "gate": "Before structure begins, selected title/thumbnail pair must exist. If absent, propose packaging concepts only, then await selection. This can be a manual chat decision; no separate model call required.",
+    "rule_id": "U01",
+    "source": "user:Sentinel_864c58a508d881918c3dccdcf33af160"
+  },
+  "full_script_preflight": {
+    "rule_ids": [
+      "R02",
+      "U01"
+    ],
+    "applies_before": "Any writing pass for full-script creation/rewrite, including structure; valid existing answers satisfy gate.",
+    "requirements": [
+      "For YouTube, selected title/thumbnail pair and curiosity/payoff brief",
+      "Lead-magnet yes/no decision; if yes, confirmed name/function/contents"
+    ],
+    "exception": "A paragraph or section touch-up does not require a new magnet question; checks outside requested scope remain read-only.",
+    "enforcement": "A standalone pass cannot bypass this gate. Packaging concept development is allowed when selection is missing, without drafting a script."
+  }
+}

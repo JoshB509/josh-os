@@ -1,0 +1,23 @@
+Owner workspace roadmap - 16 October 2026
+Future scope only. No rebrand, client import or synchronization implemented.
+JoshOS is an unconfirmed suggestion, not the app's chosen name.
+Sources: Sentinel_4036aa5984f48191b53f866b7b684676 and parent roadmap clarification.
+
+One existing owner app, not a second competing tracker:
+- Today: priorities, approvals, waiting items and next actions.
+- Content: existing video production, emails and inspiration library.
+- Tasks: current/future to-dos, ideas and requested enhancements linked to work.
+- Programme: lesson index with exact original Notion document links, known status,
+  script, recording and downloads. Continue authoring in Notion until finished.
+- Clients: future profiles, goals, sessions, notes, emails and next steps using
+  the existing clients folder as the initial source, after access/sharing review.
+- Unified calendar: content/task/client filters with provenance and verified state.
+
+Do not recreate or silently migrate source material. Preserve canonical source
+IDs/paths, source dates, checked-at timestamps, unresolved conflicts and attribution.
+Manual user-triggered reconciliation when Josh says Notion changed is sufficient;
+no live two-way sync or automatic overwrites. Notion Done is not evidence that a
+lesson was recorded or published. Track those states separately with evidence.
+Do not import private client records or set up transcript/email syncing yet.
+Verify source tooling, sharing and authorization before those future tasks.
+Current priority remains reliable clean cuts and simple script/editor screens.

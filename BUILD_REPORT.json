@@ -1,0 +1,65 @@
+{
+  "release": "0.1.0-alpha",
+  "overall_status": "Working local alpha installed; full requested acceptance is not complete",
+  "application": "E:\\Videos\\DaJoshiResolve\\DaJoshiResolve.exe",
+  "desktop_shortcut": "C:\\Users\\Anigma PC\\Desktop\\DaJoshiResolve (Alpha).lnk",
+  "implementation": "Native C#/.NET Windows Forms launcher and Python media pipeline; Rust not implemented because no toolchain was found and installation approval was not received",
+  "source_workspace": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2",
+  "installed_demo": "E:\\Videos\\DaJoshiResolve\\Runs\\Promotion-Rule-Demo",
+  "implemented": [
+    "Native file drag/drop fields, browse controls and original desktop icon",
+    "Automatic transcript/acoustic silence cuts and strong-prefix retake removal",
+    "Conservative speech padding; uncertain speech/sounds retained and reported",
+    "Original-video-time keep/remove override controls",
+    "Measured microphone sync and original/composite visual timing verification",
+    "One rational frame timing map for source edits, audio, layouts and animation cues",
+    "FCP XML source references, trim handles, links and Basic Motion layout descriptions",
+    "Separate HTML go(beat) animation clips with frozen 30-second tail handles",
+    "Review preview, structured logs, repeat-run isolation, OS run locks and cancellation/resume",
+    "Input fingerprint and request/code/settings identity checks for resume"
+  ],
+  "passed_checks": {
+    "installed_unit_tests": 20,
+    "launcher_compilation_and_form_selftest": true,
+    "shortcut_target_and_icon_verified": true,
+    "actual_html_independent_context_hashes_match": true,
+    "offline_cached_medium_en_transcription_seconds": 12,
+    "offline_transcription_elapsed_seconds": 10.625,
+    "actual_worker_cancellation_then_resume": true,
+    "original_and_approved_composite_fixtures": true,
+    "final_preview_expected_frames": 281,
+    "final_preview_duration_seconds": 11.24,
+    "separate_animation_clips": 3,
+    "extra_hold_seconds_per_clip": 30,
+    "microphone_minus_original_seconds": 1.7824375,
+    "original_minus_composite_seconds": 0.64,
+    "measured_microphone_minus_composite_seconds": 2.4224375,
+    "frame_quantized_offset_seconds": 2.44,
+    "frame_grid_residual_milliseconds": 17.5625
+  },
+  "remaining_blockers_and_limits": [
+    "Premiere was open on Promotion Rule and was left untouched. Import, transform translation, native playback, trim-handle edits, native save/reopen and lip-sync require an idle native acceptance test.",
+    "No full listening or editorial-quality gold-standard comparison was performed.",
+    "Rust remains pending; existing Python/C# were used without downloads or installations.",
+    "Timing math accepts arbitrary rational rates but XML exporter only supports integer and N*1000/1001 rates. Other fractional rates are explicitly rejected. VFR support is not certified.",
+    "Frame-grid XML audio has a reported subframe residual; sample-accurate native audio assembly is unfinished.",
+    "Short ambiguous false starts, laughs and breaths are retained/flagged, not universally classified or automatically removed.",
+    "HTML adapter handles the inspected local go(beat) deck, timers/RAF/CSS and embedded fonts. Arbitrary video/WebGL/audio clocks, animation beyond the current 3-second settle window and external assets need adapters.",
+    "Shot lists require the documented CSV/JSON contract; arbitrary document parsing is not implemented.",
+    "Python environment and model remain referenced in the older work folder; retain those installed dependencies.",
+    "Manual desktop drag/drop and interactive button use were not exercised; form construction, routing and override parsing were self-tested."
+  ],
+  "regression_notes": [
+    "Promotion Rule v03 output 09:17.28 remains unresolved.",
+    "Promotion Rule v03 output 09:20.16 remains unresolved.",
+    "These are prior-output timestamps, not silently remapped as source times."
+  ],
+  "initial_failures_resolved_or_recorded": [
+    "One test expected banker-style half rounding; corrected to the explicit nearest-half-up frame rule, then all tests passed.",
+    "Windows tasklist failed with username/password error in the sandbox; media work stopped, and a read-only .NET process check was used. Host checks confirmed OBS absent.",
+    "Sandbox Playwright driver startup stalled. Only verified owned test/diagnostic Python processes were stopped; authorized host execution succeeded.",
+    "HTML font check initially failed because unused embedded fonts were unloaded. Explicit font preloading resolved it.",
+    "Hidden-form bitmap selftest initially omitted child controls. Creating the invisible test form's child handles produced the inspected complete UI image."
+  ],
+  "preservation": "No old project, source footage or audio was modified. Eleven legacy scripts were copied read-only as reference snapshots. No .prproj object-graph writer was used. No credentials, purchases, security setting changes, ChatGPT session reads or user-app UI automation occurred."
+}

@@ -1,0 +1,19 @@
+[
+  {
+    "source_start": 25,
+    "source_end": 26.5,
+    "layout": "full"
+  },
+  {
+    "source_start": 26.5,
+    "source_end": 28,
+    "layout": "pip",
+    "beat": 1
+  },
+  {
+    "source_start": 28,
+    "source_end": 30,
+    "layout": "side",
+    "beat": 2
+  }
+]

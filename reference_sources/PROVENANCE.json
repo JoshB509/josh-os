@@ -1,0 +1,68 @@
+[
+  {
+    "original": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\transcribe.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\transcribe.py",
+    "sha256": "44f658866fc0e6b5db4938e8734ea2ea74730ccd10134ec31a327fec2f8a6861",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\make_plan.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\make_plan.py",
+    "sha256": "6d115c32ac144a1f1367036b7b7297cb432819acc14ab9122363738c5bac9f3d",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\render_animations.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\render_animations.py",
+    "sha256": "c2b7f3381cc7ec9332bfbd92443b5fb63bfa3098440adbf30ab6f80fd0bcad27",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\12_YouTube\\08_promotion-rule\\2026-10-14_edit_v03\\Build scripts\\analyze_audio.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\analyze_audio.py",
+    "sha256": "a82307229b47cfbe94d8ce049bcdf3f4e08295caf1dab179f0128ebd10d06ae9",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\12_YouTube\\08_promotion-rule\\2026-10-14_edit_v03\\Build scripts\\verify_composite_sync.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\verify_composite_sync.py",
+    "sha256": "4c010a1b962bed4a2a3be3ea3bb504f554657fdea812419dabc59410323626c7",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\12_YouTube\\08_promotion-rule\\2026-10-14_edit_v03\\Build scripts\\build_v03.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\build_v03.py",
+    "sha256": "72384392c773db1bfd7a3072e6f982ac6acd08564f199847e67131367f6b34f0",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\10_Sales\\VSL\\VIDEO\\08_V05_New_Edit\\06_Tools\\v05_sync_refine.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\v05_sync_refine.py",
+    "sha256": "7578aab30342f9cccb6f9dd8f68d12e547dff93b6c45537caff94af6f44b5e1c",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\10_Sales\\VSL\\VIDEO\\08_V05_New_Edit\\06_Tools\\v05_prepare_speech_maps.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\v05_prepare_speech_maps.py",
+    "sha256": "282ecda61acd2b043a8d89e00171d886155ae89a6d8990f9f70845f3f58f9701",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\10_Sales\\VSL\\VIDEO\\08_V05_New_Edit\\06_Tools\\v05_render_all.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\v05_render_all.py",
+    "sha256": "70cf62cce00a7f351223a029a74f0260a653c9244a7df81d38454f943b3f48ca",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\CareerOS\\10_Sales\\VSL\\VIDEO\\08_V05_New_Edit\\06_Tools\\v05_render_animation.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\v05_render_animation.py",
+    "sha256": "594c89c481f730a973d2c443072b988f129554645d7f6a2e49a710034ec6f4a9",
+    "used_as": "Read-only reference; not executed by app"
+  },
+  {
+    "original": "E:\\Videos\\Reusable-Video-Kit\\assemble.py",
+    "copied": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-14\\task-2\\reference_sources\\assemble.py",
+    "sha256": "66e30cb6a817e543221de555faf5f5173228c8e47100cf2a0497994bce474cb8",
+    "used_as": "Read-only reference; not executed by app"
+  }
+]

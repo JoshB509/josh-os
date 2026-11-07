@@ -1,0 +1,148 @@
+DaJoshiResolve - email/video calendar, Kit and Linklr design
+16 October 2026. Specification only; no app implementation or remote writes.
+Source: Josh, Sentinel_1d806d1f192c81919008cf3331f84297 and
+Sentinel_a11fc6bb26ac819197fe7b56c96d91a8.
+Sequence: clean-cut reliability first; then library/calendar; then approved
+integration setup, supported adapters and verified delivery workflow.
+
+USER EXPERIENCE
+Keep existing local video dates/drag/undo and all existing project data intact.
+Show separate video and email lanes with labels/icons as well as restrained colour.
+An email card opens its editable subject, preview text and body, planned date/time,
+timezone, explicit intended audience, links, approval and remote status.
+The schedule is a workspace for drafting, moving and reviewing items, not proof
+that an external service has accepted a send. Visible states must make that clear.
+Provide a compact action-needed queue, including missing audience, missing tracked
+links, approval required, manual scheduling required and remote verification needed.
+
+PROPOSED LOCAL DATA CONTRACT (additive, not vendor API fields)
+content_item: stable id, type(video/email), project/source references, title,
+current_revision, archived/completed flags. Email draft revisions preserve subject,
+preview text, HTML/plain copy, render/template identity, sender choice and notes.
+plan: local planned date or datetime, IANA timezone, resolved UTC instant when
+appropriate, all-day marker, lane and local revision. Never guess timezone from
+machine settings; ambiguous DST times need resolution before scheduling.
+audience: provider/account identity, explicit segment/tag/filter IDs, display names,
+inclusion/exclusion logic, resolution time and optional count snapshot. IDs must
+be read from the actual account. Missing audience is blocked, never "all" by default.
+Audience estimates can change; approval binds filter definition/IDs, with a warning
+and review when remote definition/eligibility changes materially. A remote segment
+label alone is not sufficient identity or evidence of its current rules.
+links: versioned list of placements, destination, returned tracked URL and verified
+Linklr metadata; detailed manifest below.
+approval: immutable copy of reviewed payload plus canonical digest, approver/time,
+action intent, content/plan/audience/link revisions, provider account and visibility.
+remote_delivery: provider, verified remote ID, confirmed deep link, payload revision,
+remote draft/schedule/sent status, remote scheduled instant, last verified time,
+evidence method and result, attempt ID, errors and reconciliation state.
+manual_action: reason, expected provider/action, verified page URL, checklist,
+user-reported completion and separate verification status/evidence.
+Store secrets outside all of these records and their exports.
+
+APPROVAL AND DISPATCH
+1. Resolve real account/audience/template requirements and Linklr links. Render a
+   review of exactly what will be sent: subject/preview/body, sender, audience,
+   date/time/timezone, destinations/tracked URLs and web visibility.
+2. Approve a snapshot. Offer separate "approve copy" and, only after authorized
+   setup, an explicit "approve and schedule" action. The latter may dispatch that
+   exact payload without asking the same question twice. Copy approval alone is
+   not scheduling authorization. The present documentation task authorizes neither.
+3. Immediately before dispatch, compare every current revision/digest to approval;
+   revalidate destination, account, audience and future send time. Fail closed on
+   mismatch. Claim an attempt atomically and reconcile remote state on uncertain
+   response before retrying. Do not assume Kit offers an idempotency header.
+4. Material copy, subject, audience/filter, sender, time/timezone, template/visibility
+   or link URL/destination/attribution changes invalidate approval. Non-delivery
+   notes may change without invalidation. Version this policy explicitly.
+5. If an already scheduled remote item becomes different from the local draft,
+   preserve the remote truth, mark approval stale/divergence and show action needed.
+   Do not silently cancel, move or overwrite the remote schedule. Time may still
+   pass and the old approved remote item may send; surface that risk clearly.
+6. Only a verified remote response/read establishes remote draft/scheduled/sent
+   status. A queued request, HTTP transport success without valid payload, button
+   click, calendar date or elapsed planned time does not prove delivery.
+
+STATE MODEL (keep dimensions separate)
+Local: draft -> planned -> review-ready; dates can exist at any drafting stage.
+Approval: missing / current / stale / revoked, tied to immutable snapshot.
+Remote: not-linked / draft-confirmed / scheduling-pending / scheduled-confirmed /
+sent-confirmed / cancellation-pending / canceled-confirmed / failed / unknown.
+Manual: not-required / action-required / user-reported-done / verification-required.
+Display evidence freshness and provider timestamp. "Sent" is not proof of inbox
+delivery; engagement/attribution reporting is a separate, possibly delayed measure.
+
+SUPPORTED API ROUTE AND MANUAL FALLBACK
+Prefer actual supported APIs with documented auth/capabilities and verified account
+scope. Kit API V4 documents broadcast drafts and scheduled sends. send_at=null
+creates a draft; a timestamp schedules a send; public=true publishes to the web.
+The integration must explicitly choose visibility and audience, not inherit unsafe
+defaults. Validate template support and payload contract when implementing because
+documentation/capabilities can change. Account plan eligibility remains unknown.
+References inspected read-only:
+https://developers.kit.com/api-reference/overview
+https://developers.kit.com/api-reference/broadcasts/create-a-broadcast
+
+If a required operation lacks supported API access, show "manual action required"
+with a button such as "Open Kit to schedule" and an explicit task summary. Store
+only a deep link verified from provider responses, official documentation or the
+actual authorized UI. Do not construct a guessed item URL. If no item deep link is
+verified, mark that limitation and use a verified provider entry page with a clear
+locator; do not label a generic page a direct item link. Disable unresolved links.
+Opening a page does not schedule anything. User confirmation alone is labelled
+user-reported until API readback or authorized UI evidence verifies remote state.
+Later browser/computer assistance may be offered only where tools/access support
+it and authorization covers the action. No promise of access; no bypass of account
+setup, confirmations or production safeguards. Manual state remains usable alone.
+
+LINKLR CONTRACT AND OWNERSHIP
+Goal: generate correctly attributed tracked links through Linklr for email and
+video placements, then insert the verified returned URLs before content approval.
+Do not create arbitrary URLs/UTM patterns or assume a link-writing API exists.
+Use source identifiers and attribution fields from documented Linklr capabilities;
+keep any local proposed fields clearly distinguished from vendor schema.
+
+Observed on 2026-10-16, read-only connector calls:
+- get_data_status: successful, reporting timezone UTC/currency USD and freshness.
+- get_acquisition_by_source(days=1): successful. Source output fields observed:
+  source_type, name, clicks, unique_visitors, new_subscribers,
+  visitor_to_subscriber_pct, purchases_first_touch, revenue_first_touch_usd.
+  Source metrics use first tracked-link acquisition and first-touch purchase
+  attribution; email clicks count only when verified as a real visit.
+- Exposed tools cover reports/status only. No create/update link API, URL parameter
+  contract, stable link-ID field or enrollment action was exposed/verified.
+  Source labels/metrics are reporting fields, not a generation request schema.
+No Kit connector exposed and no plugin-directory search available in this session.
+No Linklr/Kit implementation found in targeted local source scans. This is not a
+claim that no other plugin/integration exists elsewhere. Unrelated public search
+results for similarly named businesses are not documentation for Josh's Linklr.
+
+Proposed LOCAL link manifest fields, pending mapping to supported Linklr schema:
+local_link_id, content_id/revision, content_type, placement_key (email CTA/video
+description/etc.), destination_url, tracked_url_returned, source_label,
+provider_source_id/provider_link_id if returned, exact provider attribution payload,
+generation method/time, API/schema version if documented, verification method/time,
+approval digest and unresolved reason. Optional local campaign/variant notes do
+not imply Linklr accepts or stores those fields. Do not invent IDs or query params.
+Document any future real vendor field mapping with source/version, allowed values
+and examples obtained from verified schema. Preserve the returned URL verbatim.
+Prefer read-only metadata verification; do not click live tracked links in tests
+and contaminate attribution. Use documented non-counting validation if available.
+
+Until creation support is verified: provide a manual Linklr action state and
+capture manually generated URL plus provenance, then review destination/attribution.
+Missing links block scheduling readiness. A link regeneration or destination/
+attribution change invalidates content approval and requires a fresh review.
+Linklr owns Parker eligibility. This app must not decide/override eligibility,
+enroll contacts, add people to Parker sequences, or change tags/audiences to force
+eligibility. Audience selection for a broadcast is not enrollment authorization.
+
+IMPLEMENTATION AND ACCEPTANCE
+Add tables/versioned records and preserve existing project/calendar schemas through
+additive migrations with backups and restore tests. Keep current UI responsive.
+Mock first: missing segment, changed audience rules, URL change, stale approval,
+ambiguous timeout, duplicate dispatch, wrong account, DST ambiguity, auth expiry,
+remote/local conflict, unsupported operation and manual verification routes.
+Assert zero external writes on edit/save/drag/reconnect; no false "scheduled" or
+"sent" badges; no contact enrollment/settings writes. Confirm existing video dates
+and workflow survive migration. Integration setup and real dispatch require later
+explicit authorization; no real scheduling/sending is performed by this task.

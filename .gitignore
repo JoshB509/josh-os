@@ -1,0 +1,28 @@
+# Sign-ins, keys and personal data (never commit)
+Data/
+**/browser-profile/
+**/key-cache/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Large working folders
+Runs/
+Engines/
+Backups/
+Evidence/
+References/
+
+# Binaries and build output
+tools/
+*.exe
+build/
+dist/
+__pycache__/
+*.pyc
+*.log
+
+# Local machine settings (copy settings.example.json to settings.json)
+settings.json

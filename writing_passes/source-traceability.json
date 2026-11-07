@@ -1,0 +1,2620 @@
+{
+  "scope": "All six sources covered at section level; primary source additionally covered at nonempty-paragraph level. Coverage proves routing/retention, not that every historical example is compatible.",
+  "sections": [
+    {
+      "source": "S1",
+      "section": "Preamble/frontmatter",
+      "lines": [
+        1,
+        5
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "# Script touch-up",
+      "lines": [
+        6,
+        7
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## The one goal",
+      "lines": [
+        8,
+        15
+      ],
+      "rules": [
+        "R48",
+        "R00"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## The audience",
+      "lines": [
+        16,
+        21
+      ],
+      "rules": [
+        "R49"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## How to write it, in three passes",
+      "lines": [
+        22,
+        41
+      ],
+      "rules": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## The rules that shape every line",
+      "lines": [
+        42,
+        79
+      ],
+      "rules": [
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## What an Ed-level section sounds like",
+      "lines": [
+        80,
+        95
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## Signposts that were sent back, and why",
+      "lines": [
+        96,
+        111
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## The other pieces of a script",
+      "lines": [
+        112,
+        313
+      ],
+      "rules": [
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## House style",
+      "lines": [
+        314,
+        329
+      ],
+      "rules": [
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## Before handing a script back",
+      "lines": [
+        330,
+        350
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "governing_or_examples",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "# The movement bank",
+      "lines": [
+        351,
+        354
+      ],
+      "rules": [
+        "R48"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## Part A · The frustration bank",
+      "lines": [
+        355,
+        358
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Communication frustrations",
+      "lines": [
+        359,
+        360
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A1 · The work that gets ignored",
+      "lines": [
+        361,
+        382
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A2 · Forty slides because you don't know which four matter",
+      "lines": [
+        383,
+        404
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A3 · Too much detail and no idea what to cut",
+      "lines": [
+        405,
+        426
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A4 · \"Cut it\", then \"add more\"",
+      "lines": [
+        427,
+        448
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A5 · Sent away for more detail",
+      "lines": [
+        449,
+        470
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A6 · They don't see the work you did",
+      "lines": [
+        471,
+        492
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A7 · Walking out without the action",
+      "lines": [
+        493,
+        514
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A8 · Explaining what you've already explained",
+      "lines": [
+        515,
+        536
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A9 · Not knowing the words",
+      "lines": [
+        537,
+        558
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A10 · Round in circles",
+      "lines": [
+        559,
+        580
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A11 · The question you didn't see coming",
+      "lines": [
+        581,
+        602
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A12 · Someone else presents it and gets the credit",
+      "lines": [
+        603,
+        624
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A13 · The hours it takes",
+      "lines": [
+        625,
+        646
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### A14 · Heard as the technical one",
+      "lines": [
+        647,
+        668
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Career frustrations",
+      "lines": [
+        669,
+        670
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K1 · Told to wait",
+      "lines": [
+        671,
+        692
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K2 · Top of the list",
+      "lines": [
+        693,
+        714
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K3 · Passed over",
+      "lines": [
+        715,
+        736
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K4 · Thanked, never moved",
+      "lines": [
+        737,
+        758
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K5 · The list that never gets shorter",
+      "lines": [
+        759,
+        780
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K6 · Feedback you can't act on",
+      "lines": [
+        781,
+        802
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K7 · No budget this cycle",
+      "lines": [
+        803,
+        824
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K8 · No path forward",
+      "lines": [
+        825,
+        846
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K9 · Doing the job above",
+      "lines": [
+        847,
+        868
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### K10 · Doing the work while someone else is seen",
+      "lines": [
+        869,
+        892
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## Part B · The move bank",
+      "lines": [
+        893,
+        898
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Between sections",
+      "lines": [
+        899,
+        900
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B1 · Label with a payoff",
+      "lines": [
+        901,
+        918
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B2 · A question with the pain inside it",
+      "lines": [
+        919,
+        936
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B3 · The problem the last section left behind",
+      "lines": [
+        937,
+        953
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B4 · Voice their doubt, then answer it",
+      "lines": [
+        954,
+        971
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B5 · Warning or stakes",
+      "lines": [
+        972,
+        989
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B6 · A ranking or quality word on the label",
+      "lines": [
+        990,
+        1007
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B7 · Interrupt, then promise",
+      "lines": [
+        1008,
+        1024
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B8 · Lead with the result",
+      "lines": [
+        1025,
+        1042
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B9 · Lead with the pain it removes",
+      "lines": [
+        1043,
+        1059
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B10 · Keep-watching line",
+      "lines": [
+        1060,
+        1073
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B11 · The gate, \"before we get to that\"",
+      "lines": [
+        1074,
+        1090
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B12 · The \"why\" question",
+      "lines": [
+        1091,
+        1107
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Grounding",
+      "lines": [
+        1108,
+        1109
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B13 · Opening a section",
+      "lines": [
+        1110,
+        1126
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B14 · Closing a section, and progress markers",
+      "lines": [
+        1127,
+        1144
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Inside sections",
+      "lines": [
+        1145,
+        1146
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B15 · \"The thing is\"",
+      "lines": [
+        1147,
+        1164
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B16 · \"But worse\" and \"it gets even worse\"",
+      "lines": [
+        1165,
+        1180
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B17 · \"Here's the thing\", \"check this out\", \"this is where it gets interesting\"",
+      "lines": [
+        1181,
+        1197
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B18 · \"But the second thing that really matters\"",
+      "lines": [
+        1198,
+        1210
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B19 · Rhetorical question, short answer",
+      "lines": [
+        1211,
+        1230
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B20 · \"Right?\"",
+      "lines": [
+        1231,
+        1246
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B21 · The small open loop",
+      "lines": [
+        1247,
+        1262
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B22 · Misconception setup",
+      "lines": [
+        1263,
+        1279
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B23 · Conditionals that keep everyone watching",
+      "lines": [
+        1280,
+        1296
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B24 · \"And when you do that?\"",
+      "lines": [
+        1297,
+        1313
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B25 · Stakes ladder",
+      "lines": [
+        1314,
+        1327
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B26 · Callback",
+      "lines": [
+        1328,
+        1347
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B27 · Prove it in front of them",
+      "lines": [
+        1348,
+        1364
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B28 · Put them in a scene",
+      "lines": [
+        1365,
+        1380
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B29 · Mock voice",
+      "lines": [
+        1381,
+        1395
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B30 · Pattern interrupt",
+      "lines": [
+        1396,
+        1412
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "### Endings",
+      "lines": [
+        1413,
+        1414
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "#### B31 · Close and next-lesson send",
+      "lines": [
+        1415,
+        1433
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S1",
+      "section": "## Part C · Words that sound like results and aren't",
+      "lines": [
+        1434,
+        1450
+      ],
+      "rules": [
+        "R50"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "# Communication audience · pains, words and outcomes",
+      "lines": [
+        1,
+        14
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## The one problem underneath both buyers",
+      "lines": [
+        15,
+        26
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "# A · The senior buyer",
+      "lines": [
+        27,
+        28
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Who they are",
+      "lines": [
+        29,
+        36
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## The core frustrations",
+      "lines": [
+        37,
+        51
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Their words",
+      "lines": [
+        52,
+        87
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Are you the person who",
+      "lines": [
+        88,
+        100
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Have you ever",
+      "lines": [
+        101,
+        111
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## The moments, where they feel it",
+      "lines": [
+        112,
+        125
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they've already tried",
+      "lines": [
+        126,
+        129
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they want, in their words",
+      "lines": [
+        130,
+        142
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they'll be able to do",
+      "lines": [
+        143,
+        157
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What you get, so you can",
+      "lines": [
+        158,
+        168
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## This is for you if",
+      "lines": [
+        169,
+        176
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## This isn't for you if",
+      "lines": [
+        177,
+        183
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Objections and beliefs to write against",
+      "lines": [
+        184,
+        193
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "# B · The stuck buyer",
+      "lines": [
+        194,
+        195
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Who they are",
+      "lines": [
+        196,
+        203
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## The core frustrations",
+      "lines": [
+        204,
+        219
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Their words",
+      "lines": [
+        220,
+        259
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Are you the person who",
+      "lines": [
+        260,
+        274
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Have you ever",
+      "lines": [
+        275,
+        285
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## The moments, where they feel it",
+      "lines": [
+        286,
+        297
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they've already tried",
+      "lines": [
+        298,
+        301
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they want, in their words",
+      "lines": [
+        302,
+        312
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What they'll be able to do",
+      "lines": [
+        313,
+        326
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## What you get, so you can",
+      "lines": [
+        327,
+        336
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## This is for you if",
+      "lines": [
+        337,
+        345
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## This isn't for you if",
+      "lines": [
+        346,
+        352
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Objections and beliefs to write against",
+      "lines": [
+        353,
+        362
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "# Shared",
+      "lines": [
+        363,
+        364
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Phrase bank",
+      "lines": [
+        365,
+        446
+      ],
+      "rules": [
+        "A01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Lines to avoid",
+      "lines": [
+        447,
+        456
+      ],
+      "rules": [
+        "A01",
+        "A02"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Where each pain is answered in the course",
+      "lines": [
+        457,
+        477
+      ],
+      "rules": [
+        "A01",
+        "A02"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S2",
+      "section": "## Note on the two buyers in one course",
+      "lines": [
+        478,
+        480
+      ],
+      "rules": [
+        "A01",
+        "A02"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S3",
+      "section": "# Lead magnet index",
+      "lines": [
+        1,
+        20
+      ],
+      "rules": [
+        "M01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "# Parker's checkout and bump copy",
+      "lines": [
+        1,
+        4
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## What to take for CareerOS checkouts",
+      "lines": [
+        5,
+        12
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## What to leave",
+      "lines": [
+        13,
+        20
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## **Checkouts**",
+      "lines": [
+        21,
+        22
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "# The Big Bang Launch Plan:",
+      "lines": [
+        23,
+        42
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "# Template:",
+      "lines": [
+        43,
+        60
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "# **Digital Storytelling Masterclass 1.0**",
+      "lines": [
+        61,
+        64
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "### Learn how to master the most persuasive tool known to man and change your life and business with one story by clicking the big orange button below.",
+      "lines": [
+        65,
+        98
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## **Template**",
+      "lines": [
+        99,
+        136
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "# **Email 365**",
+      "lines": [
+        137,
+        140
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "### **Buy the Email 365 now and in as little as 30 minutes per day, you’ll build a list that pays you \\$2-\\$5 per subscriber every month.**",
+      "lines": [
+        141,
+        142
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "### **What you'll get:**",
+      "lines": [
+        143,
+        225
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        226,
+        227
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        228,
+        229
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        230,
+        231
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        232,
+        233
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        234,
+        235
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## ",
+      "lines": [
+        236,
+        237
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S4",
+      "section": "## **Bumps:**",
+      "lines": [
+        238,
+        306
+      ],
+      "rules": [
+        "P01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "# Curiosity lines · Executive Communication Program",
+      "lines": [
+        1,
+        6
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## How they're built",
+      "lines": [
+        7,
+        20
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Why they don't get it",
+      "lines": [
+        21,
+        30
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Getting a yes",
+      "lines": [
+        31,
+        40
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Stories",
+      "lines": [
+        41,
+        48
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Decks",
+      "lines": [
+        49,
+        58
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Reports and emails",
+      "lines": [
+        59,
+        65
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Tough questions",
+      "lines": [
+        66,
+        77
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Your name on the work",
+      "lines": [
+        78,
+        84
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Data and charts",
+      "lines": [
+        85,
+        91
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## The advanced toolbox",
+      "lines": [
+        92,
+        97
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## The bonuses",
+      "lines": [
+        98,
+        104
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## The AI Toolkit (post-purchase offer)",
+      "lines": [
+        105,
+        113
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## The Career Pack (post-purchase offer)",
+      "lines": [
+        114,
+        124
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Bracket bank",
+      "lines": [
+        125,
+        143
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S5",
+      "section": "## Headline pattern",
+      "lines": [
+        144,
+        151
+      ],
+      "rules": [
+        "C01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "# Ed Lawrence · the movement library",
+      "lines": [
+        1,
+        10
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "# Part 1 · How Ed keeps a viewer moving",
+      "lines": [
+        11,
+        12
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Most of the script is movement",
+      "lines": [
+        13,
+        16
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## The fifteen moves he repeats",
+      "lines": [
+        17,
+        48
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Rhythm",
+      "lines": [
+        49,
+        52
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## What this means for our scripts",
+      "lines": [
+        53,
+        58
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "# Part 2 · The library, by technique",
+      "lines": [
+        59,
+        64
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Hook (opening)  ·  27 examples",
+      "lines": [
+        65,
+        141
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Promise / value statement  ·  77 examples",
+      "lines": [
+        142,
+        268
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Signpost / transition  ·  245 examples",
+      "lines": [
+        269,
+        566
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Grounding  ·  130 examples",
+      "lines": [
+        567,
+        747
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Mid-section re-hook / retention line  ·  118 examples",
+      "lines": [
+        748,
+        920
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Curiosity gap / open loop  ·  125 examples",
+      "lines": [
+        921,
+        1096
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Rhetorical question  ·  117 examples",
+      "lines": [
+        1097,
+        1265
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Misconception / contrarian setup  ·  120 examples",
+      "lines": [
+        1266,
+        1436
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Pain / empathy  ·  133 examples",
+      "lines": [
+        1437,
+        1619
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Desire / result  ·  188 examples",
+      "lines": [
+        1620,
+        1857
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Stakes / cost  ·  112 examples",
+      "lines": [
+        1858,
+        2019
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Conditional bridge  ·  150 examples",
+      "lines": [
+        2020,
+        2219
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Reminder / callback  ·  84 examples",
+      "lines": [
+        2220,
+        2353
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Proof / credibility  ·  137 examples",
+      "lines": [
+        2354,
+        2540
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Story lead-in  ·  84 examples",
+      "lines": [
+        2541,
+        2673
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Pattern interrupt  ·  112 examples",
+      "lines": [
+        2674,
+        2834
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Close / next-video send  ·  14 examples",
+      "lines": [
+        2835,
+        2898
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "# Part 3 · Flow maps, script by script",
+      "lines": [
+        2899,
+        2902
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 1 · I Turned OFF My YouTube Ads, Maybe You Should Too",
+      "lines": [
+        2903,
+        2928
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 2 · Copy This YouTube Studio Style, It'll Blow Up Your Business",
+      "lines": [
+        2929,
+        2961
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 3 · How To Build A Profitable YouTube Channel In 30 Days",
+      "lines": [
+        2962,
+        2992
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 4 · The EXACT Storytelling System That Turns Viewers In To Buyers",
+      "lines": [
+        2993,
+        3028
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 5 · The EXACT System to make $10k From Youtube in 7 Days",
+      "lines": [
+        3029,
+        3060
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 6 · Copy This Video, It’ll Blow Up Your Sales",
+      "lines": [
+        3061,
+        3090
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 7 · How I'm Using AI To Rapidly Grow My Channel And Business",
+      "lines": [
+        3091,
+        3122
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 8 · EXACTLY How To Bring Viewers Back To Your Channel",
+      "lines": [
+        3123,
+        3156
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 9 · Copy This YouTube Strategy, It'll Blow Up Your Business",
+      "lines": [
+        3157,
+        3187
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 10 · How To Make A Killer Video (That Blows Up Your Sales)",
+      "lines": [
+        3188,
+        3218
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 11 · EVERYTHING You Need To Make Sales On YouTube",
+      "lines": [
+        3219,
+        3250
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 12 · Why Businesses Must Start A YouTube Channel (Right Now)",
+      "lines": [
+        3251,
+        3281
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "# Part 4 · The scripts in full",
+      "lines": [
+        3282,
+        3285
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 1 · I Turned OFF My YouTube Ads, Maybe You Should Too",
+      "lines": [
+        3286,
+        3360
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 2 · Copy This YouTube Studio Style, It'll Blow Up Your Business",
+      "lines": [
+        3361,
+        3429
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 3 · How To Build A Profitable YouTube Channel In 30 Days",
+      "lines": [
+        3430,
+        3503
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 4 · The EXACT Storytelling System That Turns Viewers In To Buyers",
+      "lines": [
+        3504,
+        3711
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 5 · The EXACT System to make $10k From Youtube in 7 Days",
+      "lines": [
+        3712,
+        4030
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 6 · Copy This Video, It’ll Blow Up Your Sales",
+      "lines": [
+        4031,
+        4171
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 7 · How I'm Using AI To Rapidly Grow My Channel And Business",
+      "lines": [
+        4172,
+        4258
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 8 · EXACTLY How To Bring Viewers Back To Your Channel",
+      "lines": [
+        4259,
+        4446
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 9 · Copy This YouTube Strategy, It'll Blow Up Your Business",
+      "lines": [
+        4447,
+        4515
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 10 · How To Make A Killer Video (That Blows Up Your Sales)",
+      "lines": [
+        4516,
+        4562
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 11 · EVERYTHING You Need To Make Sales On YouTube",
+      "lines": [
+        4563,
+        4727
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    },
+    {
+      "source": "S6",
+      "section": "## Video 12 · Why Businesses Must Start A YouTube Channel (Right Now)",
+      "lines": [
+        4728,
+        4755
+      ],
+      "rules": [
+        "E01"
+      ],
+      "use": "selective_reference",
+      "status": "mapped"
+    }
+  ],
+  "latest_user_requirements": [
+    {
+      "source": "user:Sentinel_864c58a508d881918c3dccdcf33af160",
+      "rule_id": "U01",
+      "summary": "For a YouTube video, start from a selected/approved title and thumbnail concept as a pair. Record the shared curiosity question and the concrete payoff the video must deliver. If absent, develop packaging concepts first and obtain selection before full-script drafting; never invent an unrelated script promise. Course lessons and narrow edits must record applicability rather than impose unrelated YouTube packaging."
+    }
+  ]
+}

@@ -1,0 +1,911 @@
+[
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 9.14,
+    "source_end": 24.76,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 1,
+    "source_start": 24.76,
+    "source_end": 29.18,
+    "source_cue": "the board at a multi-billion dollar company",
+    "animation": 1,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 2,
+    "source_start": 29.18,
+    "source_end": 33.3,
+    "source_cue": "I only ever bring four slides",
+    "animation": 1,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 3,
+    "source_start": 33.3,
+    "source_end": 40.76,
+    "source_cue": "more than 80,000 professionals",
+    "animation": 1,
+    "press": 3
+  },
+  {
+    "layout": "graphic",
+    "beat": 5,
+    "source_start": 40.76,
+    "source_end": 44.62,
+    "source_cue": "the 3 things every executive actually wants",
+    "animation": 2,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 6,
+    "source_start": 44.62,
+    "source_end": 56.85,
+    "source_cue": "without dumbing down your work",
+    "animation": 2,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 7,
+    "source_start": 56.85,
+    "source_end": 63.09,
+    "source_cue": "see you as the person to lead it",
+    "animation": 2,
+    "press": 3
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 63.09,
+    "source_end": 94.6,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 9,
+    "source_start": 94.6,
+    "source_end": 96.06,
+    "source_cue": "You give them the background",
+    "animation": 3,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 10,
+    "source_start": 96.06,
+    "source_end": 97.16,
+    "source_cue": "how you did it",
+    "animation": 3,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 11,
+    "source_start": 97.16,
+    "source_end": 98.42,
+    "source_cue": "every option",
+    "animation": 3,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 12,
+    "source_start": 98.42,
+    "source_end": 99.08,
+    "source_cue": "every risk",
+    "animation": 3,
+    "press": 4
+  },
+  {
+    "layout": "pip",
+    "beat": 13,
+    "source_start": 99.08,
+    "source_end": 109.06,
+    "source_cue": "and every number",
+    "animation": 3,
+    "press": 5
+  },
+  {
+    "layout": "pip",
+    "beat": 15,
+    "source_start": 109.06,
+    "source_end": 117.08,
+    "source_cue": "they nod all the way through",
+    "animation": 4,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 16,
+    "source_start": 117.08,
+    "source_end": 122.86,
+    "source_cue": "Now it's too much",
+    "animation": 4,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 17,
+    "source_start": 122.86,
+    "source_end": 124.82,
+    "source_cue": "now it's a bit light",
+    "animation": 4,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 18,
+    "source_start": 124.82,
+    "source_end": 128.03,
+    "source_cue": "you're sent away to come back with more",
+    "animation": 4,
+    "press": 4
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 128.03,
+    "source_end": 135.72,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "graphic",
+    "beat": 20,
+    "source_start": 135.72,
+    "source_end": 144.26,
+    "source_cue": "the thought in their head is",
+    "animation": 5,
+    "press": 1
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 144.26,
+    "source_end": 179.04,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "graphic",
+    "beat": 23,
+    "source_start": 179.04,
+    "source_end": 189.78,
+    "source_cue": "it's only 3 things",
+    "animation": 6,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 25,
+    "source_start": 189.78,
+    "source_end": 191.44,
+    "source_cue": "all of this stuff at the start",
+    "animation": 7,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 26,
+    "source_start": 191.44,
+    "source_end": 195.48,
+    "source_cue": "the background, the options you looked at",
+    "animation": 7,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 27,
+    "source_start": 195.48,
+    "source_end": 201.04,
+    "source_cue": "Just remove it",
+    "animation": 7,
+    "press": 3
+  },
+  {
+    "layout": "graphic",
+    "beat": 28,
+    "source_start": 201.04,
+    "source_end": 213.6,
+    "source_cue": "wonder when you're going to get to the point",
+    "animation": 7,
+    "press": 4
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 213.6,
+    "source_end": 233.18,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 30,
+    "source_start": 233.18,
+    "source_end": 248.55,
+    "source_cue": "a reason to make a decision now",
+    "animation": 8,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 31,
+    "source_start": 248.55,
+    "source_end": 256.51,
+    "source_cue": "not 5 slides of background",
+    "animation": 8,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 32,
+    "source_start": 256.51,
+    "source_end": 260.67,
+    "source_cue": "it's actually really easy",
+    "animation": 8,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 33,
+    "source_start": 260.67,
+    "source_end": 273.65,
+    "source_cue": "the motivation to act",
+    "animation": 8,
+    "press": 4
+  },
+  {
+    "layout": "pip",
+    "beat": 36,
+    "source_start": 273.65,
+    "source_end": 275.99,
+    "source_cue": "heat dissipation differential curves",
+    "animation": 9,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 37,
+    "source_start": 275.99,
+    "source_end": 277.75,
+    "source_cue": "or the history of your car",
+    "animation": 9,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 38,
+    "source_start": 277.75,
+    "source_end": 283.55,
+    "source_cue": "because that doesn’t give you a reason",
+    "animation": 9,
+    "press": 4
+  },
+  {
+    "layout": "pip",
+    "beat": 39,
+    "source_start": 283.55,
+    "source_end": 296.67,
+    "source_cue": "what’s the problem and why do I need to decide",
+    "animation": 9,
+    "press": 5
+  },
+  {
+    "layout": "graphic",
+    "beat": 41,
+    "source_start": 296.67,
+    "source_end": 304.17,
+    "source_cue": "I use a checklist like this one",
+    "animation": 10,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 42,
+    "source_start": 304.17,
+    "source_end": 314.27,
+    "source_cue": "pick the one that matters most",
+    "animation": 10,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 43,
+    "source_start": 314.27,
+    "source_end": 325.67,
+    "source_cue": "a template sentence like this",
+    "animation": 10,
+    "press": 3
+  },
+  {
+    "layout": "graphic",
+    "beat": 45,
+    "source_start": 325.67,
+    "source_end": 328.25,
+    "source_cue": "So this is what that looks like filled in",
+    "animation": 11,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 46,
+    "source_start": 328.25,
+    "source_end": 331.51,
+    "source_cue": "if you're in HR and new starters keep leaving",
+    "animation": 11,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 47,
+    "source_start": 331.51,
+    "source_end": 345.05,
+    "source_cue": "We've lost eleven of our last forty",
+    "animation": 11,
+    "press": 3
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 345.05,
+    "source_end": 364.66,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "graphic",
+    "beat": 49,
+    "source_start": 364.66,
+    "source_end": 371.52,
+    "source_cue": "loads of these template sentences",
+    "animation": 12,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 50,
+    "source_start": 371.52,
+    "source_end": 387.82,
+    "source_cue": "I'll leave it in the description below",
+    "animation": 12,
+    "press": 2
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 387.82,
+    "source_end": 407.84,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 407.84,
+    "source_end": 425.02,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 425.02,
+    "source_end": 455.64,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 455.64,
+    "source_end": 481.88,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 52,
+    "source_start": 481.88,
+    "source_end": 484.08,
+    "source_cue": "They’d ask ‘What do we need to do’",
+    "animation": 13,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 53,
+    "source_start": 484.08,
+    "source_end": 509.94,
+    "source_cue": "and i’d explain",
+    "animation": 13,
+    "press": 2
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 509.94,
+    "source_end": 517.42,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "graphic",
+    "beat": 58,
+    "source_start": 517.42,
+    "source_end": 518.8,
+    "source_cue": "What I did was",
+    "animation": 14,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 59,
+    "source_start": 518.8,
+    "source_end": 521.56,
+    "source_cue": "I moved the whole model to the appendix",
+    "animation": 14,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 60,
+    "source_start": 521.56,
+    "source_end": 523.0,
+    "source_cue": "cut it to four slides",
+    "animation": 14,
+    "press": 3
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 523.0,
+    "source_end": 547.62,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 547.62,
+    "source_end": 573.02,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 573.02,
+    "source_end": 583.58,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 583.58,
+    "source_end": 614.32,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 62,
+    "source_start": 614.32,
+    "source_end": 615.54,
+    "source_cue": "every component",
+    "animation": 15,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 63,
+    "source_start": 615.54,
+    "source_end": 627.92,
+    "source_cue": "how it all fits together",
+    "animation": 15,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 64,
+    "source_start": 627.92,
+    "source_end": 629.66,
+    "source_cue": "wondering why any of this matters",
+    "animation": 15,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 65,
+    "source_start": 629.66,
+    "source_end": 638.88,
+    "source_cue": "and then they tune out",
+    "animation": 15,
+    "press": 4
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 638.88,
+    "source_end": 656.88,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 67,
+    "source_start": 656.88,
+    "source_end": 683.98,
+    "source_cue": "The motivation was",
+    "animation": 16,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 68,
+    "source_start": 683.98,
+    "source_end": 685.24,
+    "source_cue": "What would fix it?",
+    "animation": 16,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 69,
+    "source_start": 685.24,
+    "source_end": 695.28,
+    "source_cue": "What do we get if we do?",
+    "animation": 16,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 70,
+    "source_start": 695.28,
+    "source_end": 699.32,
+    "source_cue": "Your job is just to answer the questions",
+    "animation": 16,
+    "press": 4
+  },
+  {
+    "layout": "graphic",
+    "beat": 72,
+    "source_start": 699.32,
+    "source_end": 701.76,
+    "source_cue": "So “a new onboarding programme",
+    "animation": 17,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 73,
+    "source_start": 701.76,
+    "source_end": 707.96,
+    "source_cue": "with a buddy system",
+    "animation": 17,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 74,
+    "source_start": 707.96,
+    "source_end": 710.72,
+    "source_cue": "But we need to add the benefit",
+    "animation": 17,
+    "press": 3
+  },
+  {
+    "layout": "graphic",
+    "beat": 75,
+    "source_start": 710.72,
+    "source_end": 721.36,
+    "source_cue": "More new starters stay past probation",
+    "animation": 17,
+    "press": 4
+  },
+  {
+    "layout": "graphic",
+    "beat": 76,
+    "source_start": 721.36,
+    "source_end": 729.66,
+    "source_cue": "you’re thinking strategically at their altitude",
+    "animation": 17,
+    "press": 5
+  },
+  {
+    "layout": "pip",
+    "beat": 78,
+    "source_start": 729.66,
+    "source_end": 731.3,
+    "source_cue": "the survey response rate",
+    "animation": 18,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 79,
+    "source_start": 731.3,
+    "source_end": 732.84,
+    "source_cue": "the exit interview themes",
+    "animation": 18,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 80,
+    "source_start": 732.84,
+    "source_end": 734.76,
+    "source_cue": "the benchmark against three other companies",
+    "animation": 18,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 81,
+    "source_start": 734.76,
+    "source_end": 762.54,
+    "source_cue": "All of that is still in the appendix",
+    "animation": 18,
+    "press": 4
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 762.54,
+    "source_end": 784.4,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 83,
+    "source_start": 784.4,
+    "source_end": 785.26,
+    "source_cue": "the twelve stages",
+    "animation": 19,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 84,
+    "source_start": 785.26,
+    "source_end": 796.26,
+    "source_cue": "the dependencies",
+    "animation": 19,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 86,
+    "source_start": 796.26,
+    "source_end": 813.44,
+    "source_cue": "and it gets parked",
+    "animation": 19,
+    "press": 4
+  },
+  {
+    "layout": "pip",
+    "beat": 88,
+    "source_start": 813.44,
+    "source_end": 816.46,
+    "source_cue": "First is what you need from them and by when",
+    "animation": 20,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 89,
+    "source_start": 816.46,
+    "source_end": 820.66,
+    "source_cue": "Then the second is why it's small",
+    "animation": 20,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 90,
+    "source_start": 820.66,
+    "source_end": 824.82,
+    "source_cue": "what it costs, what you're reusing",
+    "animation": 20,
+    "press": 3
+  },
+  {
+    "layout": "graphic",
+    "beat": 92,
+    "source_start": 824.82,
+    "source_end": 825.07,
+    "source_cue": "The example looks like this",
+    "animation": 21,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 93,
+    "source_start": 825.07,
+    "source_end": 856.57,
+    "source_cue": "(press again straight away to slide across to slide 3)",
+    "animation": 21,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 99,
+    "source_start": 856.57,
+    "source_end": 864.17,
+    "source_cue": "the exact sentences for every situation",
+    "animation": 22,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 100,
+    "source_start": 864.17,
+    "source_end": 868.75,
+    "source_cue": "they're in the download as well",
+    "animation": 22,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 102,
+    "source_start": 868.75,
+    "source_end": 878.57,
+    "source_cue": "when you give them those three, in that order",
+    "animation": 23,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 103,
+    "source_start": 878.57,
+    "source_end": 882.51,
+    "source_cue": "They stop sending you away",
+    "animation": 23,
+    "press": 2
+  },
+  {
+    "layout": "graphic",
+    "beat": 104,
+    "source_start": 882.51,
+    "source_end": 884.61,
+    "source_cue": "start asking your opinion",
+    "animation": 23,
+    "press": 3
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 884.61,
+    "source_end": 896.39,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "pip",
+    "beat": 106,
+    "source_start": 896.39,
+    "source_end": 898.09,
+    "source_cue": "It works for reports",
+    "animation": 24,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 107,
+    "source_start": 898.09,
+    "source_end": 898.53,
+    "source_cue": "emails",
+    "animation": 24,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 108,
+    "source_start": 898.53,
+    "source_end": 906.03,
+    "source_cue": "and the Monday update",
+    "animation": 24,
+    "press": 3
+  },
+  {
+    "layout": "pip",
+    "beat": 109,
+    "source_start": 906.03,
+    "source_end": 936.93,
+    "source_cue": "goes through the first time",
+    "animation": 24,
+    "press": 4
+  },
+  {
+    "layout": "graphic",
+    "beat": 111,
+    "source_start": 936.93,
+    "source_end": 943.01,
+    "source_cue": "check every deck and email against what executives look for",
+    "animation": 25,
+    "press": 1
+  },
+  {
+    "layout": "graphic",
+    "beat": 112,
+    "source_start": 943.01,
+    "source_end": 955.77,
+    "source_cue": "it's free in the description",
+    "animation": 25,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 114,
+    "source_start": 955.77,
+    "source_end": 960.59,
+    "source_cue": "Someone senior cuts in on your first slide",
+    "animation": 26,
+    "press": 1
+  },
+  {
+    "layout": "pip",
+    "beat": 115,
+    "source_start": 960.59,
+    "source_end": 962.61,
+    "source_cue": "you're on the spot",
+    "animation": 26,
+    "press": 2
+  },
+  {
+    "layout": "pip",
+    "beat": 116,
+    "source_start": 962.61,
+    "source_end": 968.15,
+    "source_cue": "thirty seconds of scrambling",
+    "animation": 26,
+    "press": 3
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 968.15,
+    "source_end": 973.57,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  },
+  {
+    "layout": "full",
+    "beat": null,
+    "source_start": 973.57,
+    "source_end": 992.166,
+    "source_cue": null,
+    "animation": null,
+    "press": null
+  }
+]

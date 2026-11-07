@@ -1,0 +1,126 @@
+[
+  {
+    "name": "script-touch-up_SKILL.md",
+    "library_file_id": "libfile_281a913df8248191bc42bde84dad184f",
+    "file_id": "file_000000009f348230b1c5eab068720f9f",
+    "version": 0,
+    "bytes": 104799,
+    "sha256": "3575c3028e8806575180a467ccd70944da5daf0df28159442c8741664e7c8c08",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "audience-communication.md",
+    "library_file_id": "libfile_efafcdd5e1bc8191b70df2455517bc9f",
+    "file_id": "file_00000000e3d481fdbf926fa15476386d",
+    "version": 0,
+    "bytes": 40354,
+    "sha256": "f57a2a2a1234d0f0dd04eb970bbaeaed6069718c6d462222d4491b872f5ff850",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "magnet-index.md",
+    "library_file_id": "libfile_08e7f86645ec81918b2b9ebb48fb37e4",
+    "file_id": "file_00000000f0e881fda07370fa8e052487",
+    "version": 0,
+    "bytes": 1468,
+    "sha256": "c617a5e8e5bc9ab9b898cea7a1a48ec363d9c590e044de02f2058a8cd358f3ec",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "parker-checkout-and-bumps.md",
+    "library_file_id": "libfile_783877c8441c81918c388447a611a55b",
+    "file_id": "file_00000000355881fd8605663dc0560464",
+    "version": 0,
+    "bytes": 16845,
+    "sha256": "f0d12009a8313edb4bffd129cebc24981426993f937c5ff50e2d5fa4fd94afeb",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "curiosity-lines (1).md",
+    "library_file_id": "libfile_8a4ff048437c8191a14e620e3f07cb3b",
+    "file_id": "file_000000009d8881fd933c8076e4b6f996",
+    "version": 0,
+    "bytes": 11184,
+    "sha256": "74340c93d48a89501b7049d3966974c741683fad5d3fe590f4a4e16b39a206e0",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "ed-lawrence-movement-library.md",
+    "library_file_id": "libfile_3776da88224081918c36b3790daef37c",
+    "file_id": "file_00000000cec881fd97cfe13569dc39d5",
+    "version": 0,
+    "bytes": 446495,
+    "sha256": "aed9759a01bc3f36e323021b08626f28822ffe5a1c2b7402d0d0aa8abd732eb8",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false
+  },
+  {
+    "name": "animation-prep-20261015/SKILL.md",
+    "library_file_id": "libfile_e48fcbc331508191b2ed61f5f9d42565",
+    "file_id": "file_000000004dbc81f48ded7c58ac4cd6d1",
+    "version": 0,
+    "bytes": 7865,
+    "sha256": "245c636ff8e5d5f0a80f27936b1145ba7e46aa24ca71949e18bd1845aaaa5ec9",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false,
+    "role": "animation_workflow_reference",
+    "active_adapter": false
+  },
+  {
+    "name": "animation-prep-20261015/2026-10_executive-communication-program_vsl_slides_v01.html",
+    "library_file_id": "libfile_b7d3a942cea08191b6ce34ce85082cc2",
+    "file_id": "file_00000000eec48210b1f349e85bbbe688",
+    "version": 0,
+    "bytes": 195113,
+    "sha256": "ec68a58038a0c4ce7f879d4b880f754b70ead3f6153ce645d8264555afbb317e",
+    "xattrs": [
+      {
+        "name": "user.library-file-version",
+        "value": "0"
+      }
+    ],
+    "native_xattrs_applied": false,
+    "role": "animation_workflow_reference",
+    "active_adapter": false
+  }
+]

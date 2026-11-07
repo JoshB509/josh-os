@@ -1,0 +1,25 @@
+test_explicit_restore_beats_automatic_removal (test_core.EditorTests.test_explicit_restore_beats_automatic_removal) ... ok
+test_identical_rhetorical_repetition_retained (test_core.EditorTests.test_identical_rhetorical_repetition_retained) ... ok
+test_speech_onsets_and_tails (test_core.EditorTests.test_speech_onsets_and_tails) ... ok
+test_strong_prefix_restart_removed (test_core.EditorTests.test_strong_prefix_restart_removed) ... ok
+test_untranscribed_audio_retained (test_core.EditorTests.test_untranscribed_audio_retained) ... ok
+test_original_paths_handles_links_and_ntsc (test_core.ExportTests.test_original_paths_handles_links_and_ntsc) ... ok
+test_unsupported_xml_rate_is_explicit (test_core.ExportTests.test_unsupported_xml_rate_is_explicit) ... ok
+test_measured_positive_and_negative_lag (test_core.SyncTests.test_measured_positive_and_negative_lag) ... ok
+test_arbitrary_rational_map (test_core.TimingTests.test_arbitrary_rational_map) ... ok
+test_negative_offset_clamped (test_core.TimingTests.test_negative_offset_clamped) ... ok
+test_ntsc_no_accumulating_drift (test_core.TimingTests.test_ntsc_no_accumulating_drift) ... ok
+test_overrides (test_core.TimingTests.test_overrides) ... ok
+test_removed_time_never_snaps_cue (test_core.TimingTests.test_removed_time_never_snaps_cue) ... ok
+test_round_overlap_is_merged (test_core.TimingTests.test_round_overlap_is_merged) ... ok
+test_cancellation_before_work (test_workflow.WorkflowTests.test_cancellation_before_work) ... ok
+test_cue_phrase_ambiguity_is_not_guessed (test_workflow.WorkflowTests.test_cue_phrase_ambiguity_is_not_guessed) ... ok
+test_existing_job_is_never_overwritten (test_workflow.WorkflowTests.test_existing_job_is_never_overwritten) ... ok
+test_guard_fails_closed (test_workflow.WorkflowTests.test_guard_fails_closed) ... ok
+test_recording_guard_blocks (test_workflow.WorkflowTests.test_recording_guard_blocks) ... ok
+test_run_lock_released_and_parallel_worker_blocked (test_workflow.WorkflowTests.test_run_lock_released_and_parallel_worker_blocked) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.866s
+
+OK

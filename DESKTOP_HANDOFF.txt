@@ -1,0 +1,125 @@
+DaJoshiResolve: main-chat / desktop handoff
+
+Everything below runs on Josh's connected Windows PC. No public endpoint, remote
+hosting, model API or account credential has been configured. The main chat can
+delegate these explicit local actions when the desktop is available. This is
+not an offline queue or recurring monitor. No edit starts from a status read.
+
+Use the Python interpreter in settings.json with script_bridge.py in the app
+folder. Do not identify projects by their title: titles can be duplicated.
+
+1. list-projects
+   Returns stable project_id, current revision, name and archive state.
+
+2. import-script --request <UTF-8 JSON file>
+   JSON fields:
+   import_id: fresh UUID for this intended import; reuse it for an exact retry
+   project_id: exact UUID returned by list-projects
+   expected_revision: current project revision reviewed before handoff
+   content: complete script text
+   label: optional human-readable version label
+   source: optional provenance label, normally main-chat
+   The import returns version_id, text SHA-256, path and new revision. Imports
+   are drafts. Stale revisions fail without overwriting concurrent work. Exact
+   retries return the original receipt; a reused ID with different data fails.
+
+3. get-script --project-id <UUID>
+   Returns current version, approval status and history. Version text files live
+   under Data/scripts/<project UUID>/versions/<version UUID>.txt. Database project
+   script content is authoritative; do not overwrite version files directly.
+
+4. approve-script --project-id <UUID> --version-id <UUID>
+   --expected-revision <number> --note <record of Josh's explicit approval>
+   Use only after explicit approval of that exact version. Subsequent edits and
+   restores become drafts. Existing imported content is not approved by filename.
+
+5. propose-edit --request <UTF-8 JSON file>
+   Fields: proposal_id, project_id, expected_revision, document_sha256, start,
+   end, original, replacement, optional reason. Offsets are Unicode code points,
+   not UTF-16 indexes. Only the selected text may change. The app displays the
+   proposal with Accept / Reject controls. A changed revision prevents acceptance.
+   resolve-proposal --project-id <UUID> --proposal-id <UUID> [--accept]
+   Without --accept, the proposal is rejected. Accept only when authorised.
+
+6. status [--project-id <UUID>]
+   Returns independent artifact-backed readiness, job state and pending decisions.
+   Missing evidence stays missing. Native Premiere playback remains unverified.
+   This JSON is the tracker interchange contract; no Notion IDs or schema are
+   assumed and no external tracker is updated.
+
+7. register-artifact --project-id <UUID> --kind html|greenscreen --path <file>
+   --expected-revision <number>
+   Records a prepared artifact version. It does not generate greenscreen output.
+   approve-artifact --project-id <UUID> --artifact-id <UUID> --identity <digest>
+   Use only after explicit artifact approval. Changing the file or selected HTML
+   invalidates approval. Small files use full SHA-256. Large media uses a declared
+   size/mtime/edge fingerprint, not a claim of a full-content media hash.
+
+8. start-edit --project-id <UUID> --expected-revision <number>
+   --request-id <fresh UUID>
+   Explicitly launches the existing local editor. Reusing the same request ID
+   does not launch it twice. Project identity/revision, inputs and existing jobs
+   are checked. OBS protection, cancellation and isolated runs stay in force.
+   A pending/failed launch receipt is not a completed edit. Inspect status.
+
+9. attach-run --project-id <UUID> --path <existing app Runs folder>
+   --expected-revision <number>
+   Attaches an existing finished run only after source-path/size/time checks.
+   This registers evidence; it does not run processing or approve its quality.
+
+WRITING CONTEXT
+The six supplied references are preserved byte-for-byte in reference_sources/,
+with Library IDs, versions, byte sizes and SHA-256 hashes in library-provenance.json.
+Windows lacks native setxattr here; provenance is retained in that sidecar.
+Default context excludes private client names/quotes and the twelve full scripts.
+Facts, claims, proof numbers, inventories and offer destinations need verification.
+There is no per-example approval metadata. Do not label every reference approved.
+
+Packaging comes first: selected title, thumbnail concept/reference, curiosity
+question and concrete payoff. A missing brief blocks full-script drafting.
+Nine reviewed on-demand pass contracts are installed in writing_passes/:
+structure, explanation, story, draft, hook, signposts, lead_magnets, connective,
+final_flow. These are local handoff contracts, not executed AI specialists.
+They retain 60 traced rules, exact source ranges, narrow writable scopes and
+selective rerun guidance. No semantic pass checks or model-quality results are
+invented: readiness stays not_assessed until reviewed work exists.
+
+writing-context --project-id <UUID> --expected-revision <number>
+  --start <Unicode code-point offset> --end <offset>
+  --rhetorical-job section_open|transition|re_hook|story|mechanics|close
+  --pass-id <one of the nine IDs> --scope selection|full_script
+
+Returns a saved context_id, current hash/revision, selected prose, neighbouring
+paragraphs, the selected specialist contract, shared rules, exact relevant source
+excerpts, up to three reference segments, and an output contract. It never calls
+a model. Complete-coverage selections are treated as whole-script requests even
+if scope is selection. Whole-script work is blocked without selected packaging
+and a known lead-magnet decision (yes plus confirmed name/function/contents, or
+none). A thumbnail shortlist is not inferred to be an explicit selection.
+Lead-magnet insertions also require availability/destination evidence. A narrow
+non-offer edit does not require a new lead-magnet decision.
+
+For specialist proposals add context_id, pass_id and writable_scope to the
+propose-edit request. writable_scope must exactly match one declared scope from
+that context. The patch must stay inside the exported selection. Preflight
+blockers, stale context and final_flow writes are rejected. Semantic ownership
+of the selected passage still requires human review; the app enforces the byte
+range and declared scope, not an inferred understanding of prose. The separate
+generic scoped-proposal route remains available for explicitly requested manual
+edits. No report or pass marks a script approved.
+
+The output-contract JSON describes specialist reports and ledgers for the main
+chat. Automatic report ingestion, semantic checking and model execution are not
+implemented. Returned context marks all rule checks unassessed/dirty. Accepted
+proposals identify affected-owner/final-flow rechecks without running them.
+
+Package S1's recorded source hash differs from the local supplied file. All 338
+archived paragraphs match the exact local line ranges; both hashes and this
+discrepancy are preserved in writing_passes/integration-provenance.json. Neither
+source was silently rewritten. No per-segment approval is fabricated.
+No pass runs automatically, and no live GPT connection is presented in the app.
+
+WEB ACCESS
+The app remains loopback-only. For now, main chat plus a connected desktop task
+is the away-from-desk control surface. Hosted accounts, tunnels, VPN setup,
+external model credentials and uploads would each require separate decisions.

@@ -1,0 +1,21 @@
+{
+  "package_sha256": "59d30a2335602a88ca571e6d1306b4dd53e136f3345ee5e24b69cfa5903827e1",
+  "raw_s1_sha256": "3575c3028e8806575180a467ccd70944da5daf0df28159442c8741664e7c8c08",
+  "package_s1_sha256": "1dfdded481d4fe06c8ceae27876a623e81965077e774694ddfb99ea2995c0b83",
+  "raw_source_preserved": true,
+  "exact_paragraphs_verified": 338,
+  "hash_discrepancy_preserved": true,
+  "note": "Resolved: the package recorded a reconstructed copy with one terminal LF. The unchanged 104799-byte original ends directly after Tuesday. Adding exactly one LF produces the recorded 104800-byte reconstruction hash. Both hashes retained; all 338 archived paragraphs matched; no source content changed.",
+  "hash_discrepancy_resolved": true,
+  "terminal_newline_verification": {
+    "checked_at": "2026-10-15T05:39:03.245317+00:00",
+    "original_bytes": 104799,
+    "reconstructed_bytes": 104800,
+    "original_ends_with": "Tuesday",
+    "original_has_terminal_lf": false,
+    "transformation": "Append exactly one LF byte (0x0A) to the unchanged original",
+    "transformed_sha256": "1dfdded481d4fe06c8ceae27876a623e81965077e774694ddfb99ea2995c0b83",
+    "matches_package_recorded_sha256": true,
+    "source_file_modified": false
+  }
+}

@@ -1,0 +1,183 @@
+DaJoshiResolve - staged implementation backlog
+16 October 2026. All items below are planned/unimplemented unless explicitly
+described as existing. No implementation was performed by this document update.
+Requirements: APPROVED_EDITING_WORKFLOW.txt and REUSABLE_EDITING_RULES.txt.
+
+BASELINE / KNOWN GAPS
+Existing: local Studio planning UI, project revisions, library links, draggable
+local video dates, keying controls, sync/timing machinery, acoustic cut planner,
+script-assisted repeated-word restart detection and XML validation.
+Previous read-only audit: 21 focused tests passed; a synthetic rephrased false
+start remained in the kept timeline. These tests do not prove the new workflow.
+Current editor.py uses acoustic padding and repeated-prefix rules; it is not the
+requested complete semantic sweep or tiny-crossfade implementation. animation.py
+records at most three seconds of motion then freezes; worker.py consumes supplied
+shots. Progressive checkpoint planning and approval locking are not established.
+Installed native keying fixture evidence is narrow; production listening and
+general renderer/native behavior must not be inferred from it.
+
+P0-A. EXPLICIT PASS AND REVISION MODEL (first implementation)
+Touchpoints: studio/store.py, jobs.py, server.py, web UI; worker.py orchestration.
+Back up SQLite and affected files; add versioned pass_runs, approvals and artifact
+references without rewriting existing project rows or historical runs. Legacy
+runs remain legacy/unapproved; no auto-promotion. Retain existing edit engine path.
+Model Pass 1 draft -> review -> approved; Pass 2 -> clean-cut review -> approved;
+then visuals. Distinguish technical validity, native checks and human signoff.
+Gate Pass 2 on exact Pass 1 approval and visual assembly on exact clean-cut ID.
+Acceptance: reject stale approval, duplicate execution and incompatible resume;
+round-trip/reopen retains states; all existing projects/revisions remain intact.
+
+P0-B. PASS 1 CONTRACT AND REVIEW
+Touchpoints: existing sync/media/keying modules and worker manifests.
+Bind mic sync, source clock/bounds, keying/framing/background/shadow/light and word
+timestamps to one revision. Add review output and exceptions with clear approval.
+Acceptance: short fixtures for known offsets/drift/uncertain sync, hand-safe mask,
+timing unchanged by composite, source-bound timestamps; actual review approval.
+Do not process full production footage before short fixture results are accepted.
+
+P0-C. PASS 2 CUTS, JOINS AND SEMANTIC SWEEP
+Touchpoints: dajoshi/editor.py, script_align.py, timing.py, audio/export path and
+assistant handoff artifact/UI. Preserve deterministic acoustic safeguards.
+Create tightened-cut audio/transcript, then assistant decisions with range space,
+map revision, reason, confidence and evidence. Apply accepted removals, retain
+uncertain cases, rebuild map and produce inspectable before/after join excerpts.
+Design conditional tiny audio fades with safe source handles/envelopes and explicit
+sample precision. Verify preview and XML/native audio render agreement; if the
+interchange path cannot express a fade reliably, report/block that capability or
+use a separately verified reversible audio layer with retained original tracks.
+Acceptance: rephrased/incomplete start is actually absent from map/audio/XML;
+deliberate repeat, legitimate improvisation and uncertain sound remain protected;
+all joins preserve speech/sync/duration; no rejected speech leaks via fade handles.
+Record join listening, clicks/overlap checks and unresolved issues separately.
+
+P0-D. CLEAN-CUT AUTHORITY AND FINAL TRANSCRIPT
+Touchpoints: timing map schema, transcription/remap validation, saved-run importer,
+reedit_saved.py guards, export.py and Studio approvals.
+Freeze immutable retained-span map plus join-envelope metadata and final transcript.
+Validate rational source/output clocks, sample offsets, cumulative duration,
+non-overlapping ordered spans and full retained-word coverage. Boundary changes
+require re-alignment/transcription; retain auditable old/new mapping.
+Add import/reconciliation for an approved manual timeline, rejecting unsupported
+transforms instead of re-running the automatic planner over manual polish.
+Acceptance: downstream visual export cannot alter duration/order; stale maps/cues
+fail; edits create new revision and invalidate only dependent approval/artifacts;
+known manual-cut fixture is reproduced exactly with original media/handles.
+Release gate: short fixtures + an isolated end-to-end clean-cut review pass, native
+join playback and human listening recorded; Josh approves that cut. No assertion
+of flawless auto-editing from unit tests. P1 work follows this clean-cut milestone.
+
+P1. SHOTLIST, EXITS AND RECURRING CHECKPOINTS
+Touchpoints: worker.load_shots, shot schema, animation.py, export.py and preview.
+Introduce versioned shot contract: clean_cut_id, output start/end, purpose, layout,
+entry/exit target, checkpoint family/state, motion/hold and phase metadata.
+Keep adapters for existing source-time CSV/JSON; validate mapping and ambiguities.
+Define overview and completed/current/upcoming states from the actual section
+structure. Add explicit presenter return shots; do not infer endless holds.
+Promote verified isolated-scene/state behavior from one-off repair work into the
+reusable renderer with provenance, rather than copying production timing choices.
+Acceptance: full/PiP/graphic/return sequence; progressive states at transitions;
+no scene leakage; no phase restart across splits; no hidden timing changes;
+motion longer than three seconds supported when specified and verified.
+
+P2. EMAIL INSPIRATION LIBRARY (next app milestone)
+Touchpoints: additive inspiration sources/items tables, existing library UI and
+project-link picker. Preserve source author, subject/date, original text/assets,
+archive identity/hash and links separately from edits/adaptations.
+Import idempotently with manifest/count/hash verification; sanitize display HTML,
+disable tracking/external asset fetches. Search author/topic/content and link to
+new/existing email drafts. Show source and adaptation clearly side by side.
+Pending archives: Jon Brosio (reported 412 examples) and Ed Lawrence (reported 84
+selected newsletters). Counts remain unverified locally until authorized import.
+Destination: References/EmailExamples/JonBrosio and /EdLawrence.
+Archive-save action remains blocked pending DIRECT user approval in this chat;
+do not retry based on delegated/quoted authorization after prior auto-review denial.
+Editorial follow-up: identify the exact first Ed example and prior draft, then
+rewrite closer to its actual rhetorical sequence, specificity and conversational
+hesitation (Josh referenced "so I wouldn't show you this"). Do not fabricate the
+source, claims or a generic template from the quotation alone. Keep provenance.
+Acceptance: duplicate import adds nothing; attribution/originals unchanged;
+source-linked draft survives reload; zero external tracking requests.
+
+P3. SHARED LOCAL CALENDAR - VIDEO AND EMAIL LANES
+Detailed data/state/approval contract: CONTENT_CALENDAR_INTEGRATIONS.txt.
+Extend current calendar with distinct, labelled video/email lanes and filters,
+unscheduled queue, drag dates, undo and quick picker. Preserve video dates/statuses.
+Use separate content type and planned date/time/timezone metadata; all-day dates
+remain dates. Show local plan, remote scheduled and sent/published as distinct states.
+Email cards open editable subject/preview/body drafts, explicit recipient audience,
+Linklr link table, approval snapshot and remote status/verification. Save versioned
+draft revisions; approval binds exact copy/audience/time/link payload and action
+intent. Any material edit invalidates approval. Existing remote schedules are
+not silently canceled or updated: flag divergence and require explicit resolution.
+Dragging is local planning only, even for remotely linked items; display pending
+differences instead of silently rescheduling. Require later explicit remote action.
+Acceptance: both lanes persist/reload, stale-save conflicts handled, DST/date
+boundaries tested, archived/completed filtering, no external write calls on drag.
+
+P4. KIT INTEGRATION - SETUP APPROVAL REQUIRED, THEN SEPARATE SCHEDULING WORK
+Read-only inspection 16 October 2026: no exposed Kit/ConvertKit connector tool;
+plugin-directory search unavailable, so global plugin eligibility is unknown.
+Targeted app source scan found no api.kit.com/api.convertkit.com/ConvertKit or
+Kit-integration implementation. No account or stored credentials inspected.
+Official Kit API V4 supports broadcasts, drafts and scheduled sends; account plan
+eligibility is required. Public docs do not establish Josh's connection/eligibility.
+Sources checked:
+https://developers.kit.com/api-reference/overview
+https://developers.kit.com/api-reference/broadcasts/create-a-broadcast
+The latter documents send_at=null for draft, a timestamp for scheduled email,
+public=true for web publication, and omitted targeting defaulting to all subscribers.
+
+After explicit setup approval only: select eligible supported connector or API
+authentication, verify correct account read-only, agree access/storage/revocation
+scope, and store secrets outside browser state/logs/project exports. No account
+upgrade, purchase or persistent connection is authorized by this backlog.
+Build a disabled-by-default adapter with mock/sandbox tests first. Local draft
+creation must remain local until an explicit remote draft action is approved.
+Later scheduling UX must show exact content revision, verified sender/recipients
+or audience segment, timezone/send time and web visibility. Connection approval
+does not authorize sending/scheduling. Do not silently default audience to all.
+Approval may explicitly mean "approve and schedule" only when the reviewed
+snapshot includes that intent and the connected account/action is authorized.
+Copy-only approval cannot trigger remote work. Revalidate immediately before write;
+prevent stale snapshot dispatch. See the detailed contract for manual fallback.
+Use duplicate prevention and reconciliation before retrying ambiguous outcomes;
+store remote ID/revision/status separately from local planning. Poll read-only
+only as authorized; no webhook/subscription setup implied. Add clear cancellation
+and error handling. Never mark scheduled before remote confirmation.
+Acceptance: mocked auth/expiry/rate-limit/timeout/conflict/duplicate cases, no send
+on reconnect/save/drag, and account/read-only verification after setup approval.
+No real email or video send/schedule/publish is part of this task.
+
+P4-L. LINKLR TRACKED LINKS + MANUAL DELIVERY FALLBACK
+Build a local link manifest for each email/video content revision before approval.
+Use a verified Linklr creation API only if its real schema becomes available and
+the action is authorized. Otherwise require manual Linklr-generated links through
+a verified page. Do not synthesize tracking URL formats or claim automatic support.
+Read-only Linklr get_data_status and get_acquisition_by_source(days=1) succeeded
+2026-10-16 around 03:10 UTC. Available tools are reporting-only: no create-link,
+audience management or Parker enrollment action exposed. No matching integration
+was found in the targeted DaJoshiResolve source scan. Reporting support is not a
+link creation contract. Exact observed fields and limitations are documented in
+CONTENT_CALENDAR_INTEGRATIONS.txt. Linklr owns Parker eligibility and enrollment.
+Sequence: supported schema discovery -> mock adapter/manual action UI -> generated
+link verification -> immutable link manifest -> approval -> authorized delivery.
+Acceptance: changing destination/attribution/URL invalidates approval; missing
+links block ready-to-schedule; duplicate retries do not create duplicate links;
+manual page opens do not claim success; unverified URLs remain visibly unresolved;
+no subscriber/tag/sequence enrollment, no settings or account changes.
+
+DOCUMENT-ONLY UPDATE VERIFICATION
+Back up replaced workflow/guide, preserve old requirement history, hash new docs
+after deployment and verify code file hashes unchanged. Do not run media/build or
+touch production projects for a documentation-only change. This is a staged plan,
+not evidence that any backlog item is complete.
+
+EXACT CHAT FOR ARCHIVE-SAVE APPROVAL
+Title: Modernize DaJoshi planning interface
+Task ID: 01a140b8-a534-7711-8515-80437b84d0fe
+Suggested direct instruction (archive save only):
+"I approve downloading my Jon Brosio and Ed Lawrence newsletter archives from
+my ChatGPT Library and saving/extracting them into
+E:\Videos\DaJoshiResolve\References\EmailExamples\JonBrosio and
+E:\Videos\DaJoshiResolve\References\EmailExamples\EdLawrence.
+Preserve originals and attribution; do not send or schedule anything."

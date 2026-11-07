@@ -1,0 +1,43 @@
+DaJoshiResolve - reusable editorial rules
+16 October 2026; requirements to implement and verify, not claims of capability.
+Authority: APPROVED_EDITING_WORKFLOW.txt and Josh's
+Sentinel_a11fc6bb26ac819197fe7b56c96d91a8 feedback.
+
+R01. Separate Pass 1, Pass 1 approval, Pass 2 and clean-cut approval. Never infer
+     a new pass approval from an older fixture or successful job exit code.
+R02. Supplied clean mic is the intended speech source. Measure sync against the
+     actual video, verify drift and protect source bounds. Keying/background/
+     shadow/subtle moving light change appearance, never the source clock.
+R03. Accurate words need evidence: retain source coordinates, confidence and
+     validation. A transcript alone is not proof of a complete or clean cut.
+R04. Cut silence for natural pacing. Protect initial consonants, endings,
+     breaths and intentional emphasis. Resolve joins acoustically and by listening.
+R05. Tiny audio crossfades are conditional. Choose safe handles, duration and
+     curve per join; avoid doubled words, phase artifacts and rejected speech.
+     Keep video joins straight unless a specific visual transition is designed.
+     Do not shorten output duration through an implicit acrossfade operation.
+R06. Sweep the tightened transcript AND audio semantically. Remove incomplete
+     rephrased starts even when token overlap is low. Preserve deliberate repeats
+     and valid improvisation. Record uncertain cases instead of guessing.
+R07. A rejected range must disappear from retained spans, actual audio/video and
+     exported XML. Verify absence; recording a decision/flag is insufficient.
+R08. Rebuild the map after removals. Remap only words safely inside kept spans;
+     retranscribe/re-align affected words/joins or the full cut when necessary.
+     Preserve provenance; fail unresolved bounds, ordering and coverage errors.
+R09. Approved kept timeline is the single authority. All shots and cues bind to
+     its exact revision. Changes to its timing require a new reviewable revision;
+     visuals cannot silently re-time it. Import manual approved cuts faithfully.
+R10. Every graphic/PiP shot declares entry and exit. Once its purpose/read time
+     ends, return to presenter unless another explicit shot follows. Long waits
+     for the next animation beat are not a reason to remain on a graphic.
+R11. Multi-part videos use recurring progressive checkpoints at transitions:
+     completed/current/upcoming states, consistent labels and visual layout.
+     Render the correct cumulative state directly, without replaying old reveals.
+R12. Isolate scenes, settle incoming state and preserve intended animation phase
+     across splits. Motion duration is explicit; three seconds is not universal.
+R13. Keep editable graphics, reversible presenter layouts, originals and recovery
+     handles. Handle availability does not authorize indefinite graphic holds.
+R14. Test data integrity, native playback, listening and editorial approval
+     separately. A valid XML or passing automated test is not editorial signoff.
+R15. Work in new isolated runs with backups. Never overwrite production manual
+     cuts, disturb active Premiere/OBS, or publish as part of local planning.

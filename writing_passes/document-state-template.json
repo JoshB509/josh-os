@@ -1,0 +1,47 @@
+{
+  "document_id": null,
+  "version": null,
+  "scope": null,
+  "brief": {
+    "central_point": null,
+    "format": null,
+    "length": null,
+    "title": null,
+    "thumbnail_promise": null
+  },
+  "lead_magnet": {
+    "decision": "unknown",
+    "name": null,
+    "contents": null,
+    "result": null,
+    "free_status": null,
+    "destination": null,
+    "evidence_ids": []
+  },
+  "sections": [],
+  "ledgers": {
+    "claims": [],
+    "promises": [],
+    "introduced_entities": [],
+    "mechanics_turns": [],
+    "movement": [],
+    "signposts": [],
+    "parker_lines": [],
+    "client_signals": [],
+    "story_beats": [],
+    "callbacks": [],
+    "open_loops": [],
+    "magnet_mentions": [],
+    "dirty_rules": []
+  },
+  "passes": {},
+  "conflicts": [],
+  "packaging": {
+    "status": "unknown",
+    "selected_title": null,
+    "selected_thumbnail_concept": null,
+    "shared_curiosity_question": null,
+    "promised_viewer_payoff": null,
+    "approval_source": null
+  }
+}
