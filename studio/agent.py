@@ -264,6 +264,11 @@ class Agents:
             f'- Reference files the skills mention live in ./{REFERENCES}/ (for example ed-lawrence-movement-library.md,',
             '  curiosity lines, audience-communication.md, magnet-index.md, parker-checkout-and-bumps.md). Read them when you need them.',
             '- Never claim a client result, number or fact you cannot see in the material. Put it in [square brackets] for Josh to check.',
+            '- Most of Josh\'s feedback comes in chat. When he asks you to change your work ("make the hook punchier",',
+            '  "cut that line", "less salesy"), make the change, then work out the preference behind it. If it would apply to',
+            '  future work, save it in lessons as a rule. If you can\'t tell whether it was a one-off, ask in one short line, like',
+            '  "Want me to do that every time, or just here?" or "Was that to keep it shorter?". Save the rule once he answers.',
+            '- When a rule is clear, save it in lessons as one short instruction, with his words as evidence, and tell him you noted it.',
         ]
         persona = personality(self.root, agent)
         if persona:
@@ -320,6 +325,10 @@ class Agents:
             '  and match it from now on. If the reason is clear, say in a line what you will do next time. If it is not, ask about it',
             '  in plain words, like "Why did you change this line? Was it to sound less salesy?". Never ask about typo fixes.',
             '  Put the ids of edits you covered in edits_noted.',
+            '- Most of Josh\'s feedback comes in chat. When he asks you to change your work ("make the hook punchier",',
+            '  "cut that line", "less salesy"), make the change, then work out the preference behind it. If it would apply to',
+            '  future work, save it in lessons as a rule. If you can\'t tell whether it was a one-off, ask in one short line, like',
+            '  "Want me to do that every time, or just here?" or "Was that to keep it shorter?". Save the rule once he answers.',
             '- When a rule is clear, from an edit or from what Josh tells you, save it in lessons as one short instruction you can',
             '  follow next time, with the edit or his words as evidence. Tell him you have noted it. Do not save the same lesson twice.',
             '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
@@ -482,14 +491,21 @@ class Agents:
             raise ValueError(f"{agent['name']} is still working on your last message.")
         try:
             history = self.thread(project_id, agent_id)
-            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:30]
-            reply, replacement = self.run(self.system_prompt(agent, learnings), self.user_prompt(project, data, history))
+            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:80]
+            schema = json.loads(json.dumps(SCHEMA))
+            schema['properties']['lessons'] = LEARN_PROPS['lessons']
+            reply, answer = self.run(self.system_prompt(agent, learnings), self.user_prompt(project, data, history), schema, full=True)
+            answer = answer if isinstance(answer, dict) else {}
+            replacement = answer.get('replacement') if isinstance(answer.get('replacement'), str) else None
+            learned = self.keep_lessons(agent, answer.get('lessons'))
         finally:
             lock.release()
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now(),
                     selection={'start': sel['start'], 'end': sel['end'], 'text': sel['text']} if sel else None)
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now(), replacement=replacement,
                       selection=mine['selection'])
+        if learned:
+            theirs['learned'] = learned
         return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
 
     def focus(self, context, carousels, inspo=None):
@@ -553,7 +569,7 @@ class Agents:
             raise ValueError(f"{agent['name']} is still working on your last message.")
         try:
             history = self.thread(DESK, agent_id)
-            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:30]
+            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
             keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
             parts = [self.desk_snapshot(agent_id, carousels, inspo if keeps else None)]
@@ -613,9 +629,12 @@ class Agents:
         if not isinstance(lessons, list):
             return kept
         home = {'sam': 'carousels', 'laia': 'email', 'tariq': 'editing', 'saskia': 'courses'}.get(agent['id'], '')
+        norm = lambda t: ' '.join(str(t).lower().split()).rstrip('.')
+        seen = {norm(l['lesson']) for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent['id'])}
         for l in lessons[:5]:
-            if not isinstance(l, dict) or not str(l.get('lesson', '')).strip():
+            if not isinstance(l, dict) or not str(l.get('lesson', '')).strip() or norm(l['lesson']) in seen:
                 continue
+            seen.add(norm(l['lesson']))
             flow = l.get('workflow') if l.get('workflow') in ('youtube', 'carousels', 'editing', 'email', 'courses') else home
             try:
                 item = self.team.learn(dict(agent_id=agent['id'], workflow=flow, lesson=str(l['lesson'])[:2000],

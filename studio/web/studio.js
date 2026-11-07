@@ -54,7 +54,7 @@ function samPanel(){
 function samMessage(m){
   if(m.role==='josh')return `<div class="sam-msg josh">${m.selection?`<q>${esc(m.selection.text.slice(0,120))}${m.selection.text.length>120?'…':''}</q>`:''}<p>${esc(m.text)}</p></div>`;
   return `<div class="sam-msg agent"><p>${esc(m.text)}</p>${m.replacement!=null?`<div class="sam-suggestion"><small>${m.selection?'Suggested rewrite':'Suggested script'}</small><pre>${esc(m.replacement)}</pre>
-    <div class="row"><button class="small primary" data-sam-apply="${esc(m.id)}">${m.selection?'Replace selection':'Replace whole script'}</button><button class="small subtle" data-sam-copy="${esc(m.id)}">Copy</button></div></div>`:''}</div>`;
+    <div class="row"><button class="small primary" data-sam-apply="${esc(m.id)}">${m.selection?'Replace selection':'Replace whole script'}</button><button class="small subtle" data-sam-copy="${esc(m.id)}">Copy</button></div></div>`:''}${m.learned?.length?m.learned.map(l=>`<div class="room-learned">Added to lessons: ${esc(l)}</div>`).join(''):''}</div>`;
 }
 function samRender(){const box=$('#sam-panel');if(!box)return;box.innerHTML=samPanel();const t=$('#sam-thread');if(t)t.scrollTop=t.scrollHeight}
 async function samLoad(){
