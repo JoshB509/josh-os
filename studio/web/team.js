@@ -1,8 +1,10 @@
 'use strict';
 // Team page: the named agents, their profiles and the shared lessons-learned log.
-// Profiles autosave. The agents do not run yet, so the chat box is a placeholder.
+// Each member has their own page with a chat (run through Claude Code on this PC) and what they're working on.
+// Profiles autosave.
 const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email'};
 let team=null,teamOpen=null,teamTimer=null,teamSaving=null;
+let roomThread={},roomBusy=null,roomStatus=null,roomLoaded={};
 
 // A sub-page under one of the views: hides the big heading and shows "Parent / Name" crumbs.
 function subPage(parent,name,back){
@@ -68,9 +70,15 @@ function renderTeamProfile(){
       <label class="photo-pick" title="Change photo">${teamAvatar(a,'xxl')}<input type="file" accept="image/png,image/jpeg,image/webp" data-team-photo hidden><span>Change photo</span></label>
       <div class="profile-name"><input class="name" data-team-field="name" value="${esc(a.name)}" maxlength="60" aria-label="Name">
         <input class="role-input" data-team-field="role" value="${esc(a.role)}" maxlength="120" aria-label="Role">
-        ${TEAM_HOME[a.id]?`<button class="primary" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk</button>`:''}</div>
+        ${TEAM_HOME[a.id]?`<button class="subtle" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk</button>`:''}</div>
     </header>
-    ${typeof agentDesk==='function'?agentDesk(a.id,{head:false}):''}
+    <div class="room">
+      <section class="room-chat" id="room-chat" aria-label="Chat with ${esc(a.name)}">${roomChat(a)}</section>
+      <div class="room-work">
+        ${typeof agentDesk==='function'?agentDesk(a.id,{head:false}):''}
+        ${roomWork(a)}
+      </div>
+    </div>
     <details class="how-works"><summary><span>How ${esc(a.name)} works</span><small id="team-save" class="save-note">Saved</small></summary>
       <div class="profile-grid">
         <section>
@@ -93,6 +101,62 @@ function renderTeamProfile(){
       <ul class="learning-list">${mine.length?mine.map(teamLearning).join(''):'<li class="hint">Nothing yet.</li>'}</ul>
     </section>
   </div>`;
+  const t=$('#room-thread');if(t)t.scrollTop=t.scrollHeight;
+  if(!roomLoaded[a.id])roomLoad(a.id);
+}
+
+// The room: chat with the team member, and everything they're working on.
+function roomChat(a){
+  const msgs=roomThread[a.id]||[],busy=roomBusy===a.id,off=roomStatus&&!roomStatus.available,later=a.status==='Coming later';
+  const quick=a.id==='sam'?['What are you working on?','How far ahead is the carousel queue?','What is working best right now?','What should we test next?']:['What are you working on?','What do you need from me?'];
+  return `<header class="room-head">${teamAvatar(a,'sm')}<div><b>Chat with ${esc(a.name)}</b><small>${later?'Starts later':off?'Offline on this PC':busy?'Thinking…':'Reads your files and training, but can’t change anything from here'}</small></div></header>
+    <div class="room-thread" id="room-thread">${!roomLoaded[a.id]?deskSkeletonSafe():msgs.length?msgs.map(roomMessage).join(''):`<div class="sam-empty"><p>Ask ${esc(a.name)} what's in progress, talk through ideas, or give direction.</p></div>`}
+      ${busy?'<div class="sam-msg agent typing"><span></span><span></span><span></span></div>':''}</div>
+    ${off?`<p class="sam-off">${esc(roomStatus.help)}</p>`:''}
+    <div class="room-compose">
+      <div class="sam-quick">${quick.map(q=>`<button class="chip-btn" data-room-quick="${esc(q)}" ${off||busy||later?'disabled':''}>${esc(q)}</button>`).join('')}</div>
+      <div class="sam-input"><textarea id="room-input" rows="2" placeholder="Message ${esc(a.name)}" ${off||later?'disabled':''}></textarea><button class="primary" data-room-send ${off||busy||later?'disabled':''} aria-label="Send to ${esc(a.name)}">Send</button></div>
+    </div>`;
+}
+function deskSkeletonSafe(){return typeof deskSkeleton==='function'?deskSkeleton(2):''}
+function roomMessage(m){
+  return `<div class="sam-msg ${m.role==='josh'?'josh':'agent'}"><p>${esc(m.text)}</p></div>`;
+}
+function roomWork(a){
+  const today=new Date().toISOString().slice(0,10);
+  const cards=(typeof deskCarouselRows==='function'?deskCarouselRows():[]).filter(c=>c.owner===a.id);
+  const upcoming=cards.filter(c=>c.stage!=='Posted').sort((x,y)=>(x.post_date||'9999').localeCompare(y.post_date||'9999'));
+  const posted=cards.filter(c=>c.stage==='Posted').sort((x,y)=>(y.post_date||'').localeCompare(x.post_date||'')).slice(0,6);
+  const ahead=(()=>{let d=new Date(),n=0;for(;n<60;n++){const k=d.toISOString().slice(0,10);if(!cards.some(c=>c.post_date===k&&['Scheduled','Posted'].includes(c.stage)))break;d.setDate(d.getDate()+1)}return n})();
+  const day=k=>k?new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}):'No date';
+  const row=c=>`<button class="room-row" data-desk-act="carousel:${esc(c.id)}"><span class="room-date">${esc(day(c.post_date))}</span><span class="room-title">${esc(c.title)}</span><span class="room-stage">${esc(c.stage)}</span></button>`;
+  const flows=a.workflows||[];
+  let html='';
+  if(flows.includes('carousels')){
+    html+=`<section class="room-list"><header><h3>Carousel queue</h3><span class="room-meta">${ahead} day${ahead===1?'':'s'} ahead · aim 10</span></header>
+      ${upcoming.length?upcoming.map(row).join(''):'<p class="hint">Nothing in the queue yet.</p>'}
+      ${posted.length?`<h4>Recently posted</h4>${posted.map(row).join('')}`:''}</section>`;
+  }
+  if(flows.includes('youtube')&&typeof state!=='undefined'){
+    const vids=state.projects.filter(p=>!p.archived&&p.stage!=='Published').sort((x,y)=>(x.publish_date||'9999').localeCompare(y.publish_date||'9999')).slice(0,12);
+    html+=`<section class="room-list"><header><h3>Videos</h3><span class="room-meta">Mon, Wed and Sat</span></header>
+      ${vids.length?vids.map(p=>`<button class="room-row" data-desk-act="project:${esc(p.id)}"><span class="room-date">${esc(day(p.publish_date))}</span><span class="room-title">${esc(p.chosen_title||p.name)}</span><span class="room-stage">${esc(p.stage)}</span></button>`).join(''):'<p class="hint">No videos in production.</p>'}</section>`;
+  }
+  return html;
+}
+function roomRender(){const a=teamAgent(teamOpen),box=$('#room-chat');if(!a||!box)return;box.innerHTML=roomChat(a);const t=$('#room-thread');if(t)t.scrollTop=t.scrollHeight}
+async function roomLoad(id){
+  try{
+    const [thread,status]=await Promise.all([api(`/api/agents/thread?project=desk&agent=${encodeURIComponent(id)}`),roomStatus?Promise.resolve(roomStatus):api('/api/agents/status')]);
+    roomThread[id]=thread;roomStatus=status;roomLoaded[id]=true;if(teamOpen===id)roomRender();
+  }catch(e){roomLoaded[id]=true;toast(e.message,true);if(teamOpen===id)roomRender()}
+}
+async function roomSend(message){
+  const a=teamAgent(teamOpen);message=(message||'').trim();if(!a||!message||roomBusy)return;
+  const id=a.id;roomThread[id]=[...(roomThread[id]||[]),{id:'pending',role:'josh',text:message}];roomBusy=id;roomRender();
+  try{const r=await api('/api/agents/chat',{agent_id:id,message});roomThread[id]=r.messages}
+  catch(e){roomThread[id]=(roomThread[id]||[]).filter(m=>m.id!=='pending');toast(e.message,true)}
+  finally{roomBusy=null;if(teamOpen===id)roomRender()}
 }
 
 function teamNote(text){const n=$('#team-save');if(n)n.textContent=text}
@@ -135,8 +199,11 @@ document.addEventListener('click',async e=>{
   if(view!=='team')return;
   const open=e.target.closest('[data-team-open]');if(open){teamOpen=open.dataset.teamOpen;render();scrollTo(0,0);return}
   if(e.target.closest('[data-team-back]')){await teamSaving;teamOpen=null;render();return}
+  const q=e.target.closest('[data-room-quick]');if(q){roomSend(q.dataset.roomQuick);return}
+  if(e.target.closest('[data-room-send]')){const i=$('#room-input');const v=i.value;i.value='';roomSend(v);return}
   const forget=e.target.closest('[data-team-forget]');
   if(forget&&confirm('Remove this lesson?')){try{await api('/api/team/learnings/'+forget.dataset.teamForget,{delete:true});team.learnings=team.learnings.filter(l=>l.id!==forget.dataset.teamForget);render()}catch(err){toast(err.message,true)}}
 });
+document.addEventListener('keydown',e=>{if(e.target.id==='room-input'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();const v=e.target.value;e.target.value='';roomSend(v)}});
 document.addEventListener('keydown',e=>{const c=e.target.closest?.('[data-team-open]');if(c&&e.key==='Enter'){teamOpen=c.dataset.teamOpen;render()}});
 const teamBaseRender=render;render=function(){if(!current&&view==='team')return renderTeam();return teamBaseRender()};

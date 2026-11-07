@@ -35,6 +35,22 @@ SCHEMA = {
     'required': ['reply', 'replacement'],
 }
 ALLOWED_TOOLS = 'Read,Grep,Glob'
+DESK_SCHEMA = {
+    'type': 'object',
+    'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
+    'required': ['reply'],
+}
+DESK = 'desk'  # thread key for the general chat on a team member's page
+
+# Training files each team member works from. The folder can be moved with "training_dir" in settings.json.
+TRAINING_DIR = r'E:\CareerOS\_Agent-Training'
+TRAINING = {
+    'sam': {
+        'embed': ['README.md', '01_house-style.md', '07_carousel-queue.md', '06_tracking-and-learning.md'],
+        'read': ['02_carousels_lead-magnet-engine.md', '03_carousels_value-posts.md', '04_youtube-scheduling.md', '05_thumbnails.md'],
+        'dirs': ['03_Community_Posts', '12_YouTube'],  # folders next to the training folder Sam may read
+    },
+}
 
 
 class AgentError(RuntimeError):
@@ -52,6 +68,10 @@ def find_claude(root):
     home = Path(os.environ.get('USERPROFILE') or os.environ.get('HOME') or '~').expanduser()
     candidates += [home / '.local' / 'bin' / 'claude.exe', home / '.local' / 'bin' / 'claude',
                    Path(os.environ.get('APPDATA', '')) / 'npm' / 'claude.cmd']
+    # The copy bundled with the Claude desktop app, newest version first.
+    data = Path(os.environ.get('LOCALAPPDATA', '')) / 'Claude-Data'
+    if data.is_dir():
+        candidates += sorted(data.glob('*/claude-code/*/*/claude.exe'), key=lambda f: f.stat().st_mtime, reverse=True)
     for c in candidates:
         if c and Path(c).is_file():
             return str(c)
@@ -86,6 +106,30 @@ class Agents:
                     help='' if path else 'Install Claude Code on this PC and sign in, or set "claude" in settings.json to its full path.')
 
     # Building the prompt ----------------------------------------------------
+    def training_dir(self):
+        try:
+            configured = json.loads((self.root / 'settings.json').read_text(encoding='utf-8-sig')).get('training_dir')
+        except (OSError, ValueError):
+            configured = None
+        return Path(configured or TRAINING_DIR)
+
+    def training(self, agent_id):
+        """The text of the team member's training files, and the folders they may read."""
+        spec = TRAINING.get(agent_id)
+        if not spec:
+            return '', []
+        folder = self.training_dir()
+        parts = []
+        for name in spec['embed']:
+            f = folder / name
+            if f.is_file():
+                parts += ['', f'=== Training: {name} ===', f.read_text(encoding='utf-8')]
+        extra = [n for n in spec['read'] if (folder / n).is_file()]
+        if extra:
+            parts += ['', f'More training files in {folder} (read them when the question needs them): ' + ', '.join(extra)]
+        dirs = [str(folder)] + [str(folder.parent / d) for d in spec['dirs'] if (folder.parent / d).is_dir()]
+        return '\n'.join(parts), [d for d in dirs if Path(d).is_dir()]
+
     def skill_text(self, name):
         file = self.root / '.claude' / 'skills' / name / 'SKILL.md'
         return file.read_text(encoding='utf-8') if file.is_file() else ''
@@ -113,6 +157,51 @@ class Agents:
             text = self.skill_text(name)
             if text:
                 lines += ['', f'=== Skill: {name} ===', text]
+        style = self.training_dir() / '01_house-style.md'
+        if agent['id'] in TRAINING and style.is_file():
+            lines += ['', '=== Training: 01_house-style.md ===', style.read_text(encoding='utf-8')]
+        return '\n'.join(lines)
+
+    def desk_system_prompt(self, agent, learnings):
+        training, _ = self.training(agent['id'])
+        lines = [
+            f"You are {agent['name']}, {agent['role']} on Josh's team at CareerOS. You work inside Josh OS, his studio app.",
+            f"Your mission: {agent['mission']}",
+            f"Your personality: {agent['personality']}",
+            'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
+            f"Your check-in: {agent['check_in']}",
+            '',
+            'This is the chat on your own page in Josh OS. Josh comes here to ask what you are working on, talk through plans and ideas,',
+            'ask about results, and give you direction.',
+            '- Talk like a sharp colleague. Keep replies short and plain, lead with your answer or recommendation.',
+            '- Use the snapshot of your work below and your training. Read files when you need detail. Never make up a number,',
+            '  a post or a result you cannot see. Say what you would need to check instead.',
+            '- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
+            '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.',
+            '- When Josh gives you a rule or a preference worth keeping, say you will add it to your lessons and suggest the exact wording.',
+            '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
+            '  No "it isn\'t X, it\'s Y" framing, no colons that split a sentence, no fragment lists, and don\'t say why something matters.',
+        ]
+        if learnings:
+            lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
+        if training:
+            lines += ['', 'Your training follows. It is Josh\'s own process and it overrides general habits.', training]
+        return '\n'.join(lines)
+
+    def desk_snapshot(self, agent_id, carousels):
+        from datetime import date
+        lines = [f'Today is {date.today().isoformat()}.', '', 'Your carousels in Josh OS (newest first):']
+        mine = [c for c in carousels if c.get('owner') == agent_id and not c.get('archived')][:40]
+        if mine:
+            for c in mine:
+                note = ' '.join((c.get('notes') or '').split())[:300]
+                lines.append(f"- {c.get('post_date') or 'no date'} | {c['stage']} | {c['title']}" + (f" | {note}" if note else ''))
+        else:
+            lines.append('- none yet')
+        lines += ['', 'Videos in Josh OS:']
+        videos = [p for p in self.store.projects() if not p.get('archived')]
+        for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
+            lines.append(f"- {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']}")
         return '\n'.join(lines)
 
     def user_prompt(self, project, data, history):
@@ -138,7 +227,7 @@ class Agents:
         return '\n'.join(parts)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt):
+    def run(self, system, prompt, schema=SCHEMA, dirs=()):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -149,9 +238,11 @@ class Agents:
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
                    '--tools', ALLOWED_TOOLS, '--allowedTools', ALLOWED_TOOLS]
+            for d in dirs:
+                cmd += ['--add-dir', d]
             if not wrapper:
                 # npm's .cmd wrapper mangles quoted JSON arguments on Windows, so the schema goes in the prompt there instead.
-                cmd += ['--json-schema', json.dumps(SCHEMA)]
+                cmd += ['--json-schema', json.dumps(schema)]
             else:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
@@ -165,6 +256,8 @@ class Agents:
         except ValueError:
             detail = (out.stderr or out.stdout or '').strip().splitlines()[-1:] or ['no output']
             raise AgentError('Claude Code didn\'t answer properly: ' + detail[0][:300]) from None
+        if result.get('is_error') and 'login' in str(result.get('result') or '').lower():
+            raise AgentError("Claude Code on this PC isn't signed in yet, so sign in once and try again.")
         if result.get('is_error'):
             raise AgentError('Claude Code reported a problem: ' + str(result.get('result') or result.get('subtype'))[:300])
         answer = result.get('structured_output')
@@ -213,3 +306,34 @@ class Agents:
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now(), replacement=replacement,
                       selection=mine['selection'])
         return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
+
+    def chat(self, data, carousels):
+        """The general chat on a team member's own page."""
+        if not isinstance(data, dict):
+            raise ValueError('Invalid request.')
+        agent_id = data.get('agent_id', '')
+        message = str(data.get('message', '')).strip()
+        if not message or len(message) > 4000:
+            raise ValueError('Write a message, up to 4,000 characters.')
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
+        if not agent:
+            raise KeyError('Team member not found.')
+        lock = self.locks.setdefault((agent_id, DESK), threading.Lock())
+        if not lock.acquire(blocking=False):
+            raise ValueError(f"{agent['name']} is still working on your last message.")
+        try:
+            history = self.thread(DESK, agent_id)
+            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:30]
+            _, dirs = self.training(agent_id)
+            parts = [self.desk_snapshot(agent_id, carousels)]
+            if history:
+                parts += ['', 'Earlier in this conversation:']
+                for m in history[-12:]:
+                    parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
+            parts += ['', f'Josh: {message}']
+            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs)
+        finally:
+            lock.release()
+        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
+        theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
+        return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)

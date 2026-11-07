@@ -282,6 +282,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/tasks' and method=='POST':return self.send(s.tasks.create(data))
             if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
             if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
+            if path=='/api/agents/chat' and method=='POST':
+                try:return self.send(s.agents.chat(data,s.carousels.all()['items']))
+                except AgentError as e:return self.send({'error':str(e)},503)
             if path=='/api/agents/ask' and method=='POST':
                 try:return self.send(s.agents.ask(data))
                 except AgentError as e:return self.send({'error':str(e)},503)
