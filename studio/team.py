@@ -6,6 +6,7 @@ agent runtime added later reads its instructions from here.
 """
 import json
 import uuid
+from pathlib import Path
 from .store import Conflict, now
 
 WORKFLOWS = {
@@ -21,10 +22,13 @@ STATUSES = ['Draft', 'Active', 'Paused', 'Coming later']
 PROFILE_FIELDS = {'name', 'role', 'color', 'photo', 'mission', 'personality', 'responsibilities',
                   'workflows', 'skills', 'check_in', 'status'}
 LEARNING_FIELDS = {'agent_id', 'workflow', 'lesson', 'evidence'}
+PHOTOS = Path(__file__).parent / 'team_photos'
+# The first draft of the team used other names. Old rows move to the new ids.
+RENAMED = {'bob': 'sam', 'eddie': 'tariq', 'vera': 'laia'}
 
 SEEDS = [
-    dict(id='bob', name='Bob', role='Content & YouTube Manager', color='#2383e2',
-         mission='Keep the YouTube channel moving. Bob plans and makes the carousels, helps shape '
+    dict(id='sam', name='Sam', role='Content & YouTube Manager', color='#2383e2',
+         mission='Keep the YouTube channel moving. Sam plans and makes the carousels, helps shape '
                  'video ideas, scripts, titles and thumbnails, posts content, and tracks how each '
                  'piece performs against the channel goals.',
          personality='Upbeat, direct and organised. Brings a plan with a recommendation, then asks for a yes.',
@@ -38,8 +42,8 @@ SEEDS = [
                  'Posting through Chrome'],
          check_in='Every weekday morning, with the day\'s carousels, videos due and anything blocked.',
          status='Draft'),
-    dict(id='eddie', name='Eddie', role='Video Editor', color='#9065b0',
-         mission='Turn recorded footage into finished videos. Eddie runs the editing workflow from '
+    dict(id='tariq', name='Tariq', role='Video Editor', color='#9065b0',
+         mission='Turn recorded footage into finished videos. Tariq runs the editing workflow from '
                  'transcript to clean cut, flubs, keying, animations and the Premiere export.',
          personality='Calm and precise. Reports what changed and flags anything that needs Josh\'s eye.',
          responsibilities=['Pick up videos once they are recorded',
@@ -50,7 +54,7 @@ SEEDS = [
          skills=['video-editing-prep', 'Josh OS editing engine'],
          check_in='When a recording lands, and when an edit is ready for review.',
          status='Draft'),
-    dict(id='vera', name='Vera', role='Email Writer', color='#d9730d',
+    dict(id='laia', name='Laia', role='Email Writer', color='#d9730d',
          mission='Write the newsletters and sequences in Josh\'s voice, keep drafts at least two weeks '
                  'ahead, and track how each email performs in Kit.',
          personality='Warm, sharp with words, and honest about weak subject lines.',
@@ -92,14 +96,47 @@ def _list(value, limit, label):
 class Team:
     def __init__(self, store):
         self.store = store
+        # Import photos before taking the write lock: import_image uses its own connection.
+        photos = {seed['id']: self._photo(seed['id']) for seed in SEEDS}
         with store.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS team_agents(id TEXT PRIMARY KEY,revision INTEGER NOT NULL,position INTEGER NOT NULL,body TEXT NOT NULL)')
             c.execute('CREATE TABLE IF NOT EXISTS team_learnings(id TEXT PRIMARY KEY,agent_id TEXT NOT NULL,body TEXT NOT NULL)')
             c.execute('BEGIN IMMEDIATE')
+            self._rename(c)
             for i, seed in enumerate(SEEDS):
                 if not c.execute('SELECT 1 FROM team_agents WHERE id=?', (seed['id'],)).fetchone():
-                    agent = dict(seed, revision=1, photo='', created_at=now(), updated_at=now())
+                    agent = dict(seed, revision=1, photo=photos[seed['id']], created_at=now(), updated_at=now())
                     c.execute('INSERT INTO team_agents VALUES(?,?,?,?)', (seed['id'], 1, i, json.dumps(agent)))
+
+    def _photo(self, aid):
+        """Import the bundled default photo for a team member, if there is one."""
+        file = PHOTOS / (aid + '.jpg')
+        if not file.is_file():
+            return ''
+        try:
+            return self.store.import_image(file.name, file.read_bytes())['asset']
+        except (OSError, ValueError):
+            return ''
+
+    def _rename(self, c):
+        """Move first-draft team members to their new ids. Untouched profiles are replaced by
+        the new defaults; edited ones keep their edits under the new id."""
+        for old, new in RENAMED.items():
+            row = c.execute('SELECT revision,body FROM team_agents WHERE id=?', (old,)).fetchone()
+            if not row:
+                continue
+            if row['revision'] > 1 and not c.execute('SELECT 1 FROM team_agents WHERE id=?', (new,)).fetchone():
+                agent = dict(json.loads(row['body']), id=new)
+                c.execute('UPDATE team_agents SET id=?,body=? WHERE id=?', (new, json.dumps(agent), old))
+            else:
+                c.execute('DELETE FROM team_agents WHERE id=?', (old,))
+            for r in c.execute('SELECT id,body FROM team_learnings WHERE agent_id=?', (old,)).fetchall():
+                c.execute('UPDATE team_learnings SET agent_id=?,body=? WHERE id=?', (new, json.dumps(dict(json.loads(r['body']), agent_id=new)), r['id']))
+            if c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='carousels'").fetchone():
+                for r in c.execute('SELECT id,body FROM carousels').fetchall():
+                    body = json.loads(r['body'])
+                    if body.get('owner') == old:
+                        c.execute('UPDATE carousels SET body=? WHERE id=?', (json.dumps(dict(body, owner=new)), r['id']))
 
     def all(self):
         with self.store.connect() as c:

@@ -44,7 +44,7 @@ async function renderTeam(){
       <div class="flows">${teamFlows(a)}</div>
     </article>`).join('')}</div>
     <section class="learnings"><h2>Lessons learned</h2>
-      <p class="hint">What the team has found works and what doesn't. Bob and Vera add to this as they track performance, and every agent reads it before starting work.</p>
+      <p class="hint">What the team has found works and what doesn't. Sam and Laia add to this as they track performance, and every agent reads it before starting work.</p>
       ${teamLearnForm()}
       <ul class="learning-list">${team.learnings.length?team.learnings.map(teamLearning).join(''):'<li class="hint">No lessons yet. Add the first one above.</li>'}</ul>
     </section>`;

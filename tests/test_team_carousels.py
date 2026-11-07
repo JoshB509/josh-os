@@ -18,23 +18,47 @@ class TeamTests(unittest.TestCase):
     def test_seeds_once_and_keeps_edits(self):
         agents = self.team.all()['agents']
         self.assertEqual([a['id'] for a in agents], [s['id'] for s in SEEDS])
-        bob = self.team.save('bob', {'name': 'Bobby', 'workflows': ['youtube']}, 1)
+        sam = self.team.save('sam', {'name': 'Sammy', 'workflows': ['youtube']}, 1)
         Team(self.store)
-        again = {a['id']: a for a in self.team.all()['agents']}['bob']
-        self.assertEqual(again, bob)
+        again = {a['id']: a for a in self.team.all()['agents']}['sam']
+        self.assertEqual(again, sam)
         self.assertEqual(again['revision'], 2)
 
     def test_stale_and_invalid_edits_are_rejected(self):
-        self.team.save('vera', {'mission': 'New'}, 1)
+        self.team.save('laia', {'mission': 'New'}, 1)
         with self.assertRaises(Conflict):
-            self.team.save('vera', {'mission': 'Older window'}, 1)
+            self.team.save('laia', {'mission': 'Older window'}, 1)
         for bad in [{'name': ''}, {'workflows': ['nope']}, {'status': 'Fired'}, {'color': 'red'}, {'photo': 'x' * 64}, {'salary': 1}]:
             with self.assertRaises(ValueError):
-                self.team.save('vera', bad, 2)
+                self.team.save('laia', bad, 2)
+
+    def test_default_photos_are_imported(self):
+        agents = {a['id']: a for a in self.team.all()['agents']}
+        for aid in ('sam', 'tariq', 'laia'):
+            self.assertEqual(len(agents[aid]['photo']), 64)
+            self.assertTrue(self.store.asset(agents[aid]['photo'])[0].is_file())
+        self.assertEqual(agents['max']['photo'], '')
+
+    def test_first_draft_names_are_migrated(self):
+        with self.store.connect() as c:
+            c.execute('DELETE FROM team_agents')
+            for i, (aid, rev) in enumerate([('bob', 3), ('eddie', 1), ('vera', 1)]):
+                c.execute('INSERT INTO team_agents VALUES(?,?,?,?)', (aid, rev, i, json.dumps(dict(id=aid, name=aid.title(), revision=rev))))
+            c.execute('INSERT INTO team_learnings VALUES(?,?,?)', ('l1', 'vera', json.dumps(dict(id='l1', agent_id='vera', lesson='x'))))
+        Carousels(self.store).create({'id': str(uuid.uuid4()), 'title': 'Old owner', 'owner': 'bob'})
+        Team(self.store)
+        data = self.team.all()
+        ids = [a['id'] for a in data['agents']]
+        self.assertEqual(sorted(ids), ['laia', 'max', 'sam', 'tariq'])
+        agents = {a['id']: a for a in data['agents']}
+        self.assertEqual(agents['sam']['name'], 'Bob')  # edited profile kept under the new id
+        self.assertEqual(agents['tariq']['name'], 'Tariq')  # untouched profile replaced
+        self.assertEqual(data['learnings'][0]['agent_id'], 'laia')
+        self.assertEqual(Carousels(self.store).all()['items'][0]['owner'], 'sam')
 
     def test_lessons_learned(self):
         lid = str(uuid.uuid4())
-        item = self.team.learn({'id': lid, 'agent_id': 'bob', 'workflow': 'carousels', 'lesson': 'Lead with a number'})
+        item = self.team.learn({'id': lid, 'agent_id': 'sam', 'workflow': 'carousels', 'lesson': 'Lead with a number'})
         self.assertEqual(self.team.learn({'id': lid, 'lesson': 'retry'}), item)
         self.assertEqual(self.team.all()['learnings'], [item])
         with self.assertRaises(ValueError):

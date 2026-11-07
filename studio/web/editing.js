@@ -6,8 +6,8 @@ function renderEditing(){
   page('Editing','Every video from the recording to the Premiere hand-off. Open one to run the editing passes.');
   const ps=state.projects.filter(p=>!p.archived);
   const running=state.jobs.filter(j=>['running','starting'].includes(j.status?.state));
-  const eddie=team?.agents?.find(a=>a.id==='eddie');
-  $('#workspace').innerHTML=`${eddie?`<div class="owner-note">${teamAvatar(eddie,'xs')}<span><b>${esc(eddie.name)}</b> owns this workflow once agents are switched on.</span></div>`:''}
+  const editor=team?.agents?.find(a=>a.id==='tariq');
+  $('#workspace').innerHTML=`${editor?`<div class="owner-note">${teamAvatar(editor,'xs')}<span><b>${esc(editor.name)}</b> owns this workflow once agents are switched on.</span></div>`:''}
     ${running.length?`<div class="running-note"><span class="spinner"></span>${running.length} editing run${running.length>1?'s':''} in progress</div>`:''}
     <div class="edit-lanes">${EDIT_LANES.map(([stage,label])=>{const items=ps.filter(p=>p.stage===stage);
       return `<section class="edit-lane"><h3>${esc(label)} <span class="count">${items.length}</span></h3>${items.map(p=>{

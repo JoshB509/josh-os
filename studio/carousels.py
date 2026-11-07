@@ -59,7 +59,7 @@ class Carousels:
                     platforms=data.get('platforms', ['Instagram', 'LinkedIn']), post_date=data.get('post_date', ''),
                     hook=data.get('hook', ''), slides=data.get('slides', ''), caption=data.get('caption', ''),
                     notes=data.get('notes', ''), link=data.get('link', ''), project_id=data.get('project_id', ''),
-                    owner=data.get('owner', 'bob'), archived=data.get('archived', False),
+                    owner=data.get('owner', 'sam'), archived=data.get('archived', False),
                     created_at=now(), updated_at=now(), posted_at=None)
         self.validate(item)
         if item['stage'] == 'Posted':

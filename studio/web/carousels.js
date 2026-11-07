@@ -46,7 +46,7 @@ function renderCarouselEditor(){
       <label>Post date<input type="date" data-carousel-field="post_date" value="${esc(c.post_date)}"></label>
       <h4>Platforms</h4><div class="flow-picks">${carousels.platforms.map(p=>`<label class="check"><input type="checkbox" data-carousel-platform="${esc(p)}" ${c.platforms.includes(p)?'checked':''}>${esc(p)}</label>`).join('')}</div>
       <label>Linked video<select data-carousel-field="project_id"><option value="">None</option>${videos.map(p=>`<option value="${esc(p.id)}" ${p.id===c.project_id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>
-      <label>Owner<select data-carousel-field="owner">${(team?.agents||[{id:'bob',name:'Bob'}]).map(a=>`<option value="${esc(a.id)}" ${a.id===c.owner?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="josh" ${c.owner==='josh'?'selected':''}>Josh</option></select></label>
+      <label>Owner<select data-carousel-field="owner">${(team?.agents||[{id:'sam',name:'Sam'}]).map(a=>`<option value="${esc(a.id)}" ${a.id===c.owner?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="josh" ${c.owner==='josh'?'selected':''}>Josh</option></select></label>
       <label>Link once posted<input data-carousel-field="link" value="${esc(c.link)}" placeholder="https://"></label>
       <label>Notes<textarea data-carousel-field="notes" rows="5">${esc(c.notes)}</textarea></label>
       <label class="check"><input type="checkbox" data-carousel-archive ${c.archived?'checked':''}>Archived</label>
