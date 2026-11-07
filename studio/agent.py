@@ -38,6 +38,12 @@ SCHEMA = {
 ALLOWED_TOOLS = 'Read,Grep,Glob'
 # Team members who may look things up in Josh's Chrome from their chat (YouTube Studio, community posts, Linklr).
 CHROME = {'sam'}
+# Linklr (tracked links and stats) through its MCP server, added to Claude Code on this PC as "linklr".
+LINKLR_READ = ('get_data_status', 'get_business_summary', 'get_daily_metrics', 'get_acquisition_by_source',
+               'get_email_sequence_funnel', 'get_signup_cohorts', 'get_course_buyer_journeys', 'lookup_link_context',
+               'preview_tracked_link')
+LINKLR_MAKE = ('register_video', 'create_tracked_link')
+LINKLR = {'sam': LINKLR_READ + LINKLR_MAKE, 'laia': LINKLR_READ + LINKLR_MAKE, 'max': LINKLR_READ}
 CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
 CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
     'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
@@ -251,6 +257,13 @@ class Agents:
                '  When Josh asks you to post or schedule something, do it. If he did not say which post, file or time, ask first.',
                '  Never delete anything or change channel or account settings unless he asks for that exact change. Tell him what you did.',
                '  If a page needs a sign-in, ask Josh to sign in himself.'] if agent['id'] in CHROME else []),
+            *(['- You have Linklr through its tools (mcp__linklr__...). Use them for stats such as clicks, new subscribers by source,',
+               '  sequence funnels and the business summary. Check get_data_status when freshness matters.',
+               *(['- Make tracked links with create_tracked_link, after lookup_link_context and preview_tracked_link.',
+                  '  Use an existing link when preview finds one. Register a video with register_video before making its links.']
+                 if 'create_tracked_link' in LINKLR.get(agent['id'], ()) else []),
+               '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
+              if agent['id'] in LINKLR else []),
             *(['- You cannot edit files or Josh OS cards from this chat yet. When a card needs changing, tell Josh what to change.']
               if agent['id'] in CHROME else
               ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
@@ -307,7 +320,7 @@ class Agents:
         return '\n'.join(parts)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=()):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -317,7 +330,7 @@ class Agents:
             wrapper = claude.lower().endswith(('.cmd', '.bat'))
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
-                   '--tools', ALLOWED_TOOLS, '--allowedTools', ALLOWED_TOOLS + (',' + CHROME_TOOLS if chrome else '')]
+                   '--tools', ALLOWED_TOOLS, '--allowedTools', ','.join([ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
             if chrome:
                 cmd.append('--chrome')
             for d in dirs:
@@ -413,7 +426,8 @@ class Agents:
                 for m in history[-12:]:
                     parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
             parts += ['', f'Josh: {message}']
-            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs, chrome=agent_id in CHROME)
+            reply, _ = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts), DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
+                                extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())])
         finally:
             lock.release()
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
