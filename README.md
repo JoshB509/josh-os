@@ -68,6 +68,14 @@ The side rail is grouped by workflow. **Calendar** shows videos, carousels, emai
 
 Video pages, carousels and team profiles save themselves a moment after you stop typing. Ctrl+S still saves a video straight away. Script edits made within 15 minutes of each other are folded into one draft version, so the version history stays readable.
 
+## The team at work
+
+Sam, Tariq, Laia and Max run through Claude Code on this PC. When you ask Sam something in the script studio, Josh OS calls `claude -p` with his profile from the Team page, the team's lessons learned, and his skills from `.claude/skills/` (Sam has `script-touch-up`, and Tariq has `video-editing-prep`). He gets read-only access to `reference_sources/`, which holds the Ed Lawrence movement library, curiosity lines, audience notes and magnet index, so he can look things up but can't change files. Every suggestion comes back as a rewrite you can replace or copy. Nothing changes in the script until you click Replace, and each change is kept in the script's version history.
+
+Claude Code needs to be installed on this PC and signed in to your Claude account. Josh OS finds it on the PATH, or you can set its full path in `settings.json` as `"claude": "C:\\Users\\you\\.local\\bin\\claude.exe"`. Conversations are saved per video in the database, so you can pick them up from your phone.
+
+To update a skill, replace its `SKILL.md` in `.claude/skills/`. Claude Code sessions opened in this folder use the same files.
+
 ## Using Josh OS on your phone
 
 Josh OS only listens on this PC. To reach it from a phone, it uses Tailscale, which gives your phone a private, encrypted route to this PC that nobody outside your Tailscale account can use.

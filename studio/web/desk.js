@@ -102,7 +102,7 @@ function agentDesk(id,{compact=false,scope=null,head=true}={}){
   const b=deskBrief(id,scope),min=compact&&deskCollapsed(id);
   let all=b.items;if(scope&&DESK_SCOPE[scope])all=all.filter(i=>DESK_SCOPE[scope].test(i.act));
   all=[...all.filter(i=>i.needs),...all.filter(i=>!i.needs)];
-  const items=all.slice(0,compact?4:5),needs=all.filter(i=>i.needs).length;
+  const items=all.slice(0,compact?(scope==='board'?2:3):5),needs=all.filter(i=>i.needs).length;
   const chips=b.chips.filter(c=>!(DESK_SKIP[scope]||[]).includes(c.act));
   const home={sam:'carousels',tariq:'editing',laia:'email'}[id];
   const count=a.status==='Coming later'?'':needs?`<span class="desk-count">${needs} for you</span>`:all.length?'':`<span class="desk-count clear">All clear</span>`;
