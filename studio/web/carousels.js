@@ -29,18 +29,20 @@ async function renderCarousels(){
   page('Carousels','Every carousel with its slides, tags and results, from idea to posted.');
   if(!carousels){$('#workspace').innerHTML='<p class="hint">Loading carousels…</p>';try{await carouselLoad()}catch(e){toast(e.message,true);return}if(view!=='carousels'||current)return}
   if(carouselOpen)return renderCarouselEditor();
+  if(inspoOpen)return renderInspoPost();
+  if(carouselTab==='creators'&&!inspo){try{await inspoLoad()}catch(e){toast(e.message,true)}if(view!=='carousels'||current)return}
   const live=carousels.items.filter(c=>!c.archived),week=new Date();week.setDate(week.getDate()+7);
   const posted=live.filter(c=>c.stage==='Posted'),queue=live.filter(c=>c.stage!=='Posted');
   const dueSoon=queue.filter(c=>c.post_date&&new Date(c.post_date+'T23:59:59')<=week).length;
   const ahead=(()=>{let d=new Date(),n=0;for(;n<60;n++){const k=d.toISOString().slice(0,10);if(!live.some(c=>c.post_date===k&&['Scheduled','Posted'].includes(c.stage)))break;d.setDate(d.getDate()+1)}return n})();
-  const tabs=[['board','Board',queue.length],['posted','Posted',posted.length],['working',"What's working",'']];
+  const tabs=[['board','Board',queue.length],['posted','Posted',posted.length],['working',"What's working",''],['creators','Creators',inspo?inspo.items.length:'']];
   $('#workspace').innerHTML=`<div class="carousel-summary">
       <div><b>${ahead}</b><span>days scheduled ahead</span></div>
       <div><b>${queue.length}</b><span>in progress</span></div>
       <div><b>${dueSoon}</b><span>due in the next 7 days</span></div>
       <div><b>${posted.length}</b><span>posted</span></div></div>
     <div class="cv-tabs" role="tablist">${tabs.map(t=>`<button role="tab" aria-selected="${t[0]===carouselTab}" data-cv-tab="${t[0]}">${esc(t[1])}${t[2]!==''?` <span>${t[2]}</span>`:''}</button>`).join('')}</div>
-    <div id="cv-body">${carouselTab==='posted'?carouselPosted(posted):carouselTab==='working'?carouselWorking(posted):carouselBoard(queue)}</div>`;
+    <div id="cv-body">${carouselTab==='posted'?carouselPosted(posted):carouselTab==='working'?carouselWorking(posted):carouselTab==='creators'?inspoTab():carouselBoard(queue)}</div>`;
 }
 
 function carouselBoard(queue){

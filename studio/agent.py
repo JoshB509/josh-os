@@ -47,7 +47,7 @@ LINKLR = {'sam': LINKLR_READ + LINKLR_MAKE, 'laia': LINKLR_READ + LINKLR_MAKE, '
 CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
 CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
     'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
-    'tabs_close_mcp', 'navigate', 'read_page', 'get_page_text', 'find', 'computer', 'browser_batch',
+    'tabs_close_mcp', 'navigate', 'read_page', 'get_page_text', 'find', 'computer', 'browser_batch', 'javascript_tool',
     'form_input', 'file_upload', 'upload_image'))
 DESK_SCHEMA = {
     'type': 'object',
@@ -70,6 +70,23 @@ CAROUSEL_SCHEMA = {
                     'hook': {'type': 'string'}, 'slides': {'type': 'string'}, 'caption': {'type': 'string'},
                     'notes': {'type': 'string'}, 'link': {'type': 'string'}, 'folder': {'type': 'string'},
                     'tags': {'type': 'object'}, 'results': {'type': 'object'},
+                },
+            },
+        },
+        'inspo': {
+            'type': 'array',
+            'description': 'Creator posts (Ali Abdaal, Alex Hormozi) to add or change in Josh OS. Leave empty when nothing needs saving.',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string', 'description': 'Id of a saved creator post to change. Leave out to add a new one.'},
+                    'creator': {'type': 'string'}, 'date': {'type': 'string'}, 'url': {'type': 'string'},
+                    'hook': {'type': 'string'}, 'caption': {'type': 'string'}, 'slides': {'type': 'integer'},
+                    'likes': {'type': 'integer'}, 'comments': {'type': 'integer'}, 'checked_at': {'type': 'string'},
+                    'tags': {'type': 'object'}, 'look': {'type': 'string'}, 'new_thing': {'type': 'boolean'},
+                    'new_note': {'type': 'string'}, 'notes': {'type': 'string'},
+                    'image_urls': {'type': 'array', 'items': {'type': 'string'},
+                                   'description': 'Full-size slide image links, in order, for a new post. Josh OS saves them to the E drive.'},
                 },
             },
         },
@@ -317,9 +334,19 @@ class Agents:
             f"  Free text tags: {', '.join(sorted(TAG_TEXT))} (post_time like 21:00). True or false tags: {', '.join(sorted(TAG_FLAGS))}. slide_count is a whole number.",
             f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
             '  Tags and results you send are merged into what is already saved. Tell Josh in your reply what you saved.',
+            '- The Creators tab on the same page holds the carousels we learn from (Ali Abdaal and Alex Hormozi). Save to it with',
+            '  the "inspo" list. Each entry adds a post, or changes one when you give its id from the snapshot.',
+            '  To add new posts, open the creator\'s Posts tab in Chrome (youtube.com/@aliabdaal/posts, youtube.com/@AlexHormozi/posts),',
+            '  open each carousel post, and send creator, date, url, hook (the first line of the caption), caption, slides, likes',
+            '  (as a whole number, so 1.5K is 1500), comments, checked_at, and image_urls with the full-size slide images in order.',
+            '  Josh OS downloads the images into the _Inspo folder. Skip posts already in the snapshot, and carousels only.',
+            '  Tag each post with the same tag lists as our carousels, and describe its visual look in "look" in a short line.',
+            '  Set new_thing true when the format or look is something you have not seen from that creator before, and say what',
+            '  is new in new_note. Once it has likes, add whether it worked. Josh OS works out breakouts (at least twice the median',
+            '  likes of that creator\'s previous 20 posts), shown as BREAKOUT in the snapshot.',
         ]
 
-    def desk_snapshot(self, agent_id, carousels):
+    def desk_snapshot(self, agent_id, carousels, inspo=None):
         from datetime import date
         lines = [f'Today is {date.today().isoformat()}.', '', 'Your carousels in Josh OS (newest first). id | date | stage | title | tags | results:']
         mine = [c for c in carousels if c.get('owner') == agent_id and not c.get('archived')][:40]
@@ -332,6 +359,13 @@ class Agents:
                              + (f" | folder {c['folder']}" if c.get('folder') else '') + (f" | {note}" if note else ''))
         else:
             lines.append('- none yet')
+        if inspo is not None:
+            posts = inspo.all()['items']
+            lines += ['', f'Creator posts saved in Josh OS ({len(posts)}, newest first). id | creator | date | likes | comments | hook | tagged:']
+            for p in posts[:80]:
+                lines.append(f"- {p['id']} | {p['creator']} | {p['date']} | {p.get('likes')} | {p.get('comments')} | "
+                             f"{' '.join((p.get('hook') or '').split())[:70]} | {'tagged' if p.get('tags') else 'not tagged'}"
+                             + (' | BREAKOUT' if p.get('breakout') else '') + (' | new thing' if p.get('new_thing') else ''))
         lines += ['', 'Videos in Josh OS:']
         videos = [p for p in self.store.projects() if not p.get('archived')]
         for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
@@ -445,7 +479,7 @@ class Agents:
                       selection=mine['selection'])
         return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
 
-    def chat(self, data, carousels, tracker=None):
+    def chat(self, data, carousels, tracker=None, inspo=None):
         """The general chat on a team member's own page."""
         if not isinstance(data, dict):
             raise ValueError('Invalid request.')
@@ -463,18 +497,21 @@ class Agents:
             history = self.thread(DESK, agent_id)
             learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:30]
             _, dirs = self.training(agent_id)
-            parts = [self.desk_snapshot(agent_id, carousels)]
+            keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
+            parts = [self.desk_snapshot(agent_id, carousels, inspo if keeps else None)]
             if history:
                 parts += ['', 'Earlier in this conversation:']
                 for m in history[-12:]:
                     parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
             parts += ['', f'Josh: {message}']
-            keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      CAROUSEL_SCHEMA if keeps else DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
                                      extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())], full=True)
             todo = answer.get('carousels') if isinstance(answer, dict) else None
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
+            found = answer.get('inspo') if isinstance(answer, dict) else None
+            if keeps and inspo is not None and isinstance(found, list):
+                saved += inspo.apply(found)
         finally:
             lock.release()
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
