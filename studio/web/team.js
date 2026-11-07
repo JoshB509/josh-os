@@ -154,7 +154,7 @@ function roomMessages(a,msgs){
     const sep=day&&day!==last?`<div class="room-day">${esc(day===new Date().toDateString()?'Today':d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</div>`:'';if(day)last=day;
     const who=m.role==='josh'?'josh':'agent';
     const meta=m.failed?`<span class="room-failed">Didn't go through. ${esc(m.failed)} <button class="link" data-room-retry="${esc(m.id)}">Try again</button></span>`:m.id==='pending'?'<span>Sent</span>':`<span>${esc(m.role==='josh'?'You':a.name)}${m.at?' · '+esc(roomTime(m.at)):''}</span>`;
-    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?roomSaved(m.saved):''}<div class="room-meta-line">${meta}</div></div>`;
+    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?roomSaved(m.saved):''}${m.learned?.length?m.learned.map(l=>`<div class="room-learned">Added to lessons: ${esc(l)}</div>`).join(''):''}<div class="room-meta-line">${meta}</div></div>`;
   }).join('');
 }
 function roomWork(a){

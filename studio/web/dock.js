@@ -8,6 +8,7 @@ function dockAgentId(){return current?(typeof tab!=='undefined'&&tab==='edit'?'t
 function dockContext(){
   if(view==='carousels'&&typeof carouselOpen!=='undefined'&&carouselOpen){const c=carouselFind(carouselOpen);return c?{kind:'carousel',id:c.id,label:c.title}:null}
   if(view==='carousels'&&typeof inspoOpen!=='undefined'&&inspoOpen){const p=inspoFind(inspoOpen);return p?{kind:'inspo',id:p.id,label:`${p.creator}'s post`}:null}
+  if(view==='email'&&typeof emailCurrent!=='undefined'&&emailCurrent)return {kind:'email',id:emailCurrent.id,label:emailCurrent.subject||'this email'};
   if(current)return {kind:'project',id:current.id,label:current.name};
   const names={board:'YouTube videos',carousels:'Carousels',calendar:'Calendar',today:'Today',editing:'Editing',email:'Email'};
   return names[view]?{kind:'page',name:names[view],label:names[view]}:null;
@@ -93,3 +94,48 @@ render=function(){const r=dockBaseRender.apply(this,arguments);Promise.resolve(r
 (async()=>{try{if(!team)team=await api('/api/team')}catch{}dockRender()})();
 // Pages that redraw without render() (opening a video, switching its tabs) still move the dock along.
 (()=>{const w=document.getElementById('workspace');if(!w)return;let t=null;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(dockRender,80)}).observe(w,{childList:true})})();
+
+// Learning from Josh's edits. When he changes a team member's writing (a carousel's words,
+// an email, a script) and then moves on, that team member looks at what changed and writes
+// to him first: what they'll do from now on, and a question about anything they can't work out.
+const DOCK_WATCH={carousels:{fields:['title','hook','slides','caption']},emails:{fields:['subject','preview','body'],agent:'laia'},projects:{fields:['script'],agent:'sam'}};
+let dockTouched={},dockUnread={},dockIdle=null;
+const dockBaseApi=api;
+api=async function(path,data,method){
+  const out=await dockBaseApi.apply(this,arguments);
+  try{
+    const m=method==='PUT'&&/^\/api\/(carousels|emails|projects)\/([\w-]+)$/.exec(path);
+    if(m&&data?.changes&&DOCK_WATCH[m[1]].fields.some(f=>f in data.changes)){
+      const agent=DOCK_WATCH[m[1]].agent||(m[1]==='carousels'?(carouselFind?.(m[2])?.owner||'sam'):'sam');
+      if(agent!=='josh'){dockTouched[m[1]+':'+m[2]]={id:m[2],agent};clearTimeout(dockIdle);dockIdle=setTimeout(()=>dockReflectAll(true),5*60*1000)}
+    }
+  }catch{}
+  return out;
+};
+function dockOpenKey(){const c=dockContext();return c&&c.id?({carousel:'carousels',email:'emails',project:'projects'}[c.kind]||'')+':'+c.id:''}
+// Called on every redraw: anything Josh touched that he is no longer looking at gets reflected on.
+function dockReflectLeft(){const open=dockOpenKey();for(const k of Object.keys(dockTouched))if(k!==open)dockReflect(k)}
+function dockReflectAll(){for(const k of Object.keys(dockTouched))dockReflect(k)}
+async function dockReflect(key){
+  const t=dockTouched[key];if(!t)return;
+  if(roomBusy){setTimeout(()=>dockReflect(key),20000);return}
+  delete dockTouched[key];
+  if(typeof carouselSaver!=='undefined')await carouselSaver.flush().catch(()=>{});
+  try{
+    const r=await dockBaseApi('/api/agents/reflect',{agent_id:t.agent});
+    if(r.reply){roomThread[t.agent]=r.messages;roomLoaded[t.agent]=true;dockUnread[t.agent]=true;
+      const a=team&&teamAgent(t.agent);toast(`${a?.name||'Your team'} has a note about your changes`);dockRender()}
+  }catch{}
+}
+const dockBaseRender2=dockRender;
+dockRender=function(){
+  dockBaseRender2();
+  try{
+    dockReflectLeft();
+    const a=team&&teamAgent(dockAgentId()),root=document.getElementById('dock');if(!a||!root||root.hidden)return;
+    if(dockOpen)dockUnread[a.id]=false;
+    const fab=root.querySelector('.dock-fab');
+    if(fab&&dockUnread[a.id]){fab.classList.add('unread');const sp=fab.querySelector('span');if(sp)sp.textContent=`${a.name} has a question`}
+  }catch{}
+};
+addEventListener('beforeunload',()=>{for(const [k,t] of Object.entries(dockTouched)){try{navigator.sendBeacon&&fetch('/api/agents/reflect',{method:'POST',keepalive:true,headers:{'X-DJ-Token':token,'Content-Type':'application/json'},body:JSON.stringify({agent_id:t.agent})})}catch{}}});

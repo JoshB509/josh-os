@@ -54,6 +54,14 @@ DESK_SCHEMA = {
     'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
     'required': ['reply'],
 }
+# Every chat answer can also note which of Josh's edits it covered, and save lessons.
+LEARN_PROPS = {
+    'edits_noted': {'type': 'array', 'items': {'type': 'string'},
+                    'description': "Ids of Josh's edits you asked about or explained in this reply."},
+    'lessons': {'type': 'array', 'description': 'Rules you now know for next time, from his edits or his answers.',
+                'items': {'type': 'object', 'properties': {'lesson': {'type': 'string'}, 'evidence': {'type': 'string'},
+                                                           'workflow': {'type': 'string'}}, 'required': ['lesson']}},
+}
 # Team members who keep the carousel tracker can save to it from chat.
 CAROUSEL_SCHEMA = {
     'type': 'object',
@@ -308,7 +316,12 @@ class Agents:
               if agent['id'] in CHROME else
               ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
                '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.']),
-            '- When Josh gives you a rule or a preference worth keeping, say you will add it to your lessons and suggest the exact wording.',
+            "- Josh's edits to your work are how he teaches you. When your prompt lists changes he made, study what he changed",
+            '  and match it from now on. If the reason is clear, say in a line what you will do next time. If it is not, ask about it',
+            '  in plain words, like "Why did you change this line? Was it to sound less salesy?". Never ask about typo fixes.',
+            '  Put the ids of edits you covered in edits_noted.',
+            '- When a rule is clear, from an edit or from what Josh tells you, save it in lessons as one short instruction you can',
+            '  follow next time, with the edit or his words as evidence. Tell him you have noted it. Do not save the same lesson twice.',
             '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
             '  No "it isn\'t X, it\'s Y" framing, no colons that split a sentence, no fragment lists, and don\'t say why something matters.',
         ]
@@ -516,17 +529,25 @@ class Agents:
             return f"Josh is on the {str(context['name'])[:40]} page of Josh OS."
         return ''
 
-    def chat(self, data, carousels, tracker=None, inspo=None):
-        """The general chat on a team member's own page."""
+    def chat(self, data, carousels, tracker=None, inspo=None, proactive=False):
+        """The general chat on a team member's own page, and the dock that follows Josh around.
+
+        With proactive=True there is no message from Josh. The team member has just seen his
+        edits to their work and writes to him first, asking about what they can't work out.
+        """
         if not isinstance(data, dict):
             raise ValueError('Invalid request.')
         agent_id = data.get('agent_id', '')
-        message = str(data.get('message', '')).strip()
-        if not message or len(message) > 4000:
+        message = '' if proactive else str(data.get('message', '')).strip()
+        if not proactive and (not message or len(message) > 4000):
             raise ValueError('Write a message, up to 4,000 characters.')
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         if not agent:
             raise KeyError('Team member not found.')
+        feedback = getattr(self, 'feedback', None)
+        edits = feedback.pending(agent_id) if feedback else []
+        if proactive and not edits:
+            return dict(messages=self.thread(DESK, agent_id), reply=None)
         lock = self.locks.setdefault((agent_id, DESK), threading.Lock())
         if not lock.acquire(blocking=False):
             raise ValueError(f"{agent['name']} is still working on your last message.")
@@ -543,19 +564,63 @@ class Agents:
             focus = self.focus(data.get('context'), carousels, inspo)
             if focus:
                 parts += ['', focus]
-            parts += ['', f'Josh: {message}']
+            if edits:
+                parts += ['', 'Changes Josh made to your work that you have not raised with him yet (before and after):',
+                          feedback.describe(edits)]
+            if proactive:
+                parts += ['', 'Josh has just finished editing some of your work, listed above, and has not said anything about it. '
+                          'Write to him first. Keep it short and natural. For the changes where the reason is clear, say in a line '
+                          'what you will do from now on. For the ones you cannot work out, ask about one or two, like "Why did '
+                          'you change X to Y? Was it to ...?". Do not ask about typo fixes. Put every edit id you covered in '
+                          'edits_noted, and save any rule that is already clear in lessons.']
+            else:
+                parts += ['', f'Josh: {message}']
+            schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
+            schema['properties'].update(LEARN_PROPS)
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
-                                     CAROUSEL_SCHEMA if keeps else DESK_SCHEMA, dirs, chrome=agent_id in CHROME,
+                                     schema, dirs, chrome=agent_id in CHROME and not proactive,
                                      extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())], full=True)
-            todo = answer.get('carousels') if isinstance(answer, dict) else None
+            answer = answer if isinstance(answer, dict) else {}
+            todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
-            found = answer.get('inspo') if isinstance(answer, dict) else None
+            found = answer.get('inspo')
             if keeps and inspo is not None and isinstance(found, list):
                 saved += inspo.apply(found)
+            if feedback and isinstance(answer.get('edits_noted'), list):
+                known = {e['id'] for e in edits}
+                feedback.mark([i for i in answer['edits_noted'] if i in known])
+            learned = self.keep_lessons(agent, answer.get('lessons'))
         finally:
             lock.release()
-        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
         if saved:
             theirs['saved'] = saved
+        if learned:
+            theirs['learned'] = learned
+        if proactive:
+            theirs['asked'] = True
+            return dict(messages=self._append(DESK, agent_id, theirs), reply=theirs)
+        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
         return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)
+
+    def reflect(self, data, carousels, tracker=None, inspo=None):
+        """Josh just edited a team member's work. They look at the changes and write to him first."""
+        return self.chat(data, carousels, tracker, inspo, proactive=True)
+
+    def keep_lessons(self, agent, lessons):
+        """Save the rules a team member worked out from Josh's edits or answers to the shared lessons log."""
+        kept = []
+        if not isinstance(lessons, list):
+            return kept
+        home = {'sam': 'carousels', 'laia': 'email', 'tariq': 'editing', 'saskia': 'courses'}.get(agent['id'], '')
+        for l in lessons[:5]:
+            if not isinstance(l, dict) or not str(l.get('lesson', '')).strip():
+                continue
+            flow = l.get('workflow') if l.get('workflow') in ('youtube', 'carousels', 'editing', 'email', 'courses') else home
+            try:
+                item = self.team.learn(dict(agent_id=agent['id'], workflow=flow, lesson=str(l['lesson'])[:2000],
+                                            evidence=str(l.get('evidence', ''))[:2000]))
+                kept.append(item['lesson'])
+            except (ValueError, KeyError):
+                continue
+        return kept

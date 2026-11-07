@@ -20,6 +20,7 @@ from .project_folders import ProjectFolders
 from .team import Team
 from .carousels import Carousels
 from .inspo import Inspo
+from .feedback import Feedback
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
 
@@ -51,7 +52,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.agents=Agents(self.store,self.root,self.team)
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -79,6 +80,9 @@ class Server(ThreadingHTTPServer):
 class Handler(BaseHTTPRequestHandler):
     server_version='DaJoshiResolve'
     def log_message(self,fmt,*args):pass
+    def from_josh(self):
+        # Edits typed in the app come from the browser; the team's own tasks call the API directly.
+        return self.headers.get('Sec-Fetch-Site')=='same-origin' or bool(self.headers.get('Origin'))
     def authorized(self):
         local='127.0.0.1:'+str(self.server.server_port);phone=getattr(self.server,'phone',None) or PhoneAccess.off()
         if self.headers.get('Host') not in (local,*phone.hosts()):return False
@@ -290,6 +294,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/tasks' and method=='POST':return self.send(s.tasks.create(data))
             if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
             if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
+            if path=='/api/agents/reflect' and method=='POST':
+                try:return self.send(s.agents.reflect(data,s.carousels.all()['items'],s.carousels,s.inspo))
+                except AgentError as e:return self.send({'error':str(e)},503)
             if path=='/api/agents/chat' and method=='POST':
                 try:return self.send(s.agents.chat(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)
@@ -302,7 +309,10 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==3 and parts[:2]==['api','inspo'] and method=='PUT':return self.send(s.inspo.save(parts[2],data['changes'],data['revision']))
             if len(parts)==4 and parts[:2]==['api','carousels'] and parts[3]=='design' and method=='POST':return self.send(s.carousels.make_design(parts[2]))
             if path=='/api/carousels' and method=='POST':return self.send(s.carousels.create(data))
-            if len(parts)==3 and parts[:2]==['api','carousels'] and method=='PUT':return self.send(s.carousels.save(parts[2],data['changes'],data['revision']))
+            if len(parts)==3 and parts[:2]==['api','carousels'] and method=='PUT':
+                before=s.carousels.get(parts[2]);saved=s.carousels.save(parts[2],data['changes'],data['revision'])
+                if self.from_josh():s.feedback.record('carousel',before,saved)
+                return self.send(saved)
             if len(parts)==3 and parts[:2]==['api','tasks'] and method=='PUT':return self.send(s.tasks.save(parts[2],data['changes'],data['revision']))
             if path=='/api/kit/connect' and method=='POST':
                 r=s.emails.kit.connect(data)
@@ -314,7 +324,10 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==4 and parts[:3]==['api','calendar','emails'] and method=='PUT':
                 if set(data['changes'])!={'planned_date'}:raise ValueError('Calendar changes only the local date')
                 return self.send(s.emails.save(parts[3],data['changes'],data['revision'],sync_remote=False))
-            if len(parts)==3 and parts[:2]==['api','emails'] and method=='PUT':return self.send(s.emails.save(parts[2],data['changes'],data['revision']))
+            if len(parts)==3 and parts[:2]==['api','emails'] and method=='PUT':
+                before=s.emails.get(parts[2]);saved=s.emails.save(parts[2],data['changes'],data['revision'])
+                if self.from_josh():s.feedback.record('email',before,saved)
+                return self.send(saved)
             if path.startswith('/api/lessons/') and method=='POST':
                 if not s.lessons:raise ValueError('Lesson mapping is not installed')
                 if path=='/api/lessons/prepare':return self.send(s.lessons.obs(prepare=True))
@@ -352,7 +365,10 @@ class Handler(BaseHTTPRequestHandler):
                 if parts[3]=='script-approve':return self.send(s.writing.approve(parts[2],data['version_id'],data['revision'],data['note']))
                 if parts[3]=='script-restore':return self.send(s.writing.restore(parts[2],data['version_id'],data['revision']))
             if path=='/api/projects' and method=='POST':return self.send(s.project_folders.present(s.store.create(data['name'],data.get('id'))))
-            if len(parts)==3 and parts[:2]==['api','projects'] and method=='PUT':return self.send(s.project_folders.present(s.store.save(parts[2],data['changes'],data['revision'])))
+            if len(parts)==3 and parts[:2]==['api','projects'] and method=='PUT':
+                before=s.store.get(parts[2]);saved=s.store.save(parts[2],data['changes'],data['revision'])
+                if self.from_josh():s.feedback.record('project',before,saved)
+                return self.send(s.project_folders.present(saved))
             if path=='/api/images' and method=='POST':
                 raw=base64.b64decode(data['data'],validate=True);return self.send(s.store.import_image(data['name'],raw))
             if len(parts)==4 and parts[:2]==['api','projects'] and parts[3] in ['edit','keying-preview']:return self.send(s.jobs.start(parts[2],data.get('revision'),keying_only=parts[3]=='keying-preview'))

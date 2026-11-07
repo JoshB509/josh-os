@@ -584,3 +584,6 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 .pv-frame{width:min(100%,520px)}
 .cq-more{margin:var(--sp-2) 0 0;font-size:var(--fs-small);color:var(--muted)}
 .pw-slide textarea{overflow:hidden}
+.dock-fab.unread{box-shadow:0 0 0 2px var(--agent),0 8px 24px rgba(0,0,0,.18)}
+.dock-fab.unread::after{content:'';position:absolute;top:4px;left:36px;width:10px;height:10px;border-radius:50%;background:#e2584c;box-shadow:0 0 0 2px var(--card)}
+.room-learned{font-size:var(--fs-caption);color:#22744e;padding:2px 10px}
