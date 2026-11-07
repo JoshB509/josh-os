@@ -35,7 +35,7 @@ function teamLearnForm(agentId=''){
 
 async function renderTeam(){
   page('Team','');$('#page-title').parentElement.hidden=true;
-  if(!team){$('#workspace').innerHTML='<p class="hint">Loading your team…</p>';try{team=await api('/api/team')}catch(e){$('#workspace').innerHTML=`<div class="empty"><h2>Could not load the team.</h2><p>${esc(e.message)}</p></div>`;return}
+  if(!team){$('#workspace').innerHTML=`<div class="people" aria-label="Getting the team's notes">${typeof deskSkeleton==='function'?deskSkeleton(4):''}</div>`;try{team=await api('/api/team')}catch(e){$('#workspace').innerHTML=`<div class="empty"><h2>Could not load the team.</h2><p>${esc(e.message)}</p></div>`;return}
     if(view!=='team'||current)return}
   if(teamOpen)return renderTeamProfile();
   if(typeof deskData==='function'){await deskData();if(view!=='team'||current||teamOpen)return}
@@ -46,7 +46,7 @@ async function renderTeam(){
       <button class="person-main" data-team-open="${esc(a.id)}" aria-label="Open ${esc(a.name)}">
         ${teamAvatar(a,'xxl')}
         <span class="person-name">${esc(a.name)}</span><span class="person-role">${esc(a.role)}</span>
-        ${later?'<span class="person-badge quietish">Starts later</span>':b.items.length?`<span class="person-badge">${b.items.length} for you</span>`:'<span class="person-badge clear">All clear</span>'}
+        ${later?'<span class="person-badge later">Starts later</span>':(n=>n?`<span class="person-badge">${n} for you</span>`:'<span class="person-badge clear">All clear</span>')(b.items.filter(i=>i.needs).length)}
         <span class="person-say">${esc(b.say)}</span>
       </button>
       ${TEAM_HOME[a.id]?`<button class="person-go" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk <i>→</i></button>`:''}
@@ -70,7 +70,7 @@ function renderTeamProfile(){
         <input class="role-input" data-team-field="role" value="${esc(a.role)}" maxlength="120" aria-label="Role">
         ${TEAM_HOME[a.id]?`<button class="primary" data-desk-act="view:${TEAM_HOME[a.id]}">Go to ${esc(a.name)}'s desk</button>`:''}</div>
     </header>
-    ${typeof agentDesk==='function'?agentDesk(a.id):''}
+    ${typeof agentDesk==='function'?agentDesk(a.id,{head:false}):''}
     <details class="how-works"><summary><span>How ${esc(a.name)} works</span><small id="team-save" class="save-note">Saved</small></summary>
       <div class="profile-grid">
         <section>

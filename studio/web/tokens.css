@@ -1,0 +1,19 @@
+/* Josh OS design tokens. Loaded after brand.css. See docs/design/tokens.md. */
+:root{
+  --fs-caption:12px;--fs-small:13px;--fs-body:15px;--fs-lead:16px;--fs-sub:18px;--fs-h2:24px;--fs-h1:32px;--fs-display:36px;
+  --lh-tight:1.15;--lh-head:1.3;--lh-body:1.55;--measure:62ch;
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-full:999px;
+  --lift:0 0 0 1px var(--line),0 8px 24px rgba(21,23,28,.08);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  /* Contrast fixes from the 7 November critique: both pass 4.5:1 on white and on --side. */
+  --muted:#5F626A;--faint:#6C6F77;
+}
+@media (prefers-color-scheme:dark){:root{--faint:#8A8D94;--lift:0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.4)}}
+
+body{font-size:var(--fs-body);line-height:var(--lh-body)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+
+/* Focus: an ink ring with a gold halo, visible on white, gold and in forced colours. */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px;box-shadow:0 0 0 5px rgba(245,194,27,.45)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
