@@ -1,0 +1,56 @@
+/* Josh OS system layer: loaded last on every page (main app, Tasks, Lessons, Admin).
+   Puts the older screens on the tokens and shares the phone navigation.
+   Findings and reasons: docs/design/critique-2026-11-07.md, "Whole app" section. */
+
+/* Type: body on the scale everywhere. */
+body{font-size:var(--fs-body);line-height:var(--lh-body)}
+h1{font-size:var(--fs-h1);line-height:var(--lh-tight)}
+.hint,.muted,.count,.subtitle{font-size:var(--fs-small)}
+
+/* Controls: one comfortable size for pointer, bigger for touch (Fitts's law). */
+button,.btn,select,input:not([type=checkbox]):not([type=radio]):not([type=color]){min-height:36px}
+button.small,.small,.chip-btn{min-height:32px}
+.rail-soon{font-weight:400;color:var(--faint);margin-left:var(--sp-1);text-transform:none;letter-spacing:0}
+
+/* Shared sidebar on the separate pages. */
+.shell-nav .rail-label{padding:var(--sp-4) 10px var(--sp-1)}
+.side .side-label .rail-soon,.appnav .navlabel .rail-soon{font-size:var(--fs-caption)}
+
+/* Phone tab bar (all pages) and the More sheet (separate pages). */
+.tabbar{display:none}
+.more-sheet{border:0;margin:auto auto 0;width:100%;max-width:520px;border-radius:var(--r-lg) var(--r-lg) 0 0;padding:var(--sp-4) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom));background:var(--bg);color:var(--text);box-shadow:var(--shadow)}
+.more-sheet::backdrop{background:rgba(0,0,0,.35)}
+.more-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-2)}
+.more-head b{font-family:var(--display);font-size:var(--fs-sub)}
+.more-label{font-size:var(--fs-caption);font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:var(--sp-4) 0 var(--sp-2)}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2)}
+.more-grid a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-1);min-height:72px;border-radius:var(--r-md);background:var(--tag);color:var(--text);text-decoration:none;font-size:var(--fs-small);font-weight:500;text-align:center;padding:var(--sp-2)}
+.more-grid a.active{box-shadow:0 0 0 2px var(--ink)}
+.more-grid svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5}
+
+@media (max-width:760px){
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg);border-top:1px solid var(--line);padding:var(--sp-1) var(--sp-1) calc(var(--sp-1) + env(safe-area-inset-bottom))}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;padding:0;border:0;border-radius:var(--r-md);background:none;box-shadow:none;font:500 var(--fs-caption)/1.2 var(--font);color:var(--muted);text-decoration:none}
+  .tab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5}
+  .tab.active{color:var(--ink);font-weight:700}
+  .tab.active svg{stroke-width:1.9}
+  /* Touch targets: 44px minimum. */
+  button,.btn,select,input:not([type=checkbox]):not([type=radio]):not([type=color]),.nav,.side-link{min-height:44px}
+  button.small,.small,.chip-btn{min-height:40px}
+  /* Long tab rows scroll sideways instead of clipping. */
+  .tabs,.segmented,.ev-filters,.email-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar,.segmented::-webkit-scrollbar{display:none}
+  .tabs>*,.segmented>*,.ev-tabs>*{flex:none}
+  .ev-tabs{overflow-x:auto;flex-wrap:nowrap;max-width:100%;scrollbar-width:none}
+  .ev-tools{flex-wrap:wrap;max-width:100%}
+  .ev-tabs,.ev-tools{min-width:0}
+  .ev-tabs~*,.ev-tools{margin-left:0}
+  /* Older pages set their own small heights; on touch screens the 44px minimum wins. */
+  main summary,.main summary,#page summary{min-height:44px;display:flex;align-items:center}
+  main select,main button:not(.tab):not(.desk-item):not(.week-item):not(.rail-page),.main select,.main button,#page select,#page button{min-height:44px!important}
+  /* Separate pages: hide their sidebars, the tab bar takes over. */
+  body.has-tabbar aside.rail,body.has-tabbar aside.side,body.has-tabbar #side{display:none!important}
+  body.has-tabbar main,body.has-tabbar .main,body.has-tabbar #page{margin-left:0!important;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+  body.has-tabbar .app{grid-template-columns:1fr!important}
+}
+@media (min-width:761px){.tabbar{display:none!important}}

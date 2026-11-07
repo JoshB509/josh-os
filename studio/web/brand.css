@@ -58,7 +58,7 @@ button{border-radius:8px}
 
 /* Sidebar, matching Admin: quiet links, bold active item with a gold marker. */
 .rail,#side{background:var(--side);border-right:1px solid var(--line)}
-.rail-label,.track,.appnav .navlabel{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:20px 12px 6px}
+.rail-label,.track,.appnav .navlabel{font-size:var(--fs-caption);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:20px 12px 6px}
 .nav,.appnav a{position:relative;min-height:32px;padding:0 12px;gap:12px;color:var(--muted);font-weight:500}
 .nav svg,.appnav a svg{color:var(--faint)}
 .nav:hover,.appnav a:hover{background:var(--hover);color:var(--ink)}

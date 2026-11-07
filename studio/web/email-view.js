@@ -261,5 +261,5 @@ renderCalendar=function(){slotOldCalendar();
   day.append(box);
  });
  const note=document.querySelector('#workspace .email-calendar-note');
- if(note)note.outerHTML=`<p class="slot-legend">${SLOT_TYPES.map(([t,l])=>`<span class="t-${t}"><i></i>${l}s</span>`).join('')}<span class="slot-legend-note">Saved video, email and task dates · UTC+04:00 · Calendar email moves stay local</span></p>`;
+ if(note)note.outerHTML=`<p class="slot-legend">${SLOT_TYPES.map(([t,l])=>`<span class="t-${t}"><i></i>${l}s</span>`).join('')}</p>`;
 };
