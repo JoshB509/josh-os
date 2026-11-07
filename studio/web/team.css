@@ -677,3 +677,9 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 }
 .tm-needs-label{flex-basis:100%;margin:0 0 2px;font-size:var(--fs-small);color:var(--ink);font-weight:600}
 .room-panel .room-row:has(> :nth-child(3):last-child){grid-template-columns:96px minmax(0,1fr) 12px}
+
+/* Josh's own chat messages: a dark bubble with light text in both themes (in dark mode --ink flips to light). */
+:root{--me-bg:#15171C;--me-ink:#FFFFFF}
+@media (prefers-color-scheme:dark){:root{--me-bg:#3A3F4B;--me-ink:#F4F4F2}}
+.room-msg.josh .room-bubble,.sam-msg.josh{background:var(--me-bg);color:var(--me-ink)}
+.room-msg.josh .room-bubble a,.sam-msg.josh a{color:inherit}
