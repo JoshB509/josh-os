@@ -7,6 +7,9 @@ from .kit import Kit,KitError,content_hash
 
 FIELDS={'subject','preview','body','planned_date','audience','status','tags','source_ids','notes','archived','description','type','send_time','kit','results'}
 # How a sent email did, read from Kit by Laia: recipients, opens, clicks, unsubscribes and the rates, plus when it was checked.
+# New emails from the creators Josh learns from, saved by Laia from Gmail after the first collection.
+ADDITIONS='additions.json'
+LIBRARY={'Jon Brosio':'JonBrosio','Ed Lawrence':'EdLawrence'}
 RESULT_KEYS={'recipients','opens','open_rate','clicks','click_rate','unsubscribes','new_people','kit_broadcast_id','checked_at'}
 # Draft: being written. Ready: Josh has agreed it and it can go to Kit.
 # Scheduled: it is in Kit. Published: Josh has checked it in Kit and scheduled it. Sent: it has gone out.
@@ -293,7 +296,7 @@ class Emails:
         if self._references is not None:return self._references
         refs={}
         topics={'Communication':['communicat','speak','presentat','meeting'],'Career':['career','promot','salary','job'],'Storytelling':['story','stories','narrative'],'Video':['youtube','video','filmmak'],'Writing':['writing','writer','newsletter'],'Business':['business','customer','client'],'Offer':['offer','discount','sale','buy'],'Mindset':['mindset','confidence','habit']}
-        for author,folder,file,bodykey,idkey,urlkey in [('Jon Brosio','JonBrosio','corpus.json','body','id','gmail_url'),('Ed Lawrence','EdLawrence','newsletters.json','body_text','message_id','source_gmail_url')]:
+        for author,folder,file,bodykey,idkey,urlkey in [('Jon Brosio','JonBrosio','corpus.json','body','id','gmail_url'),('Ed Lawrence','EdLawrence','newsletters.json','body_text','message_id','source_gmail_url'),('Jon Brosio','JonBrosio',ADDITIONS,'body','id','gmail_url'),('Ed Lawrence','EdLawrence',ADDITIONS,'body','id','gmail_url')]:
             path=self.root/'References/EmailExamples'/folder/file
             if not path.is_file():continue
             for r in json.loads(path.read_text(encoding='utf-8-sig')):
@@ -313,3 +316,29 @@ class Emails:
         r=self.references().get(rid)
         if r is None:raise KeyError('Source email not found')
         return r
+
+    def add_references(self,items):
+        """Save new creator emails to the library. Skips any already there by message id, Gmail link or subject and date."""
+        done=[]
+        known=self.references()
+        seen_ids={r['source_id'] for r in known.values()}|{r['id'].split(':',1)[-1] for r in known.values()}
+        seen_urls={r.get('source_url') for r in known.values() if r.get('source_url')}
+        seen_keys={(r['subject'].strip().lower(),str(r.get('date',''))[:10]) for r in known.values()}
+        for it in items or []:
+            if not isinstance(it,dict):continue
+            folder=LIBRARY.get(it.get('author'))
+            subject=str(it.get('subject','')).strip()[:500];body=str(it.get('body','')).strip()
+            mid=str(it.get('message_id') or it.get('id') or '').strip()[:200];url=str(it.get('gmail_url','')).strip()[:500];day=str(it.get('date','')).strip()[:40]
+            if not folder or not subject or len(body)<200 or not mid:
+                done.append(dict(title=subject,action='failed',kind='library',error='Needs the author (Ed Lawrence or Jon Brosio), message id, subject, date and the full body.'));continue
+            if mid in seen_ids or (url and url in seen_urls) or (subject.lower(),day[:10]) in seen_keys:
+                done.append(dict(title=subject,action='already saved',kind='library'));continue
+            path=self.root/'References/EmailExamples'/folder/ADDITIONS
+            rows=json.loads(path.read_text(encoding='utf-8')) if path.is_file() else []
+            rows.append(dict(id=mid,subject=subject,date=day,body=body[:100000],gmail_url=url,sender=str(it.get('sender',''))[:200],added_at=now(),added_by='laia'))
+            path.parent.mkdir(parents=True,exist_ok=True)
+            tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(rows,ensure_ascii=False,indent=1),encoding='utf-8');tmp.replace(path)
+            seen_ids.add(mid);seen_urls.add(url);seen_keys.add((subject.lower(),day[:10]))
+            done.append(dict(id=folder+':'+mid,title=subject,action='added',kind='library'))
+        self._references=None
+        return done

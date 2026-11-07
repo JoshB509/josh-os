@@ -166,7 +166,7 @@ function roomFormat(text){
   }).join('');
 }
 function roomTime(at){if(!at)return '';const d=new Date(at);if(isNaN(d))return '';return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function roomSavedItem(x){return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
+function roomSavedItem(x){if(x.kind==='library')return `<span class="room-saved-item">${x.action==='added'?'Saved to the library':x.action==='already saved'?'Already in the library':'Couldn’t save'}: ${esc(x.title)}${x.error?'. '+esc(x.error):''}</span>`;return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
 function roomSaved(list){
   const items=list.map(roomSavedItem).join('');
   if(list.length<=3)return `<div class="room-saved">${items}</div>`;

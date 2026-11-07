@@ -62,6 +62,9 @@ KIT_READ = tuple('mcp__claude_ai_Kit__' + t for t in (
     'get_link_clicks_for_a_broadcast', 'get_email_stats', 'get_growth_stats', 'list_sequences', 'get_sequence',
     'list_sequence_emails', 'get_sequence_email', 'list_tags', 'list_forms', 'list_segments', 'get_current_account'))
 KIT = {'laia': KIT_READ, 'max': KIT_READ}
+# Reading Gmail, only to collect new emails from the creators in the library. Nothing that sends, labels or deletes.
+GMAIL_READ = tuple('mcp__claude_ai_Gmail__' + t for t in ('search_threads', 'get_thread', 'get_message', 'list_labels'))
+GMAIL = {'laia': GMAIL_READ}
 EMAIL_PROPS = {
     'emails': {
         'type': 'array',
@@ -71,6 +74,15 @@ EMAIL_PROPS = {
             **{k: {'type': 'string'} for k in EMAIL_WRITE},
             'sent': {'type': 'boolean', 'description': 'True only when Kit shows this email has gone out.'},
             'results': {'type': 'object', 'description': 'How it did in Kit: recipients, opens, open_rate, clicks, click_rate, unsubscribes, new_people, kit_broadcast_id, checked_at.'}}},
+    },
+    'library': {
+        'type': 'array',
+        'description': 'New emails from Ed Lawrence or Jon Brosio to save to the email library. Full body text, one entry per email.',
+        'items': {'type': 'object', 'properties': {
+            'author': {'type': 'string', 'enum': ['Ed Lawrence', 'Jon Brosio']}, 'message_id': {'type': 'string'},
+            'subject': {'type': 'string'}, 'date': {'type': 'string'}, 'body': {'type': 'string'},
+            'gmail_url': {'type': 'string'}, 'sender': {'type': 'string'}},
+            'required': ['author', 'message_id', 'subject', 'date', 'body']},
     },
 }
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
@@ -130,6 +142,13 @@ TRAINING = {
         'embed': ['README.md', '01_house-style.md', '07_carousel-queue.md', '06_tracking-and-learning.md'],
         'read': ['02_carousels_lead-magnet-engine.md', '03_carousels_value-posts.md', '04_youtube-scheduling.md', '05_thumbnails.md'],
         'dirs': ['03_Community_Posts', '12_YouTube'],  # folders next to the training folder Sam may read
+    },
+    # Laia writes the emails. Her voice guide is loaded into every chat, and she reads the swipe files when she writes.
+    'laia': {
+        'embed': ['01_house-style.md'],
+        'embed_abs': [r'E:\CareerOS\09_Email\voice-and-sales-language.md'],
+        'read': [],
+        'dirs': ['09_Email'],
     },
     # Saskia reads the course content and programme downloadables, and any saskia_*.md training files Josh adds.
     'saskia': {
@@ -247,6 +266,9 @@ class Agents:
             f = folder / name
             if f.is_file():
                 parts += ['', f'=== Training: {name} ===', f.read_text(encoding='utf-8')]
+        for f in map(Path, spec.get('embed_abs', [])):
+            if f.is_file():
+                parts += ['', f'=== Training: {f.name} ===', f.read_text(encoding='utf-8')]
         extra = [n for n in spec['read'] if (folder / n).is_file()]
         extra += sorted(f.name for f in folder.glob(f'{agent_id}_*.md') if f.name not in extra) if folder.is_dir() else []
         if extra:
@@ -346,6 +368,18 @@ class Agents:
                '  actually gone out and how each email did: opens, clicks, link clicks and unsubscribes. Josh sometimes sends drafts',
                '  himself in Kit, so match sent broadcasts to drafts by subject and wording. When one has gone out, set sent true',
                '  with its real send date and save its results. Never create, change or send anything in Kit.',
+               '- Your writing material. Your voice guide is loaded above. When you write, read the files that fit the job in',
+               '  E:\\CareerOS\\09_Email: Swipe-Files/subject-lines.md, hooks-and-openers.md, ctas.md, email-angles.md,',
+               '  headline-formats.md, power-words.md, workshop-method.md, and parker-checkout-and-bumps.md for anything that sells.',
+               '  sales-page-patterns.md is the long form voice, and Sequences/ holds past sequences.',
+               '- The email library is every Ed Lawrence and Jon Brosio email we have, in References/EmailExamples in Josh OS',
+               '  (EdLawrence/newsletters.json and newsletters.md, JonBrosio/corpus.json, and additions.json in each). Before you',
+               '  draft, search it with Grep for how they handled a similar idea, subject or call to action.',
+               '- Keep the library up to date. When Josh asks, search Gmail (mcp__claude_ai_Gmail__search_threads, find it with',
+               '  ToolSearch) for emails from Ed Lawrence (hi@film-booth.com) and Jon Brosio since the newest one in the library,',
+               '  read each with get_message or get_thread, and save each newsletter in the "library" list with its full body text,',
+               '  message id, subject, date and Gmail link. Skip receipts, account notices and anything that is not a newsletter.',
+               '  Gmail is for reading only. Never send, label, archive, delete or draft anything there.',
                '- Learn from the results. Compare open rates by subject line style and click rates by where the link sits and how',
                '  it is worded, save what works as lessons, and use it in the next drafts.',
             '  When Josh asks you to write or rewrite an email, do it now and save it, rather than promising it for a later run.']
@@ -659,7 +693,7 @@ class Agents:
                 schema['properties'].update(EMAIL_PROPS)
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
-                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())), full=True)
+                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -668,6 +702,8 @@ class Agents:
                 saved += inspo.apply(found)
             if mails is not None and isinstance(answer.get('emails'), list):
                 saved += self.apply_emails(mails, answer['emails'])
+            if mails is not None and isinstance(answer.get('library'), list):
+                saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):
                 known = {e['id'] for e in edits}
                 feedback.mark([i for i in answer['edits_noted'] if i in known])
