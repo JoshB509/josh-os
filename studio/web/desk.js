@@ -160,7 +160,7 @@ async function renderTodayView(){
 function deskInject(){
   if(current)return;const id=DESKS[view];if(!id)return;
   if(view==='email'&&typeof emailCurrent!=='undefined'&&emailCurrent)return;
-  if(view==='carousels')return; // the queue and the dock cover Sam here
+  if(view==='carousels'||view==='email')return; // the queues and the dock cover Sam and Laia here
   const ws=$('#workspace');if(!ws||ws.querySelector('.desk'))return;
   if(!team){deskData().then(()=>{if(DESKS[view]===id&&!current)deskInject()});return}
   ws.insertAdjacentHTML('afterbegin',agentDesk(id,{compact:true,scope:view}));

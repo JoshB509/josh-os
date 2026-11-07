@@ -243,6 +243,7 @@ class Carousels:
                 continue
             u = {k: v for k, v in u.items() if v is not None}
             cid = u.pop('id', '') or ''
+            redo = u.pop('make_design', False) is True
             try:
                 if cid:
                     current = self.get(cid)
@@ -254,10 +255,14 @@ class Carousels:
                             merged[w] = dict(merged.get(w, {}), **(nums or {}))
                         u['results'] = merged
                     item = self.save(cid, {k: v for k, v in u.items() if k in FIELDS}, current['revision'])
-                    done.append(dict(id=item['id'], title=item['title'], action='updated'))
+                    if redo:
+                        item = self.make_design(cid)
+                    done.append(dict(id=item['id'], title=item['title'], action='designed' if redo else 'updated'))
                 else:
                     u.setdefault('owner', owner)
                     item = self.create({k: v for k, v in u.items() if k in FIELDS})
+                    if redo:
+                        item = self.make_design(item['id'])
                     done.append(dict(id=item['id'], title=item['title'], action='added'))
             except (ValueError, KeyError, Conflict) as e:
                 done.append(dict(id=cid, title=u.get('title', ''), action='failed', error=str(e).strip("'\"")))

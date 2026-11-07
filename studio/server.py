@@ -52,7 +52,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -165,7 +165,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/carousels':return self.send(s.carousels.all())
                 if path=='/api/phone':return self.send(s.phone.status(s.token))
                 if path=='/manifest.webmanifest':return self.send(s.phone.manifest(),mime='application/manifest+json')
-                if path in ('/emails.js','/emails.css','/email-view.js'):
+                if path in ('/emails.js','/emails.css','/email-view.js','/email-flow.js'):
                     p=Path(__file__).parent/'web'/path[1:]
                     return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/api/emails':return self.send(s.emails.all())

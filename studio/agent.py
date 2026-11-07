@@ -54,6 +54,17 @@ DESK_SCHEMA = {
     'properties': {'reply': {'type': 'string', 'description': 'What you say back to Josh, in your own voice.'}},
     'required': ['reply'],
 }
+# Team members who write the emails can save drafts and send dates from chat.
+EMAIL_WRITE = ('subject', 'preview', 'body', 'planned_date', 'send_time', 'notes', 'description')
+EMAIL_PROPS = {
+    'emails': {
+        'type': 'array',
+        'description': 'Emails to add or change in Josh OS. Leave empty when nothing needs saving.',
+        'items': {'type': 'object', 'properties': {
+            'id': {'type': 'string', 'description': 'Id of an existing email to change. Leave out to add a new draft.'},
+            **{k: {'type': 'string'} for k in EMAIL_WRITE}}},
+    },
+}
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
 LEARN_PROPS = {
     'edits_noted': {'type': 'array', 'items': {'type': 'string'},
@@ -78,6 +89,7 @@ CAROUSEL_SCHEMA = {
                     'hook': {'type': 'string'}, 'slides': {'type': 'string'}, 'caption': {'type': 'string'},
                     'notes': {'type': 'string'}, 'link': {'type': 'string'}, 'folder': {'type': 'string'},
                     'tags': {'type': 'object'}, 'results': {'type': 'object'},
+                    'make_design': {'type': 'boolean', 'description': 'True to make the Paper slide images again from the slides.'},
                 },
             },
         },
@@ -317,8 +329,16 @@ class Agents:
                '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
               if agent['id'] in LINKLR else []),
             *(self.carousel_rules() if 'carousels' in (agent.get('workflows') or []) else []),
-            *(['- You cannot edit files or Josh OS cards from this chat yet. When a card needs changing, tell Josh what to change.']
-              if agent['id'] in CHROME else
+            *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
+               '  entry changes an email when you give its id from the snapshot, or adds a new draft without one. You can change the',
+               '  subject, preview, body, planned_date (YYYY-MM-DD), send_time (HH:MM, Dubai), notes and description. Josh approves',
+               '  emails himself, so never change their status. Keep {{ subscriber.first_name }} and link wording as they are.',
+               '  When you re-plan dates, spread the emails across open days from tomorrow and tell Josh the new plan.',
+            '  When Josh asks you to write or rewrite an email, do it now and save it, rather than promising it for a later run.']
+              if 'email' in (agent.get('workflows') or []) and getattr(self, 'emails', None) is not None else []),
+            *(['- You cannot edit or run files from this chat, but you can change your cards and redo designs as described above.',
+               '  Do the work now in this chat rather than promising it for a later run.']
+              if agent['id'] in CHROME or 'email' in (agent.get('workflows') or []) else
               ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
                '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.']),
             "- Josh's edits to your work are how he teaches you. When your prompt lists changes he made, study what he changed",
@@ -356,6 +376,10 @@ class Agents:
             f"  Free text tags: {', '.join(sorted(TAG_TEXT))} (post_time like 21:00). True or false tags: {', '.join(sorted(TAG_FLAGS))}. slide_count is a whole number.",
             f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
             '  Tags and results you send are merged into what is already saved. Tell Josh in your reply what you saved.',
+            '- To make or redo a Paper post\'s slide images, set make_design true on that carousel (with any slide changes in the',
+            '  same entry). Josh OS draws them with the house template. You cannot edit render.py or any other file. If Josh wants',
+            '  the look itself changed (colours, sizes, layout), say what should change and that it needs a change to the template',
+            '  in Josh OS, which Josh can ask Claude Code to make.',
             '- The Creators tab on the same page holds the carousels we learn from (Ali Abdaal and Alex Hormozi). Save to it with',
             '  the "inspo" list. Each entry adds a post, or changes one when you give its id from the snapshot.',
             '  To add new posts, open the creator\'s Posts tab in Chrome (youtube.com/@aliabdaal/posts, youtube.com/@AlexHormozi/posts),',
@@ -388,6 +412,20 @@ class Agents:
                 lines.append(f"- {p['id']} | {p['creator']} | {p['date']} | {p.get('likes')} | {p.get('comments')} | "
                              f"{' '.join((p.get('hook') or '').split())[:70]} | {'tagged' if p.get('tags') else 'not tagged'}"
                              + (' | BREAKOUT' if p.get('breakout') else '') + (' | new thing' if p.get('new_thing') else ''))
+        mails = getattr(self, 'emails', None)
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), {})
+        if mails is not None and 'email' in (agent.get('workflows') or []):
+            from datetime import date as _d
+            today = _d.today().isoformat()
+            rows = [e for e in mails.all() if not e.get('archived')]
+            upcoming = sorted([e for e in rows if e.get('status') != 'Sent'], key=lambda e: e.get('planned_date') or '9999')
+            sent = sorted([e for e in rows if e.get('status') == 'Sent'], key=lambda e: e.get('planned_date') or '', reverse=True)[:8]
+            lines += ['', 'Emails in Josh OS. id | send date | time | status | subject (Draft = being written or waiting for Josh,',
+                      'Ready = Josh approved it, Scheduled or Published = in Kit, Sent = gone out). A Draft dated before today missed its date:']
+            for e in upcoming + sent:
+                lines.append(f"- {e['id']} | {e.get('planned_date') or 'no date'} | {e.get('send_time') or ''} | {e['status']}"
+                             + (' (missed its date)' if e['status'] == 'Draft' and e.get('planned_date') and e['planned_date'] < today else '')
+                             + f" | {e.get('subject', '')[:90]}")
         lines += ['', 'Videos in Josh OS:']
         videos = [p for p in self.store.projects() if not p.get('archived')]
         for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
@@ -541,6 +579,15 @@ class Agents:
                     'cards from this chat yet, so say what to change.\n'
                     + json.dumps(dict(name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
                                       notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:6000]), ensure_ascii=False, indent=1))
+        if kind == 'email' and getattr(self, 'emails', None) is not None:
+            try:
+                e = self.emails.get(cid)
+            except KeyError:
+                return ''
+            body = keep(e, ('id', 'subject', 'preview', 'body', 'planned_date', 'send_time', 'status', 'type', 'notes', 'links'))
+            return ('Josh has this email open right now, so "this" and "it" mean this one. To change it, send it in the "emails" '
+                    'list with this id. Keep any link wording exactly as it is unless he asks, since the tracked link is attached to '
+                    'those words.\n' + json.dumps(body, ensure_ascii=False, indent=1))
         if kind == 'page' and context.get('name'):
             return f"Josh is on the {str(context['name'])[:40]} page of Josh OS."
         return ''
@@ -593,6 +640,9 @@ class Agents:
                 parts += ['', f'Josh: {message}']
             schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
             schema['properties'].update(LEARN_PROPS)
+            mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
+            if mails is not None:
+                schema['properties'].update(EMAIL_PROPS)
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
                                      extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())], full=True)
@@ -602,6 +652,8 @@ class Agents:
             found = answer.get('inspo')
             if keeps and inspo is not None and isinstance(found, list):
                 saved += inspo.apply(found)
+            if mails is not None and isinstance(answer.get('emails'), list):
+                saved += self.apply_emails(mails, answer['emails'])
             if feedback and isinstance(answer.get('edits_noted'), list):
                 known = {e['id'] for e in edits}
                 feedback.mark([i for i in answer['edits_noted'] if i in known])
@@ -622,6 +674,26 @@ class Agents:
     def reflect(self, data, carousels, tracker=None, inspo=None):
         """Josh just edited a team member's work. They look at the changes and write to him first."""
         return self.chat(data, carousels, tracker, inspo, proactive=True)
+
+    def apply_emails(self, mails, updates):
+        """Email changes a team member asked for from chat. Status is left to Josh."""
+        done = []
+        for u in updates[:40]:
+            if not isinstance(u, dict):
+                continue
+            changes = {k: str(v) for k, v in u.items() if k in EMAIL_WRITE and v is not None}
+            eid = str(u.get('id') or '')
+            try:
+                if eid:
+                    current = mails.get(eid)
+                    item = mails.save(eid, changes, current['revision'])
+                    done.append(dict(id=item['id'], title=item.get('subject', ''), action='updated', kind='email'))
+                else:
+                    item = mails.create({'id': str(uuid.uuid4()), 'changes': changes})
+                    done.append(dict(id=item['id'], title=item.get('subject', ''), action='added', kind='email'))
+            except Exception as e:  # noqa: BLE001 - report every failure back to Josh in the chat
+                done.append(dict(id=eid, title=changes.get('subject', ''), action='failed', kind='email', error=str(e).strip("'\"")[:200]))
+        return done
 
     def keep_lessons(self, agent, lessons):
         """Save the rules a team member worked out from Josh's edits or answers to the shared lessons log."""
