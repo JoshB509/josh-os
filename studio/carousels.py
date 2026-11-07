@@ -8,8 +8,12 @@ on the E drive so the app can show them.
 Every carousel carries a short set of tags, each from a fixed list so posts can be
 grouped and compared, and results at 1 day and 7 days. Sam fills both in.
 """
+import hashlib
 import json
 import re
+import subprocess
+import sys
+import tempfile
 import uuid
 from datetime import date
 from pathlib import Path
@@ -18,7 +22,7 @@ from .store import Conflict, now
 STAGES = ['Idea', 'Drafting', 'Ready for review', 'Approved', 'Scheduled', 'Posted']
 PLATFORMS = ['YouTube Community', 'Instagram', 'LinkedIn', 'TikTok', 'Other']
 FIELDS = {'title', 'stage', 'platforms', 'post_date', 'hook', 'slides', 'caption', 'notes', 'link',
-          'project_id', 'owner', 'archived', 'folder', 'tags', 'results'}
+          'project_id', 'owner', 'archived', 'folder', 'tags', 'results', 'design'}
 LIMITS = {'title': 240, 'hook': 1000, 'slides': 30000, 'caption': 5000, 'notes': 20000, 'link': 1000,
           'owner': 40, 'folder': 500}
 
@@ -110,6 +114,8 @@ class Carousels:
             items = [self.defaults(json.loads(r['body'])) for r in c.execute('SELECT body FROM carousels ORDER BY rowid DESC')]
         for item in items:
             item['images'] = len(self.images(item))
+            words = (item.get('design') or {}).get('words')
+            item['design_stale'] = bool(words) and words != self.words_hash(item)
         return dict(items=items, stages=STAGES, platforms=PLATFORMS, tag_options=TAG_OPTIONS,
                     tag_text=sorted(TAG_TEXT), tag_flags=sorted(TAG_FLAGS), result_numbers=list(RESULT_NUMBERS))
 
@@ -118,6 +124,7 @@ class Carousels:
         item.setdefault('folder', '')
         item.setdefault('tags', {})
         item.setdefault('results', {})
+        item.setdefault('design', {})
         return item
 
     def get(self, cid):
@@ -179,6 +186,8 @@ class Carousels:
             self.store.get(item['project_id'])
         item['tags'] = clean_tags(item['tags'])
         item['results'] = clean_results(item['results'])
+        if not isinstance(item.get('design', {}), dict) or len(json.dumps(item.get('design', {}))) > 500:
+            raise ValueError('Design details must be a small set of values.')
 
     def create(self, data):
         if not isinstance(data, dict) or set(data) - FIELDS - {'id'}:
@@ -191,6 +200,7 @@ class Carousels:
                     notes=data.get('notes', ''), link=data.get('link', ''), project_id=data.get('project_id', ''),
                     owner=data.get('owner', 'sam'), archived=data.get('archived', False),
                     folder=data.get('folder', ''), tags=data.get('tags', {}), results=data.get('results', {}),
+                    design=data.get('design', {}),
                     created_at=now(), updated_at=now(), posted_at=None)
         self.validate(item)
         if item['stage'] == 'Posted':
@@ -252,3 +262,39 @@ class Carousels:
             except (ValueError, KeyError, Conflict) as e:
                 done.append(dict(id=cid, title=u.get('title', ''), action='failed', error=str(e).strip("'\"")))
         return done
+
+    # Design ----------------------------------------------------------------
+    @staticmethod
+    def words_hash(item):
+        return hashlib.sha1((item.get('slides') or '').strip().encode('utf-8')).hexdigest()[:12]
+
+    def make_design(self, cid):
+        """Render the slides in the Paper style into the post's folder and point the card at it."""
+        item = self.get(cid)
+        blocks = [b for b in re.split(r'\n-{3,}\n?', item.get('slides') or '') if b.strip()]
+        slides = [[line.strip() for line in b.strip().splitlines() if line.strip()] for b in blocks]
+        if not slides:
+            raise ValueError('Write the slides first, then make the design.')
+        current = self.folder(item)
+        if current and current.parent == SLIDE_ROOT / 'Carousel':
+            out = current
+        else:
+            slug = re.sub(r'[^a-z0-9]+', '-', item['title'].lower()).strip('-')[:60] or 'carousel'
+            out = SLIDE_ROOT / 'Carousel' / f"{item.get('post_date') or date.today().isoformat()}_{slug}"
+        job = Path(tempfile.mkdtemp()) / 'job.json'
+        job.write_text(json.dumps({'slides': slides, 'out': str(out)}), encoding='utf-8')
+        try:
+            run = subprocess.run([sys.executable, str(Path(__file__).with_name('render_carousel.py')), str(job)],
+                                 capture_output=True, text=True, encoding='utf-8', timeout=240,
+                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+        except subprocess.TimeoutExpired:
+            raise ValueError('Making the design took too long, so it stopped. Try again.') from None
+        if run.returncode != 0:
+            raise ValueError('The design could not be made: ' + ((run.stderr or run.stdout).strip().splitlines() or ['no details'])[-1][:300])
+        tags = dict(item['tags'], slide_count=len(slides))
+        tags.setdefault('style', 'Paper')
+        changes = dict(folder=str(out.relative_to(SLIDE_ROOT)), tags=tags,
+                       design=dict(style='Paper', words=self.words_hash(item), at=now()))
+        saved = self.save(cid, changes, item['revision'])
+        saved['images'] = len(self.images(saved))
+        return saved

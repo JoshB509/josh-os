@@ -300,6 +300,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/inspo' and method=='POST':return self.send(s.inspo.create(data))
             if path=='/api/inspo/import' and method=='POST':return self.send(s.inspo.import_folder(data['folder'],data['creator'],data.get('checked_at','')))
             if len(parts)==3 and parts[:2]==['api','inspo'] and method=='PUT':return self.send(s.inspo.save(parts[2],data['changes'],data['revision']))
+            if len(parts)==4 and parts[:2]==['api','carousels'] and parts[3]=='design' and method=='POST':return self.send(s.carousels.make_design(parts[2]))
             if path=='/api/carousels' and method=='POST':return self.send(s.carousels.create(data))
             if len(parts)==3 and parts[:2]==['api','carousels'] and method=='PUT':return self.send(s.carousels.save(parts[2],data['changes'],data['revision']))
             if len(parts)==3 and parts[:2]==['api','tasks'] and method=='PUT':return self.send(s.tasks.save(parts[2],data['changes'],data['revision']))

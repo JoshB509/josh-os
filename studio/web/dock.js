@@ -77,6 +77,7 @@ async function dockRefresh(){
 document.addEventListener('click',e=>{
   if(e.target.closest('[data-dock-toggle]')){dockOpen=!dockOpen;try{localStorage.setItem('dock-open',dockOpen?'1':'0')}catch{}dockRender();if(dockOpen)document.getElementById('dock-input')?.focus();return}
   const q=e.target.closest('[data-dock-quick]');if(q){dockSend(q.dataset.dockQuick);return}
+  const ask=e.target.closest('[data-dock-ask]');if(ask){dockOpen=true;try{localStorage.setItem('dock-open','1')}catch{}dockRender();dockSend(ask.dataset.dockAsk);return}
   if(e.target.closest('[data-dock-send]')){const i=document.getElementById('dock-input');const v=i.value;i.value='';dockSend(v);return}
   if(e.target.closest('[data-dock-retry]')){const m=dockError?.message;dockError=null;dockSend(m);return}
 });

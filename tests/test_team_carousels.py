@@ -104,7 +104,7 @@ class CarouselTests(unittest.TestCase):
         self.assertEqual(self.carousels.create({'id': cid, 'title': 'Double click'}), c)
         saved = self.carousels.save(cid, {'stage': 'Posted', 'link': 'https://instagram.com/p/1', 'post_date': '2026-11-09'}, 1)
         self.assertTrue(saved['posted_at'])
-        self.assertEqual(self.carousels.all()['items'], [dict(saved, images=0)])
+        self.assertEqual(self.carousels.all()['items'], [dict(saved, images=0, design_stale=False)])
         reopened = self.carousels.save(cid, {'stage': 'Approved'}, 2)
         self.assertIsNone(reopened['posted_at'])
 
