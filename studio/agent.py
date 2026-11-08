@@ -91,13 +91,22 @@ EMAIL_PROPS = {
 LESSON_PROPS = {
     'lessons': {
         'type': 'array',
-        'description': 'Changes to course lessons in Josh OS. Leave empty when nothing needs saving.',
+        'description': 'Changes to course lessons in Josh OS, and work to start on them. Leave empty when nothing needs saving.',
         'items': {'type': 'object', 'properties': {
-            'lesson_id': {'type': 'string', 'description': 'Id of the lesson from the snapshot.'},
-            'script': {'type': 'string', 'description': 'The whole script, when you rewrite it. Never a part of it.'},
+            'lesson_id': {'type': 'string', 'description': 'Id of the lesson from the snapshot. Leave it out to add a new lesson.'},
+            'course': {'type': 'string', 'enum': ['hatt', 'career', 'practical', 'data'], 'description': 'New lessons only. The course.'},
+            'number': {'type': 'string', 'description': 'New lessons only. The lesson number, like 3.5.'},
+            'part_name': {'type': 'string', 'description': 'New lessons only, and only for a new part. The part name.'},
+            'type': {'type': 'string', 'description': 'New lessons only. Lesson, Exercise or Download. Lesson if unsure.'},
+            'title': {'type': 'string', 'description': 'The lesson title, to rename it or for a new lesson.'},
+            'minutes': {'type': 'number', 'description': 'Planned length in minutes.'},
+            'script': {'type': 'string', 'description': 'The whole script, when you write or rewrite it. Never a part of it.'},
             'prep': {'type': 'string', 'description': 'Preparation notes for the lesson.'},
-            'notes': {'type': 'string', 'description': 'A short note on what changed and why.'}},
-            'required': ['lesson_id']},
+            'notes': {'type': 'string', 'description': 'A short note on what changed and why.'},
+            'stage': {'type': 'string', 'description': 'Move the lesson to this stage. Josh OS refuses a move its gates block.'},
+            'start': {'type': 'string', 'enum': ['prepare', 'draft', 'slides', 'guide', 'thumbnail'],
+                      'description': 'Start this piece of work on the lesson now. It runs on this PC after your reply.'},
+            'start_note': {'type': 'string', 'description': 'What Josh asked for, passed to the job.'}}},
     },
 }
 # What Saskia sends back from a lesson job (prepare, draft, slides, guide or thumbnail).
@@ -222,6 +231,7 @@ CAROUSEL_SCHEMA = {
     },
     'required': ['reply'],
 }
+MAX_CHAT_IMAGES = 6
 DESK = 'desk'  # thread key for the general chat on a team member's page
 
 # Training files each team member works from. The folder can be moved with "training_dir" in settings.json.
@@ -331,6 +341,37 @@ class Agents:
             items = items[-80:]
             c.execute('INSERT OR REPLACE INTO agent_threads VALUES(?,?,?)', (project_id, agent_id, json.dumps(items)))
         return items
+
+    def chat_images(self, data):
+        """The images Josh attached to a chat message, as saved asset ids. Unknown ids are an error."""
+        ids = data.get('images') or []
+        if not isinstance(ids, list) or len(ids) > MAX_CHAT_IMAGES:
+            raise ValueError(f'Attach up to {MAX_CHAT_IMAGES} images to one message.')
+        out = []
+        for aid in ids:
+            try:
+                self.store.asset(str(aid))
+            except (ValueError, TypeError):
+                raise ValueError('One of those images is no longer saved. Attach it again.') from None
+            if str(aid) not in out:
+                out.append(str(aid))
+        return out
+
+    def image_lines(self, ids):
+        paths = []
+        for aid in ids:
+            try:
+                paths.append(str(self.store.asset(aid)[0]))
+            except ValueError:
+                continue
+        return paths
+
+    def history_line(self, m):
+        who = 'Josh' if m['role'] == 'josh' else 'You'
+        line = f"{who}: {m['text']}"
+        if m.get('images'):
+            line += ' [attached images, which you can open with Read: ' + ', '.join(self.image_lines(m['images'])) + ']'
+        return line
 
     def status(self):
         path = find_claude(self.root)
@@ -496,9 +537,23 @@ class Agents:
                '  it is worded, save what works as lessons, and use it in the next drafts.',
             '  When Josh asks you to write or rewrite an email, do it now and save it, rather than promising it for a later run.']
               if 'email' in (agent.get('workflows') or []) and getattr(self, 'emails', None) is not None else []),
+            *(['- The Lessons page in Josh OS is the record for every course lesson, and you change it from this chat with the',
+               '  "lessons" list in your answer. Each entry names a lesson_id from the snapshot. You can rename it (title), set minutes,',
+               '  write or rewrite the whole script, save preparation notes and notes, and move its stage. Leave lesson_id out and give',
+               '  course, number and title to add a new lesson (part_name only when it starts a new part).',
+               '- Start the real work with "start" on a lesson. prepare gathers what the lesson needs, draft writes the script, slides',
+               '  builds the deck, guide makes the lesson guide PDF, and thumbnail makes the thumbnail. Each one runs on this PC right',
+               '  after your reply, two at a time, and the rest wait their turn. Josh sees progress on each lesson. Put what he asked',
+               '  for in start_note. Slides need the script Josh approved, and draft needs preparation notes or a start_note saying',
+               '  what to cover. Josh approves scripts himself, so never claim a script is approved.',
+               '- When Josh asks you to make, change, rename or add lessons, do it in this answer. Never promise it for a later run.',
+               '  Only say something is done or started when it is in this answer, and say so plainly if Josh OS refuses it.']
+              if 'courses' in (agent.get('workflows') or []) and getattr(self, 'courses', None) is not None else []),
             *(['- You cannot edit or run files from this chat, but you can change your cards and redo designs as described above.',
                '  Do the work now in this chat rather than promising it for a later run.']
               if agent['id'] in CHROME or 'email' in (agent.get('workflows') or []) else
+              ['- Your lesson work happens through the Lessons page as described above. Anything else you can only read from here.']
+              if 'courses' in (agent.get('workflows') or []) and getattr(self, 'courses', None) is not None else
               ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
                '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.']),
             "- Josh's edits to your work are how he teaches you. When your prompt lists changes he made, study what he changed",
@@ -628,19 +683,35 @@ class Agents:
         return '\n'.join(lines)
 
     def apply_lessons(self, courses, updates):
+        """Lesson changes Saskia made from chat: new lessons, edits, stage moves and work started. Approval stays with Josh."""
         done = []
-        for u in (updates or [])[:10]:
+        for u in (updates or [])[:40]:
             if not isinstance(u, dict):
                 continue
-            lid = str(u.get('lesson_id') or '')
+            lid, title = str(u.get('lesson_id') or ''), str(u.get('title') or '')
             try:
+                fields = ('script', 'prep', 'notes', 'title', 'minutes')
+                if not lid:
+                    made = courses.create(dict(course=u.get('course'), number=u.get('number'), title=u.get('title'),
+                                               part_name=u.get('part_name'), type=u.get('type'), minutes=u.get('minutes')))
+                    lid = made['id']
+                    done.append(dict(id=lid, title=f"{made['number']} {made['title']}", action='added', kind='lesson'))
+                    fields = ('script', 'prep', 'notes')
                 current = courses.get(lid)
-                changes = {k: u[k] for k in ('script', 'prep', 'notes') if isinstance(u.get(k), str) and u[k].strip()}
+                changes = {k: u[k] for k in fields if k in u and u[k] not in (None, '') and (k == 'minutes' or (isinstance(u[k], str) and u[k].strip()))}
                 if changes:
-                    courses.save(lid, changes, current['revision'])
-                done.append(dict(id=lid, title=f"{current['number']} {current['title']}", action='updated', kind='lesson'))
+                    current = courses.save(lid, changes, current['revision'])
+                title = f"{current['number']} {current['title']}"
+                if changes and u.get('lesson_id'):
+                    done.append(dict(id=lid, title=title, action='updated', kind='lesson'))
+                if u.get('stage') and u['stage'] != current['stage']:
+                    current = courses.move(lid, str(u['stage']), current['revision'])
+                    done.append(dict(id=lid, title=title, action='moved', kind='lesson', stage=current['stage']))
+                if u.get('start'):
+                    courses.start(lid, str(u['start']), str(u.get('start_note') or ''))
+                    done.append(dict(id=lid, title=title, action='started', kind='lesson', task=str(u['start'])))
             except Exception as e:  # noqa: BLE001 - every failure is shown in the chat
-                done.append(dict(id=lid, title='', action='failed', kind='lesson', error=str(e).strip("'\"")[:200]))
+                done.append(dict(id=lid, title=title, action='failed', kind='lesson', error=str(e).strip("'\"")[:200]))
         return done
 
     def course_job(self, lesson, task, note, content_dir):
@@ -858,7 +929,8 @@ class Agents:
             raise ValueError('Invalid request.')
         agent_id = data.get('agent_id', '')
         message = '' if proactive else str(data.get('message', '')).strip()
-        if not proactive and (not message or len(message) > 4000):
+        images = [] if proactive else self.chat_images(data)
+        if not proactive and (not (message or images) or len(message) > 4000):
             raise ValueError('Write a message, up to 4,000 characters.')
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         if not agent:
@@ -882,7 +954,7 @@ class Agents:
             if history:
                 parts += ['', 'Earlier in this conversation:']
                 for m in history[-12:]:
-                    parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
+                    parts.append(self.history_line(m))
             focus = self.focus(data.get('context'), carousels, inspo)
             if focus:
                 parts += ['', focus]
@@ -896,7 +968,12 @@ class Agents:
                           'you change X to Y? Was it to ...?". Do not ask about typo fixes. Put every edit id you covered in '
                           'edits_noted, and save any rule that is already clear in lessons.']
             else:
-                parts += ['', f'Josh: {message}']
+                parts += ['', f"Josh: {message or '(no text, just the images below)'}"]
+                if images:
+                    parts += ['', 'Josh attached these images to this message. Open every one with Read and look at it before you answer:']
+                    parts += self.image_lines(images)
+            if images or any(m.get('images') for m in history[-12:]):
+                dirs = list(dirs) + [str(self.store.root / 'assets')]
             schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
             schema['properties'].update(LEARN_PROPS)
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
@@ -908,7 +985,8 @@ class Agents:
             courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
             if courses is not None:
                 schema['properties'].update(LESSON_PROPS)
-                dirs = list(dirs) + [str(self.store.root / 'assets')]
+                if str(self.store.root / 'assets') not in dirs:
+                    dirs = list(dirs) + [str(self.store.root / 'assets')]
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
                                      extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True)
@@ -941,6 +1019,8 @@ class Agents:
             theirs['asked'] = True
             return dict(messages=self._append(DESK, agent_id, theirs), reply=theirs)
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
+        if images:
+            mine['images'] = images
         return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)
 
     def reflect(self, data, carousels, tracker=None, inspo=None):

@@ -66,7 +66,7 @@ function renderCourseLesson(){
     <section class="ls-now">
       <div><p class="ls-next">${coursePill(l.stage)} ${esc(l.next)}</p>
         ${l.stale?'<p class="ls-warn">The script changed after you approved it, so it needs approving again before slides.</p>':''}
-        ${job?`<p class="ls-job ${esc(job.status)}">${job.status==='running'?`<span class="dots"><i></i><i></i><i></i></span> Saskia is working on ${esc((COURSE_TASKS.find(t=>t[0]===job.task)||[,'it'])[1].toLowerCase())}. This can take a while for slides.`:job.status==='failed'?`Saskia got stuck. ${esc(job.message||'')}`:esc(job.message||'Saskia finished.')}</p>`:''}
+        ${job?`<p class="ls-job ${esc(job.status)}">${job.status==='running'?`<span class="dots"><i></i><i></i><i></i></span> ${job.waiting?`${esc((COURSE_TASKS.find(t=>t[0]===job.task)||[,'This'])[1])} is waiting its turn. Saskia works on two lessons at a time.`:`Saskia is working on ${esc((COURSE_TASKS.find(t=>t[0]===job.task)||[,'it'])[1].toLowerCase())}. This can take a while for slides.`}`:job.status==='failed'?`Saskia got stuck. ${esc(job.message||'')}`:esc(job.message||'Saskia finished.')}</p>`:''}
         ${pub&&pub.status!=='done'?`<p class="ls-job ${esc(pub.status)}">${pub.status==='copying'?'<span class="dots"><i></i><i></i><i></i></span> Copying the files to Google Drive.':`Publishing failed. ${esc(pub.message||'')}`}</p>`:''}</div>
       <div class="ls-acts">${act?`<button class="primary" data-course-act="${esc(act[0])}" ${courseBusyNow(l)?'disabled':''}>${esc(act[1])}</button>`:''}
         <label class="ls-move"><span>Move to</span><select data-course-move aria-label="Move to stage">${courses.stages.map(s=>`<option ${s===l.stage?'selected':''} ${s==='Published'?'disabled':''}>${esc(s)}</option>`).join('')}</select></label></div>
@@ -179,3 +179,6 @@ if(typeof viewNames==='object')viewNames.courses='Lessons';
 const coursesBaseRender=render;
 render=function(){if(!current&&view==='courses')return renderCourses();if(view!=='courses'){courseOpen=null;clearInterval(coursePoll)}return coursesBaseRender()};
 if(typeof initialView==='string'&&initialView==='lessons-board'){view='courses';refresh().then(render).catch(()=>{})}
+
+// Lessons saved from a chat open their page from anywhere in Josh OS.
+document.addEventListener('click',async e=>{const t=e.target.closest?.('[data-lesson-go]');if(!t)return;e.preventDefault();try{if(typeof current!=='undefined')current=null;if(typeof teamOpen!=='undefined')teamOpen=null;view='courses';history.replaceState(null,'','/#lessons-board');courses=null;await courseFetch(t.dataset.lessonGo);courseTab='script';await render();scrollTo(0,0)}catch(err){toast(err.message,true)}});

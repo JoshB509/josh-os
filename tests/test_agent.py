@@ -78,6 +78,27 @@ class AgentTests(unittest.TestCase):
         self.ask(message='And the next line?')
         self.assertIn('Earlier in this conversation', json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
 
+    def test_josh_can_send_images_in_a_team_chat(self):
+        import base64, io
+        from PIL import Image
+        self.fake()
+        buf = io.BytesIO()
+        Image.new('RGB', (8, 8), 'red').save(buf, 'PNG')
+        aid = self.store.import_image('shot.png', buf.getvalue())['asset']
+        out = self.agents.chat(dict(agent_id='sam', message='', images=[aid]), [])
+        call = json.loads(self.log.read_text(encoding='utf-8'))
+        path = str(self.store.asset(aid)[0])
+        self.assertIn('Josh attached these images', call['prompt'])
+        self.assertIn(path, call['prompt'])
+        self.assertIn(str(self.store.root / 'assets'), call['args'])
+        self.assertEqual(out['messages'][-2]['images'], [aid])
+        self.agents.chat(dict(agent_id='sam', message='And the second one?'), [])
+        self.assertIn('[attached images, which you can open with Read: ' + path, json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
+        with self.assertRaises(ValueError):
+            self.agents.chat(dict(agent_id='sam', message='Look', images=['0' * 64]), [])
+        with self.assertRaises(ValueError):
+            self.agents.chat(dict(agent_id='sam', message='', images=[]), [])
+
     def test_anouk_reads_her_own_section_of_the_real_personalities_file(self):
         from studio.agent import personality
         repo = Path(__file__).resolve().parent.parent

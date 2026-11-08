@@ -159,6 +159,42 @@ class CourseLessonTests(unittest.TestCase):
         self.assertEqual((a['stage'], a['job']['status'], a['cues']), ('Ready to record', 'done', True), a['job'])
         self.assertIn('CHANGE 1', self.c.cues('aaa'))
 
+    def test_saskia_adds_renames_and_starts_work_from_chat(self):
+        import threading
+        from studio.agent import Agents
+        gate = threading.Event()
+        def slow(lesson):
+            gate.wait(5)
+            return dict(prep='## Notes. The whole offer.')
+        self.c.agents = FakeAgents({'prepare': slow})
+        agents = Agents.__new__(Agents)
+        done = agents.apply_lessons(self.c, [
+            dict(course='hatt', number='3.5', title='Negotiating the offer', start='prepare', start_note='Cover the whole offer'),
+            dict(lesson_id='aaa', title='Situation, complication and resolution'),
+            dict(lesson_id='bbb', start='prepare'),
+            dict(lesson_id='ccc', start='prepare'),
+            dict(lesson_id='bbb', stage='Published'),
+            dict(course='hatt', number='3.4', title='Twice')])
+        actions = [(d['action'], d['title']) for d in done]
+        new = done[0]['id']
+        self.assertEqual(actions[0], ('added', '3.5 Negotiating the offer'))
+        self.assertIn(('started', '3.5 Negotiating the offer'), actions)
+        self.assertIn(('updated', '3.3 Situation, complication and resolution'), actions)
+        self.assertEqual([d['action'] for d in done[-2:]], ['failed', 'failed'])
+        added = self.c.get(new)
+        self.assertEqual((added['part_name'], added['stage']), ('Building the presentation', 'Preparing'))
+        # Two jobs run at a time, so the third waits its turn.
+        for _ in range(100):
+            if any((self.c.get(x)['job'] or {}).get('waiting') for x in (new, 'bbb', 'ccc')):
+                break
+            time.sleep(0.02)
+        self.assertEqual(sum(bool(self.c.get(x)['job'].get('waiting')) for x in (new, 'bbb', 'ccc')), 1)
+        gate.set()
+        for x in (new, 'bbb', 'ccc'):
+            self.wait(x)
+        self.assertEqual({self.c.get(x)['job']['status'] for x in (new, 'bbb', 'ccc')}, {'done'})
+        self.assertIn((new, 'prepare', 'Cover the whole offer'), self.c.agents.calls)
+
     def test_a_slide_file_outside_the_course_folder_is_refused(self):
         stray = self.root / '3.3_2026-11-08_v01_x_slides.html'
         stray.write_text('<html></html>', encoding='utf-8')

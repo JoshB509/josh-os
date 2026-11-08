@@ -692,3 +692,19 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 .ef-orig-link{font-size:var(--fs-caption);color:var(--muted)}
 .ef-pick{margin:0 0 var(--sp-3)}
 @media (max-width:1000px){.ef-body.ef-compare{grid-template-columns:1fr}}
+
+/* Images in team chats */
+.sam-input .chat-clip{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:var(--r-md);background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.sam-input .chat-clip:hover:not(:disabled){color:var(--ink);background:var(--hover)}
+.chat-clip svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.chat-attach{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+.chat-thumb{position:relative;width:64px;height:64px;border-radius:var(--r-md);overflow:hidden;background:var(--tag);box-shadow:var(--card-shadow)}
+.chat-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.chat-thumb.loading{display:grid;place-items:center;font-size:11px;color:var(--muted)}
+.chat-thumb button{position:absolute;top:3px;right:3px;width:20px;height:20px;padding:0;border-radius:50%;font-size:10px;line-height:20px;background:rgba(12,13,16,.75);color:#fff}
+.room-compose.chat-over,.dock-compose.chat-over{box-shadow:inset 0 0 0 2px #f5c21b}
+.chat-images{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.chat-images:last-child{margin-bottom:0}
+.chat-images a{display:block;border-radius:8px;overflow:hidden;max-width:100%}
+.chat-images img{display:block;max-width:220px;max-height:180px;object-fit:cover}
+.chat-images a:only-child img{max-width:100%;max-height:260px}

@@ -99,6 +99,7 @@ class CourseLessons:
         self.store, self.root, self.recording = store, Path(root), recording
         self.lock = threading.Lock()
         self.jobs = {}  # lesson id -> thread, for Saskia's work and publishing
+        self.slots = threading.Semaphore(JOB_SLOTS)  # Saskia's jobs run two at a time and the rest wait
         self.agents = None  # set by the server once the team is ready
         with store.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS course_lessons(id TEXT PRIMARY KEY,course TEXT NOT NULL,body TEXT NOT NULL)')
@@ -525,6 +526,10 @@ class CourseLessons:
         return l
 
     def _work(self, lid, task, note):
+        if not self.slots.acquire(blocking=False):
+            self._waiting(lid, True)
+            self.slots.acquire()
+            self._waiting(lid, False)
         try:
             l = self.get(lid)
             reply, answer = self.agents.course_job(l, task, note, self.content_dir())
@@ -532,6 +537,49 @@ class CourseLessons:
             self._finish(lid, 'done', (reply or '') + (('\n\n' + message) if message else ''))
         except Exception as e:  # noqa: BLE001 - every failure is shown on the lesson
             self._finish(lid, 'failed', str(e)[:600])
+        finally:
+            self.slots.release()
+
+    def _waiting(self, lid, waiting):
+        with self.lock:
+            l = self._get(lid)
+            if l.get('job'):
+                l['job'] = dict(l['job'], waiting=waiting)
+                self._put(l)
+
+    def create(self, data):
+        """A new lesson, added by Josh or by Saskia from chat. It starts as Planned."""
+        course = data.get('course')
+        if course not in COURSES:
+            raise ValueError('Choose one of the four courses for the new lesson.')
+        number = str(data.get('number') or '').strip()
+        if not re.fullmatch(r'[A-Z]?\d{1,2}(\.\d{1,2})?', number):
+            raise ValueError('Give the new lesson a number like 3.5.')
+        title = _text(str(data.get('title') or '').strip(), TEXT['title'], 'Title')
+        if not title:
+            raise ValueError('Give the new lesson a title.')
+        part = number.split('.')[0]
+        with self.lock:
+            same = [x for x in self._all() if x['course'] == course]
+            if any(x['number'] == number for x in same):
+                raise ValueError(f'{COURSES[course]["name"]} already has a lesson {number}.')
+            known = next((x['part_name'] for x in same if x['part'] == part and x.get('part_name')), '')
+            part_name = known or _text(str(data.get('part_name') or '').strip(), 200, 'Part name')
+            minutes = data.get('minutes')
+            if isinstance(minutes, bool) or not isinstance(minutes, (int, float)) or not 0 < minutes < 120:
+                minutes = None
+            l = dict(id=f'{course}-{number}-{uuid.uuid4().hex[:6]}', course=course, number=number, part=part, part_name=part_name,
+                     title=title, type=str(data.get('type') or 'Lesson')[:40], minutes=minutes, order=len(same),
+                     stage='Planned', notion_stage='', source_url='', script='', script_hash='', approved=None, prep='',
+                     notes='', video='', history=[dict(at=now(), stage='Planned', why='Added.')], job=None, publish=None,
+                     slides_check=None, created_at=now())
+            l = self._put(l)
+        if self.recording is not None:
+            try:
+                self.link_recording()
+            except Exception:  # noqa: BLE001 - the recording page catches up on the next start
+                pass
+        return self.get(l['id'])
 
     def _finish(self, lid, status, message):
         with self.lock:
@@ -687,6 +735,7 @@ class CourseLessons:
 
 # The work Saskia can be asked to do on a lesson, the stage the lesson sits in while she does it,
 # and the training file she follows.
+JOB_SLOTS = 2
 TASKS = {
     'prepare': dict(label='Prepare the lesson', stage='Preparing', training='08_lessons_writing.md'),
     'draft': dict(label='Draft the script', stage='Drafting', training='08_lessons_writing.md'),

@@ -44,7 +44,8 @@ function dockRender(){
       ${dockError?`<p class="room-failed">Didn't go through. ${esc(dockError.error)} <button class="link" data-dock-retry>Try again</button></p>`:''}</div>
     <div class="dock-compose">
       <div class="room-chips">${dockQuick(ctx).map(q=>`<button class="chip-btn" data-dock-quick="${esc(q)}" ${busy?'disabled':''}>${esc(q)}</button>`).join('')}</div>
-      <div class="sam-input"><textarea id="dock-input" rows="1" placeholder="${ctx?.kind==='carousel'?'Ask for a change to this post':`Message ${esc(a.name)}`}"></textarea><button class="primary" data-dock-send ${busy?'disabled':''} aria-label="Send">Send</button></div>
+      ${chatAttachStrip('dock')}
+      <div class="sam-input">${chatAttachButton('dock',false)}<textarea id="dock-input" rows="1" placeholder="${ctx?.kind==='carousel'?'Ask for a change to this post':`Message ${esc(a.name)}`}"></textarea><button class="primary" data-dock-send ${busy?'disabled':''} aria-label="Send">Send</button></div>
     </div></section>`;
   const i=document.getElementById('dock-input');if(i){i.value=draft;roomGrow(i);if(focused)i.focus()}
   const t=document.getElementById('dock-thread');if(t)t.scrollTop=t.scrollHeight;
@@ -55,18 +56,21 @@ async function dockLoad(id){
   try{roomThread[id]=await api(`/api/agents/thread?project=desk&agent=${encodeURIComponent(id)}`)}catch{roomThread[id]=roomThread[id]||[]}
   roomLoaded[id]=true;dockRender();
 }
-async function dockSend(message){
-  message=(message||'').trim();const id=dockAgentId();if(!message||roomBusy)return;
+async function dockSend(message,images=null){
+  message=(message||'').trim();const id=dockAgentId();if(roomBusy)return;
+  if(chatUploading.dock&&!images){toast('Wait a moment for the images to finish adding.',true);return}
+  if(!message&&!(images||chatAttach.dock).length)return;
+  images=images||chatTake('dock');
   const ctx=dockContext();dockError=null;
   if(typeof carouselSaver!=='undefined')await carouselSaver.flush();
-  roomThread[id]=[...(roomThread[id]||[]),{id:'pending',role:'josh',text:message,at:new Date().toISOString()}];
+  roomThread[id]=[...(roomThread[id]||[]),{id:'pending',role:'josh',text:message,images,at:new Date().toISOString()}];
   roomBusy=id;dockStarted=Date.now();dockRender();
   clearInterval(dockTick);dockTick=setInterval(()=>{const c=document.getElementById('dock-clock');if(c)c.textContent=dockElapsed()},1000);
   try{
-    const r=await api('/api/agents/chat',{agent_id:id,message,context:ctx&&{kind:ctx.kind,id:ctx.id,name:ctx.name}});
+    const r=await api('/api/agents/chat',{agent_id:id,message,images,context:ctx&&{kind:ctx.kind,id:ctx.id,name:ctx.name}});
     roomThread[id]=r.messages;
     if(r.reply?.saved?.length)await dockRefresh();
-  }catch(e){roomThread[id]=(roomThread[id]||[]).filter(m=>m.id!=='pending');dockError={error:e.message,message}}
+  }catch(e){roomThread[id]=(roomThread[id]||[]).filter(m=>m.id!=='pending');dockError={error:e.message,message,images}}
   finally{clearInterval(dockTick);roomBusy=null;dockRender()}
 }
 // After the agent saves something, show the change on the page Josh is looking at.
@@ -83,7 +87,7 @@ document.addEventListener('click',e=>{
   const q=e.target.closest('[data-dock-quick]');if(q){dockSend(q.dataset.dockQuick);return}
   const ask=e.target.closest('[data-dock-ask]');if(ask){dockOpen=true;try{localStorage.setItem('dock-open','1')}catch{}dockRender();dockSend(ask.dataset.dockAsk);return}
   if(e.target.closest('[data-dock-send]')){const i=document.getElementById('dock-input');const v=i.value;i.value='';dockSend(v);return}
-  if(e.target.closest('[data-dock-retry]')){const m=dockError?.message;dockError=null;dockSend(m);return}
+  if(e.target.closest('[data-dock-retry]')){const m=dockError?.message,im=dockError?.images||[];dockError=null;dockSend(m,im);return}
 });
 document.addEventListener('keydown',e=>{
   if(e.target.id==='dock-input'&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(roomBusy)return;const v=e.target.value;e.target.value='';roomGrow(e.target);dockSend(v)}

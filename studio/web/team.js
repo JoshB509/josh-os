@@ -137,7 +137,7 @@ function roomQuick(a){return a.id==='sam'?['What are you working on?','How far a
 function roomElapsed(){const t=Math.max(0,Math.round((Date.now()-roomStarted)/1000));return `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`}
 function roomChat(a){
   const msgs=roomThread[a.id]||[],busy=roomBusy===a.id,off=roomStatus&&!roomStatus.available,later=a.status==='Coming later';
-  const can={sam:'Reads your files and training, makes and changes carousels, and uses Chrome to post and check stats',laia:'Reads Kit and your files, and writes, edits and re-plans emails'}[a.id]||'Reads your files and training, but can’t change anything from here';
+  const can={sam:'Reads your files and training, makes and changes carousels, and uses Chrome to post and check stats',laia:'Reads Kit and your files, and writes, edits and re-plans emails',saskia:'Reads your files and training, adds and changes lessons, and starts drafts, slides, guides and thumbnails'}[a.id]||'Reads your files and training, but can’t change anything from here';
   const st=later?['later','Starts later']:off?['off','Offline']:busy?['busy','Working']:['ready','Ready'];
   const quick=roomQuick(a),locked=off||later;
   const empty=`<div class="room-empty"><p>Ask ${esc(a.name)} what's in progress, talk through ideas, or give direction.</p>
@@ -148,8 +148,9 @@ function roomChat(a){
     ${off?`<p class="sam-off">${esc(roomStatus.help)}</p>`:''}
     <div class="room-compose">
       ${msgs.length&&!locked?`<div class="room-chips">${quick.map(q=>`<button class="chip-btn" data-room-quick="${esc(q)}" ${busy?'disabled':''}>${esc(q)}</button>`).join('')}</div>`:''}
-      <div class="sam-input"><textarea id="room-input" rows="1" placeholder="Message ${esc(a.name)}" ${locked?'disabled':''}></textarea><button class="primary" data-room-send ${locked||busy?'disabled':''} aria-label="Send to ${esc(a.name)}">Send</button></div>
-      <small class="room-hint">Enter sends. Shift and Enter adds a new line.</small>
+      ${chatAttachStrip('room')}
+      <div class="sam-input">${chatAttachButton('room',locked)}<textarea id="room-input" rows="1" placeholder="Message ${esc(a.name)}" ${locked?'disabled':''}></textarea><button class="primary" data-room-send ${locked||busy?'disabled':''} aria-label="Send to ${esc(a.name)}">Send</button></div>
+      <small class="room-hint">Enter sends. Shift and Enter adds a new line. Paste or drop images to attach them.</small>
     </div>`;
 }
 function deskSkeletonSafe(){return typeof deskSkeleton==='function'?deskSkeleton(2):''}
@@ -166,7 +167,7 @@ function roomFormat(text){
   }).join('');
 }
 function roomTime(at){if(!at)return '';const d=new Date(at);if(isNaN(d))return '';return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function roomSavedItem(x){if(x.kind==='video')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save the results for ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:results:${esc(x.id)}">Saved the results for ${esc(x.title)} <i>›</i></button>${x.note?`<span class="room-saved-item bad">${esc(x.note)}</span>`:''}`;if(x.kind==='library')return `<span class="room-saved-item">${x.action==='added'?'Saved to the library':x.action==='already saved'?'Already in the library':'Couldn’t save'}: ${esc(x.title)}${x.error?'. '+esc(x.error):''}</span>`;return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
+function roomSavedItem(x){if(x.kind==='lesson'){if(x.action==='failed')return `<span class="room-saved-item bad">Couldn't change ${esc(x.title||'that lesson')}. ${esc(x.error||'')}</span>`;const what={added:'Added',updated:'Updated',moved:`Moved to ${x.stage||'a new stage'}:`,started:`Started ${({prepare:'preparing',draft:'drafting',slides:'the slides for',guide:'the guide for',thumbnail:'the thumbnail for'})[x.task]||'work on'}`}[x.action]||'Updated';return `<button class="room-saved-item" data-lesson-go="${esc(x.id)}">${esc(what)} ${esc(x.title)} <i>›</i></button>`}if(x.kind==='video')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save the results for ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:results:${esc(x.id)}">Saved the results for ${esc(x.title)} <i>›</i></button>${x.note?`<span class="room-saved-item bad">${esc(x.note)}</span>`:''}`;if(x.kind==='library')return `<span class="room-saved-item">${x.action==='added'?'Saved to the library':x.action==='already saved'?'Already in the library':'Couldn’t save'}: ${esc(x.title)}${x.error?'. '+esc(x.error):''}</span>`;return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
 function roomSaved(list){
   const items=list.map(roomSavedItem).join('');
   if(list.length<=3)return `<div class="room-saved">${items}</div>`;
@@ -180,7 +181,7 @@ function roomMessages(a,msgs){
     const sep=day&&day!==last?`<div class="room-day">${esc(day===new Date().toDateString()?'Today':d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</div>`:'';if(day)last=day;
     const who=m.role==='josh'?'josh':'agent';
     const meta=m.failed?`<span class="room-failed">Didn't go through. ${esc(m.failed)} <button class="link" data-room-retry="${esc(m.id)}">Try again</button></span>`:m.id==='pending'?'<span>Sent</span>':`<span>${esc(m.role==='josh'?'You':a.name)}${m.at?' · '+esc(roomTime(m.at)):''}</span>`;
-    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${who==='agent'?roomFormat(m.text):`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`}</div>${m.saved?.length?roomSaved(m.saved):''}${m.learned?.length?m.learned.map(l=>`<div class="room-learned">Added to lessons: ${esc(l)}</div>`).join(''):''}<div class="room-meta-line">${meta}</div></div>`;
+    return `${sep}<div class="room-msg ${who}${m.failed?' failed':''}"><div class="room-bubble">${chatImagesHtml(m.images)}${who==='agent'?roomFormat(m.text):m.text?`<p>${esc(m.text).replace(/\n/g,'<br>')}</p>`:''}</div>${m.saved?.length?roomSaved(m.saved):''}${m.learned?.length?m.learned.map(l=>`<div class="room-learned">Added to lessons: ${esc(l)}</div>`).join(''):''}<div class="room-meta-line">${meta}</div></div>`;
   }).join('');
 }
 function roomWork(a){
@@ -228,14 +229,17 @@ async function roomLoad(id){
     roomThread[id]=thread;roomStatus=status;roomLoaded[id]=true;if(teamOpen===id)roomRender();
   }catch(e){roomLoaded[id]=true;toast(e.message,true);if(teamOpen===id)roomRender()}
 }
-async function roomSend(message,retryId=null){
-  const a=teamAgent(teamOpen);message=(message||'').trim();if(!a||!message||roomBusy)return;
+async function roomSend(message,retryId=null,images=null){
+  const a=teamAgent(teamOpen);message=(message||'').trim();if(!a||roomBusy)return;
+  if(chatUploading.room&&!images){toast('Wait a moment for the images to finish adding.',true);return}
+  if(!message&&!(images||chatAttach.room).length)return;
+  images=images||chatTake('room');
   const id=a.id;
   const list=(roomThread[id]||[]).filter(m=>m.id!==retryId);
-  roomThread[id]=[...list,{id:'pending',role:'josh',text:message,at:new Date().toISOString()}];
+  roomThread[id]=[...list,{id:'pending',role:'josh',text:message,images,at:new Date().toISOString()}];
   roomBusy=id;roomStarted=Date.now();roomRender();
   clearInterval(roomTick);roomTick=setInterval(()=>{const c=$('#room-clock');if(c)c.textContent=roomElapsed()},1000);
-  try{const r=await api('/api/agents/chat',{agent_id:id,message});roomThread[id]=r.messages;if(r.reply?.saved?.length){carousels=null;deskCarousels=null;if(typeof inspo!=='undefined')inspo=null;deskData().then(roomWorkRender).catch(()=>{})}}
+  try{const r=await api('/api/agents/chat',{agent_id:id,message,images});roomThread[id]=r.messages;if(r.reply?.saved?.length){carousels=null;deskCarousels=null;if(typeof inspo!=='undefined')inspo=null;deskData().then(roomWorkRender).catch(()=>{})}}
   catch(e){roomThread[id]=(roomThread[id]||[]).map(m=>m.id==='pending'?{...m,id:'failed-'+Date.now(),failed:e.message}:m)}
   finally{clearInterval(roomTick);roomBusy=null;if(teamOpen===id)roomRender()}
 }
@@ -281,7 +285,7 @@ document.addEventListener('click',async e=>{
   const open=e.target.closest('[data-team-open]');if(open){teamOpen=open.dataset.teamOpen;render();scrollTo(0,0);return}
   if(e.target.closest('[data-team-back]')){await teamSaving;teamOpen=null;render();return}
   const q=e.target.closest('[data-room-quick]');if(q){roomSend(q.dataset.roomQuick);return}
-  const rt=e.target.closest('[data-room-retry]');if(rt){const a=teamAgent(teamOpen),m=(roomThread[a?.id]||[]).find(x=>x.id===rt.dataset.roomRetry);if(m)roomSend(m.text,m.id);return}
+  const rt=e.target.closest('[data-room-retry]');if(rt){const a=teamAgent(teamOpen),m=(roomThread[a?.id]||[]).find(x=>x.id===rt.dataset.roomRetry);if(m)roomSend(m.text,m.id,m.images||[]);return}
   const tb=e.target.closest('[data-room-tab]');if(tb){roomTab[teamOpen]=tb.dataset.roomTab;roomWorkRender();return}
   if(e.target.closest('[data-room-ideas]')){roomIdeas=!roomIdeas;roomWorkRender();return}
   if(e.target.closest('[data-room-send]')){const i=$('#room-input');const v=i.value;i.value='';roomSend(v);return}
