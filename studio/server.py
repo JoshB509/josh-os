@@ -18,6 +18,7 @@ from .admin import Admin
 from .youtube_recording import Recording
 from .project_folders import ProjectFolders
 from .team import Team
+from .results import VideoResults
 from .carousels import Carousels
 from .inspo import Inspo
 from .feedback import Feedback
@@ -52,7 +53,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -151,6 +152,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.send((Path(__file__).parent/'web'/path[1:]).read_bytes(),mime='text/css; charset=utf-8' if path.endswith('.css') else 'text/javascript; charset=utf-8')
                 if path=='/api/tasks':return self.send(s.tasks.all())
                 if path=='/api/team':return self.send(s.team.all())
+                if len(parts)==3 and parts[:2]==['api','results']:return self.send(s.results.get(parts[2]))
                 if path=='/api/agents/status':return self.send(s.agents.status())
                 if path=='/api/agents/thread':
                     q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
@@ -193,7 +195,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -294,6 +296,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/tasks' and method=='POST':return self.send(s.tasks.create(data))
             if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
             if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
+            if len(parts)==3 and parts[:2]==['api','results'] and method=='PUT':return self.send(s.results.save(parts[2],data['changes'],data['revision']))
             if path=='/api/agents/reflect' and method=='POST':
                 try:return self.send(s.agents.reflect(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)

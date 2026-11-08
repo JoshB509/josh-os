@@ -87,6 +87,35 @@ EMAIL_PROPS = {
             'required': ['author', 'message_id', 'subject', 'date', 'body']},
     },
 }
+# Team members who look after YouTube save each video's results, thumbnail tests and retention reading from chat.
+VIDEO_PROPS = {
+    'videos': {
+        'type': 'array',
+        'description': 'Results to save on videos in Josh OS. Leave empty when nothing needs saving. Only include the parts you are filling in.',
+        'items': {'type': 'object', 'properties': {
+            'project_id': {'type': 'string', 'description': 'Id of the video from the snapshot.'},
+            'funnel': {'type': 'string', 'enum': ['top', 'middle', 'bottom']},
+            'metrics': {'type': 'object', 'description': 'Numbers you read in YouTube Studio or Linklr: views, impressions, ctr (percent), '
+                        'avg_view_duration (seconds), avg_percent_viewed, subscribers, emails, customers, revenue, and as_of (YYYY-MM-DD).'},
+            'tests': {'type': 'array', 'description': 'The full list of thumbnail test rounds for the video, including rounds already saved.',
+                      'items': {'type': 'object', 'properties': {
+                          'id': {'type': 'string'}, 'changed': {'type': 'string', 'enum': ['text', 'visual', 'font', 'colour', 'face', 'layout', 'other']},
+                          'hypothesis': {'type': 'string'}, 'screenshot': {'type': 'string', 'description': 'Keep the asset id already saved.'},
+                          'variants': {'type': 'array', 'items': {'type': 'object', 'properties': {
+                              'label': {'type': 'string'}, 'text': {'type': 'string'}, 'look': {'type': 'string'},
+                              'share': {'type': 'number', 'description': 'Watch time share in percent.'}, 'asset': {'type': 'string'}}}},
+                          'winner': {'type': 'string', 'description': 'Label of the winning thumbnail, once YouTube shows one.'},
+                          'why': {'type': 'string', 'description': 'Why it won, and what that teaches for future thumbnails.'}}}},
+            'retention': {'type': 'object', 'properties': {
+                'summary': {'type': 'string'}, 'notes': {'type': 'string'},
+                'dips': {'type': 'array', 'items': {'type': 'object', 'properties': {
+                    'at': {'type': 'string', 'description': 'Time in the video, like 3:40.'}, 'kind': {'type': 'string', 'enum': ['drop', 'hold', 'spike']},
+                    'script': {'type': 'string', 'description': 'The script line at that point.'}, 'why': {'type': 'string'}}}}}},
+            'review': {'type': 'string', 'description': 'Your short review of the video against its funnel stage.'},
+            'lessons': {'type': 'array', 'items': {'type': 'string'}, 'description': 'What this video taught, in a line each.'}},
+            'required': ['project_id']},
+    },
+}
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
 LEARN_PROPS = {
     'edits_noted': {'type': 'array', 'items': {'type': 'string'},
@@ -169,6 +198,7 @@ TRAINING = {
 
 
 PERSONALITIES = Path('team') / 'personalities.md'
+GOALS = Path('team') / 'goals'  # team/goals/<id>.md: what success means for that person, read every time
 # Sections every team member reads, found by title so renumbering the file never breaks it.
 SHARED_SECTIONS = ('purpose', 'shared', 'team dynamics', 'overall experience', 'the overall experience')
 
@@ -325,6 +355,9 @@ class Agents:
         persona = personality(self.root, agent)
         if persona:
             lines += ['', '=== Who you are (team/personalities.md) ===', persona]
+        goals = self.root / GOALS / f"{agent['id']}.md"
+        if goals.is_file():
+            lines += ['', f"=== Your goals (team/goals/{agent['id']}.md) ===", goals.read_text(encoding='utf-8')]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         for name in SKILLS.get(agent['id'], []):
@@ -369,6 +402,11 @@ class Agents:
                '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
               if agent['id'] in LINKLR else []),
             *(self.carousel_rules() if 'carousels' in (agent.get('workflows') or []) else []),
+            *(['- Each video has a Results tab in Josh OS. When you read a video\'s numbers, thumbnail test or retention graph (from',
+               '  YouTube Studio, Linklr or the screenshots Josh adds), save them with the "videos" list in your answer, and open',
+               '  any screenshot path from the snapshot with Read before you describe it. Send the full list of test rounds when you',
+               '  change tests. Follow your goals file for how to judge a video and what to learn from it.']
+              if 'youtube' in (agent.get('workflows') or []) and getattr(self, 'results', None) is not None else []),
             *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
                '  entry changes an email when you give its id from the snapshot, or adds a new draft without one. You can change the',
                '  subject, preview, body, planned_date (YYYY-MM-DD), send_time (HH:MM, Dubai), notes and description. Josh approves',
@@ -418,6 +456,9 @@ class Agents:
         persona = personality(self.root, agent)
         if persona:
             lines += ['', '=== Who you are (team/personalities.md) ===', persona]
+        goals = self.root / GOALS / f"{agent['id']}.md"
+        if goals.is_file():
+            lines += ['', f"=== Your goals (team/goals/{agent['id']}.md) ===", goals.read_text(encoding='utf-8')]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         if training:
@@ -489,8 +530,30 @@ class Agents:
                              + f" | {e.get('subject', '')[:90]}")
         lines += ['', 'Videos in Josh OS:']
         videos = [p for p in self.store.projects() if not p.get('archived')]
+        results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
+        if results is None:
+            for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
+                lines.append(f"- {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']}")
+            return '\n'.join(lines)
+        lines[-1] = ('Videos in Josh OS and their results. id | date | stage | title | funnel | numbers | thumbnail tests | retention. '
+                     'Screenshot paths are image files you can open with Read:')
+        saved = results.all()
+        def shot(aid):
+            try:
+                return str(self.store.asset(aid)[0]) if aid else ''
+            except ValueError:
+                return ''
         for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
-            lines.append(f"- {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']}")
+            r = saved.get(p['id']) or {}
+            tests = '; '.join(f"round {t['round']} ({t.get('changed') or 'not set'}): "
+                              + ', '.join(f"{v['label']} \"{v.get('text', '')}\" {v.get('share') if v.get('share') is not None else '?'}%" for v in t.get('variants', []))
+                              + (f", winner {t['winner']}" if t.get('winner') else ', no winner yet')
+                              + (f", screenshot {shot(t.get('screenshot'))}" if t.get('screenshot') else '')
+                              for t in r.get('tests', [])) or 'none recorded'
+            ret = r.get('retention') or {}
+            retention = (f"screenshot {shot(ret.get('screenshot'))}" if ret.get('screenshot') else 'no graph yet') + (', read' if ret.get('dips') else '')
+            lines.append(f"- {p['id']} | {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']} | "
+                         f"{r.get('funnel') or 'funnel not set'} | {json.dumps(r.get('metrics') or {})} | {tests} | {retention}")
         return '\n'.join(lines)
 
     def user_prompt(self, project, data, history):
@@ -636,10 +699,15 @@ class Agents:
             except KeyError:
                 return ''
             title = next((t.get('text') for t in p.get('titles') or [] if t.get('id') == p.get('chosen_title')), '') or p['name']
-            return ('Josh has this video open right now, so "this video" means this one. You can read it but not change video '
-                    'cards from this chat yet, so say what to change.\n'
-                    + json.dumps(dict(name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
-                                      notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:6000]), ensure_ascii=False, indent=1))
+            results = getattr(self, 'results', None)
+            saved = results.get(cid) if results is not None else None
+            return ('Josh has this video open right now, so "this video" means this one. You can read it but not change the video '
+                    'card from this chat, so say what to change. '
+                    + ('You can save its results, thumbnail tests and retention reading with the "videos" list, using this id. '
+                       'The full script is below, so line retention moments up with the exact words.' if saved is not None else '')
+                    + '\n' + json.dumps(dict(id=p['id'], name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
+                                            notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:20000],
+                                            results=saved), ensure_ascii=False, indent=1))
         if kind == 'email' and getattr(self, 'emails', None) is not None:
             try:
                 e = self.emails.get(cid)
@@ -704,6 +772,10 @@ class Agents:
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
             if mails is not None:
                 schema['properties'].update(EMAIL_PROPS)
+            results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
+            if results is not None:
+                schema['properties'].update(VIDEO_PROPS)
+                dirs = list(dirs) + [str(self.store.root / 'assets')]
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
                                      extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True)
@@ -715,6 +787,8 @@ class Agents:
                 saved += inspo.apply(found)
             if mails is not None and isinstance(answer.get('emails'), list):
                 saved += self.apply_emails(mails, answer['emails'])
+            if results is not None and isinstance(answer.get('videos'), list):
+                saved += results.apply(answer['videos'])
             if mails is not None and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):

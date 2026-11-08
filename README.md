@@ -68,6 +68,14 @@ The side rail is grouped by workflow. **Calendar** shows videos, carousels, emai
 
 Video pages, carousels and team profiles save themselves a moment after you stop typing. Ctrl+S still saves a video straight away. Script edits made within 15 minutes of each other are folded into one draft version, so the version history stays readable.
 
+## Video results and Sam's goals
+
+Every video has a **Results** tab. It holds the funnel stage (top, middle or bottom), the chain from views to subscribers to email signups to customers with the rates between them, each round of thumbnail testing (the Test & Compare screenshot, what changed, each thumbnail's text, look and watch-time share, the winner and why it won), and the retention graph with each drop and hold matched to the script line at that point. Drop screenshots straight onto it. Everything saves as you type.
+
+"Ask Sam to review this video" sends Sam the video's script and results. He opens the screenshots, checks YouTube Studio and Linklr for the numbers, fills in the tab, writes a short review and saves what the video taught to the team's lessons. He can also do this from his chat whenever you mention a video.
+
+What Sam is aiming for, and how he judges a video, is in `team/goals/sam.md`. Edit it to change his priorities. Any team member can have a goals file at `team/goals/<id>.md`.
+
 ## The team at work
 
 Sam, Tariq, Laia and Max run through Claude Code on this PC. When you ask Sam something in the script studio, Josh OS calls `claude -p` with his profile from the Team page, the team's lessons learned, and his skills from `.claude/skills/` (Sam has `script-touch-up`, and Tariq has `video-editing-prep`). He gets read-only access to `reference_sources/`, which holds the Ed Lawrence movement library, curiosity lines, audience notes and magnet index, so he can look things up but can't change files. Every suggestion comes back as a rewrite you can replace or copy. Nothing changes in the script until you click Replace, and each change is kept in the script's version history.
