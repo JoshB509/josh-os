@@ -96,6 +96,7 @@ function deskBrief(id,scope=null){
       :`${ls.length-todo.length} of ${ls.length} lessons are recorded.${planned.length?` The next one to record is ${label(planned[0])}, ${deskWhen(planned[0].recording.planned_date)}.`:''}${undated.length?` ${deskPlural(undated.length,'lesson')} still need${undated.length===1?'s':''} a recording date.`:''}`;
     return {say,items,chips:[{label:'Course lessons',act:'view:lessons'},{label:'Tasks & goals',act:'view:tasks'}]};
   }
+  if(id==='anouk')return {unknown:true,say:'I can\'t see how customers are getting on with the courses yet. Once course progress is connected to Josh OS, I\'ll show you who started and stalled, who looks stuck, and the check-ins I\'d send them.',items:[],chips:[{label:'Customers',act:'view:customers'}]};
   return {say:'I start once the business numbers are connected to Josh OS. Then I\'ll track sales and revenue against the USD 15,000 a month goal.',items:[],chips:[]};
 }
 // One count used everywhere: decisions waiting for Josh.
@@ -118,7 +119,7 @@ function agentDesk(id,{compact=false,scope=null,head=true}={}){
   all=[...all.filter(i=>i.needs),...all.filter(i=>!i.needs)];
   const items=all.slice(0,compact?(scope==='board'?2:3):5),needs=all.filter(i=>i.needs).length;
   const chips=b.chips.filter(c=>!(DESK_SKIP[scope]||[]).includes(c.act));
-  const home={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons'}[id];
+  const home={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons',anouk:'customers'}[id];
   const count=a.status==='Coming later'?'':needs?`<span class="desk-count">${needs} for you</span>`:all.length?'':`<span class="desk-count clear">All clear</span>`;
   return `<section class="desk ${compact?'compact':''} ${min?'min':''}" style="--agent:${esc(a.color)}" data-desk="${esc(id)}" aria-label="${esc(a.name)}'s desk">
     <header class="desk-head" ${head?'':'hidden'}>${teamAvatar(a,'md')}
@@ -169,6 +170,7 @@ function deskInject(){
 async function deskAct(act){
   const [kind,...rest]=act.split(':'),arg=rest.join(':');
   if(kind==='view'&&(arg==='lessons'||arg==='tasks')){location.href='/'+arg;return}
+  if(kind==='view'&&arg==='customers'){location.href='/admin#customers';return}
   if(kind==='view'){if(!leave())return;current=null;view=arg;await refresh();render();scrollTo(0,0);return}
   if(kind==='project'){if(view==='today')view='board';openProject(arg);scrollTo(0,0);return}
   if(kind==='project-tab'){const [t,id]=[rest[0],rest.slice(1).join(':')];if(view==='today')view=t==='edit'?'editing':'board';openProject(id);if(current){tab=t;renderDetail();scrollTo(0,0)}return}

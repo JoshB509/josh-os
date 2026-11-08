@@ -49,7 +49,7 @@ class TeamTests(unittest.TestCase):
         Team(self.store)
         data = self.team.all()
         ids = [a['id'] for a in data['agents']]
-        self.assertEqual(sorted(ids), ['laia', 'max', 'sam', 'saskia', 'tariq'])
+        self.assertEqual(sorted(ids), ['anouk', 'laia', 'max', 'sam', 'saskia', 'tariq'])
         agents = {a['id']: a for a in data['agents']}
         self.assertEqual(agents['sam']['name'], 'Bob')  # edited profile kept under the new id
         self.assertEqual(agents['tariq']['name'], 'Tariq')  # untouched profile replaced
@@ -58,11 +58,11 @@ class TeamTests(unittest.TestCase):
 
     def test_new_member_joins_existing_team_in_place(self):
         with self.store.connect() as c:
-            c.execute("DELETE FROM team_agents WHERE id='saskia'")
+            c.execute("DELETE FROM team_agents WHERE id IN ('saskia','anouk')")
             c.execute("UPDATE team_agents SET position=3 WHERE id='max'")
         Team(self.store)
         ids = [a['id'] for a in self.team.all()['agents']]
-        self.assertEqual(ids, ['sam', 'tariq', 'laia', 'saskia', 'max'])
+        self.assertEqual(ids, ['sam', 'tariq', 'laia', 'saskia', 'anouk', 'max'])
         saskia = self.team.all()['agents'][3]
         self.assertEqual((saskia['name'], saskia['workflows']), ('Saskia', ['courses', 'calendar']))
         self.assertEqual(len(saskia['photo']), 64)
@@ -75,6 +75,17 @@ class TeamTests(unittest.TestCase):
         self.assertEqual(agents['laia']['role'], 'Email Copywriter')
         self.assertEqual(agents['laia']['personality'], 'My own words.')
         self.assertEqual(agents['sam']['role'], 'YouTube Channel Manager')
+
+    def test_anouk_joins_a_team_that_already_has_everyone_else(self):
+        with self.store.connect() as c:
+            c.execute("DELETE FROM team_agents WHERE id='anouk'")
+            c.execute("UPDATE team_agents SET position=4 WHERE id='max'")
+        Team(self.store)
+        agents = self.team.all()['agents']
+        self.assertEqual([a['id'] for a in agents], ['sam', 'tariq', 'laia', 'saskia', 'anouk', 'max'])
+        anouk = agents[4]
+        self.assertEqual((anouk['role'], anouk['workflows'][0]), ('Customer Success Manager', 'customers'))
+        self.assertEqual(len(anouk['photo']), 64)
 
     def test_lessons_learned(self):
         lid = str(uuid.uuid4())

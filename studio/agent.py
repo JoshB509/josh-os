@@ -22,7 +22,7 @@ from pathlib import Path
 
 from .store import now
 
-SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook'], 'max': []}
+SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook'], 'anouk': [], 'max': []}
 REFERENCES = 'reference_sources'
 TIMEOUT = 300
 SCHEMA = {
@@ -158,11 +158,19 @@ TRAINING = {
         'read': [],
         'dirs': ['04_Programme', '08_Strategy'],
     },
+    # Anouk helps customers get value from the courses, so she reads the course content and audience notes,
+    # plus any anouk_*.md training files Josh adds.
+    'anouk': {
+        'embed': ['01_house-style.md'],
+        'read': [],
+        'dirs': ['04_Programme', '08_Strategy'],
+    },
 }
 
 
 PERSONALITIES = Path('team') / 'personalities.md'
-SHARED_SECTIONS = ('purpose', '5.', '6.', '7.')
+# Sections every team member reads, found by title so renumbering the file never breaks it.
+SHARED_SECTIONS = ('purpose', 'shared', 'team dynamics', 'overall experience', 'the overall experience')
 
 
 def personality(root, agent):
@@ -184,7 +192,7 @@ def personality(root, agent):
     def wanted(h):
         h = h.lower()
         title = h.split('.', 1)[-1].strip() if h[:1].isdigit() and '.' in h else h
-        return title in names or h.startswith(SHARED_SECTIONS)
+        return title in names or any(title.startswith(k) for k in SHARED_SECTIONS)
     picked = [f'## {h}\n' + '\n'.join(b).strip() for h, b in sections if wanted(h)]
     return '\n\n'.join(picked)
 
@@ -762,14 +770,14 @@ class Agents:
         kept = []
         if not isinstance(lessons, list):
             return kept
-        home = {'sam': 'carousels', 'laia': 'email', 'tariq': 'editing', 'saskia': 'courses'}.get(agent['id'], '')
+        home = {'sam': 'carousels', 'laia': 'email', 'tariq': 'editing', 'saskia': 'courses', 'anouk': 'customers'}.get(agent['id'], '')
         norm = lambda t: ' '.join(str(t).lower().split()).rstrip('.')
         seen = {norm(l['lesson']) for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent['id'])}
         for l in lessons[:5]:
             if not isinstance(l, dict) or not str(l.get('lesson', '')).strip() or norm(l['lesson']) in seen:
                 continue
             seen.add(norm(l['lesson']))
-            flow = l.get('workflow') if l.get('workflow') in ('youtube', 'carousels', 'editing', 'email', 'courses') else home
+            flow = l.get('workflow') if l.get('workflow') in ('youtube', 'carousels', 'editing', 'email', 'courses', 'customers') else home
             try:
                 item = self.team.learn(dict(agent_id=agent['id'], workflow=flow, lesson=str(l['lesson'])[:2000],
                                             evidence=str(l.get('evidence', ''))[:2000]))

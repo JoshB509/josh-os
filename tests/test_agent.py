@@ -66,6 +66,15 @@ class AgentTests(unittest.TestCase):
         self.ask(message='And the next line?')
         self.assertIn('Earlier in this conversation', json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
 
+    def test_anouk_reads_her_own_section_of_the_real_personalities_file(self):
+        from studio.agent import personality
+        repo = Path(__file__).resolve().parent.parent
+        text = personality(repo, {'id': 'anouk', 'name': 'Anouk'})
+        self.assertIn("It's to get them to achieve something valuable.", text)
+        self.assertIn('Shared Team Communication Principles', text)
+        self.assertIn('The Overall Experience', text)
+        self.assertNotIn('## 1. Sam', text)
+
     def test_saskia_gets_her_skills_and_training_files(self):
         self.fake()
         for name, text in [('lesson-slides', 'Beat-by-beat slides.'), ('careeros-playbook', 'Playbooks in house style.')]:

@@ -2,7 +2,7 @@
 // Team page: the named agents, their profiles and the shared lessons-learned log.
 // Each member has their own page with a chat (run through Claude Code on this PC) and what they're working on.
 // Profiles autosave.
-const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons'};
+const TEAM_HOME={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons',anouk:'customers'};
 let team=null,teamOpen=null,teamTimer=null,teamSaving=null;
 let roomThread={},roomBusy=null,roomStatus=null,roomLoaded={},roomTab={},roomStarted=0,roomTick=null,roomIdeas=false;
 
