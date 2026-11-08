@@ -66,3 +66,8 @@
   .res-chain{flex-direction:column}.res-arrow{display:none}
   .res-variants{grid-template-columns:1fr}
 }
+.res-transcript summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:var(--sp-2)}
+.res-transcript summary h3{font-size:var(--fs-sub);margin:0}
+.res-transcript summary::after{content:'Show';font-size:var(--fs-small);color:var(--muted)}
+.res-transcript[open] summary::after{content:'Hide'}
+.res-transcript p{margin:var(--sp-3) 0 0;max-height:420px;overflow:auto;font-size:var(--fs-small);line-height:1.6;white-space:normal}

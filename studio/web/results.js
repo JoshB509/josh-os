@@ -52,6 +52,7 @@ function resMarkup(){
           ${(r.retention.dips||[]).length?`<ol class="res-dips">${r.retention.dips.map(d=>`<li class="k-${esc(d.kind)}"><span class="at">${esc(d.at)}</span><span class="kind">${esc(d.kind)}</span><q>${esc(d.script)}</q><p>${esc(d.why)}</p></li>`).join('')}</ol>`:'<p class="res-empty">Drop the retention graph in and ask Sam to line it up with the script.</p>'}
           <label><small>Your notes</small><textarea rows="2" data-res-retention="notes">${esc(r.retention.notes||'')}</textarea></label></div></div></section>
 
+    ${r.transcript?`<section class="res-block"><details class="res-transcript"><summary><h3>Transcript</h3></summary><p>${esc(r.transcript).replace(/\n/g,'<br>')}</p></details></section>`:''}
     ${r.lessons.length?`<section class="res-block"><header><h3>What this video taught</h3></header><ul class="res-lessons">${r.lessons.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></section>`:''}
     <p class="res-saved" id="res-saved">${r.updated_at?'Saved':'Nothing saved yet'}</p>
   </div>`;

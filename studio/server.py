@@ -19,6 +19,7 @@ from .youtube_recording import Recording
 from .project_folders import ProjectFolders
 from .team import Team
 from .results import VideoResults
+from .course_lessons import CourseLessons
 from .carousels import Carousels
 from .inspo import Inspo
 from .feedback import Feedback
@@ -53,7 +54,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -153,6 +154,9 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/tasks':return self.send(s.tasks.all())
                 if path=='/api/team':return self.send(s.team.all())
                 if len(parts)==3 and parts[:2]==['api','results']:return self.send(s.results.get(parts[2]))
+                if path=='/api/courses':return self.send(s.courses.all())
+                if len(parts)==3 and parts[:2]==['api','courses']:return self.send(s.courses.get(parts[2]))
+                if len(parts)==4 and parts[:2]==['api','courses'] and parts[3]=='cues':return self.send(dict(text=s.courses.cues(parts[2])))
                 if path=='/api/agents/status':return self.send(s.agents.status())
                 if path=='/api/agents/thread':
                     q=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
@@ -195,7 +199,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/courses.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -297,6 +301,17 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==3 and parts[:2]==['api','team'] and method=='PUT':return self.send(s.team.save(parts[2],data['changes'],data['revision']))
             if path=='/api/team/learnings' and method=='POST':return self.send(s.team.learn(data))
             if len(parts)==3 and parts[:2]==['api','results'] and method=='PUT':return self.send(s.results.save(parts[2],data['changes'],data['revision']))
+            if path=='/api/courses/settings' and method=='POST':return self.send(s.courses.set_publish_root(data.get('publish_root','')))
+            if len(parts)==3 and parts[:2]==['api','courses'] and method=='PUT':return self.send(s.courses.save(parts[2],data['changes'],data['revision']))
+            if len(parts)==4 and parts[:2]==['api','courses'] and method=='POST':
+                lid,act=parts[2],parts[3]
+                if act=='stage':return self.send(s.courses.move(lid,data.get('stage',''),data.get('revision')))
+                if act=='approve':return self.send(s.courses.approve(lid,data.get('revision')))
+                if act=='work':return self.send(s.courses.start(lid,data.get('task',''),str(data.get('note') or '')))
+                if act=='check':return self.send(s.courses.check_slides(lid))
+                if act=='cues':return self.send(s.courses.save_cues(lid,data.get('text','')))
+                if act=='publish':return self.send(s.courses.publish(lid))
+                if act=='open':return self.send(s.courses.open_path(lid,data.get('kind','')))
             if path=='/api/agents/reflect' and method=='POST':
                 try:return self.send(s.agents.reflect(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)

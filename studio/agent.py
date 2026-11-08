@@ -87,6 +87,63 @@ EMAIL_PROPS = {
             'required': ['author', 'message_id', 'subject', 'date', 'body']},
     },
 }
+# Team members who look after courses can change a lesson's script, preparation notes and notes from chat.
+LESSON_PROPS = {
+    'lessons': {
+        'type': 'array',
+        'description': 'Changes to course lessons in Josh OS. Leave empty when nothing needs saving.',
+        'items': {'type': 'object', 'properties': {
+            'lesson_id': {'type': 'string', 'description': 'Id of the lesson from the snapshot.'},
+            'script': {'type': 'string', 'description': 'The whole script, when you rewrite it. Never a part of it.'},
+            'prep': {'type': 'string', 'description': 'Preparation notes for the lesson.'},
+            'notes': {'type': 'string', 'description': 'A short note on what changed and why.'}},
+            'required': ['lesson_id']},
+    },
+}
+# What Saskia sends back from a lesson job (prepare, draft, slides, guide or thumbnail).
+LESSON_JOB_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'reply': {'type': 'string', 'description': 'What you did, for Josh, in a few sentences. Mention anything he needs to confirm.'},
+        'prep': {'type': 'string', 'description': 'Prepare only. The preparation notes, in Markdown.'},
+        'script': {'type': 'string', 'description': 'Draft only. The whole script file, header paragraph and all.'},
+        'slides_path': {'type': 'string', 'description': 'Slides only. The full path of the HTML file you saved.'},
+        'cued_script': {'type': 'string', 'description': 'Slides only. The script with a bold red CHANGE n cue before the words each beat fires on.'},
+        'beats': {'type': 'integer', 'description': 'Slides only. The total number of beats.'},
+        'guide_pdf': {'type': 'string', 'description': 'Guide only. The full path of the lesson guide PDF you saved.'},
+        'thumbnail': {'type': 'string', 'description': 'Thumbnail only. The full path of the thumbnail you saved.'},
+    },
+    'required': ['reply'],
+}
+JOB_TOOLS = {'prepare': 'Read,Grep,Glob', 'draft': 'Read,Grep,Glob', 'slides': 'Read,Grep,Glob,Write,Edit',
+             'guide': 'Read,Grep,Glob,Write,Edit,Bash', 'thumbnail': 'Read,Grep,Glob,Write,Edit,Bash'}
+JOB_TIMEOUT = {'prepare': 900, 'draft': 1200, 'slides': 2700, 'guide': 2400, 'thumbnail': 1200}
+JOB_BRIEF = {
+    'prepare': ("Prepare this lesson so the script can be drafted. Read 08_lessons_writing.md, the course's gold standard scripts "
+                "it names, the scripts for the lessons before and after this one, and the audience notes for this course. "
+                "Then write preparation notes in \"prep\" with these headings. What the learner can do after it. The one key point. "
+                "The pain to open on, in the learner's words. The sections, each with what it shows and an example from a function "
+                "other than data. Josh's stories or material that fit. What the lesson before sets up and what the next one needs. "
+                "Questions for Josh. Don't write the script yet."),
+    'draft': ("Draft the script for this lesson. Load the script-touch-up skill and follow 08_lessons_writing.md, whose lesson "
+              "rules override the skill where they differ. Work from the preparation notes and Josh's note. Read two of the gold "
+              "standard scripts first. Send the whole file in \"script\", in the course's script file format (the title line, a "
+              "short paragraph on what this version is, a line with ---, then Hook, Signpost, Section and Close headings). Run "
+              "the checklist in 08 before you send it, and check the length against the minutes."),
+    'slides': ("Build the space-bar slides for this lesson from the approved script below, following the lesson-slides skill and "
+               "09_lessons_slides.md exactly. Start from the most recent slide file in this course's Slides folder, write a beat "
+               "map first, then save the HTML into the Slides folder named number_date_vNN_slug_slides.html, matching the files "
+               "already there. Never overwrite a version Josh has recorded with. The file must set const TOTAL and the global "
+               "go(n) the other files use, because Josh OS steps through every beat to check it. Send the path in \"slides_path\", "
+               "the beat count in \"beats\" and the cued script in \"cued_script\", quoting the script exactly with a red bold CHANGE n "
+               "before the words each beat fires on, in the format 09 shows."),
+    'guide': ("Make the written lesson guide PDF for this lesson, following 10_lessons_guides-thumbnails-upload.md and the BRIEF.md "
+              "in the guide kit. Run the kit on this PC with the Python named in settings.json, which has Playwright. Save the HTML "
+              "and PDF into the course's Lesson_Guides folder, named like the others, and send the PDF path in \"guide_pdf\"."),
+    'thumbnail': ("Make the course app thumbnail for this lesson, following 10_lessons_guides-thumbnails-upload.md. Add or update its "
+                  "entry in the kit's lessons.json and run build.py on this PC with the Python named in settings.json. Save the image "
+                  "into the course's Thumbnails folder, named like the others, and send its path in \"thumbnail\"."),
+}
 # Team members who look after YouTube save each video's results, thumbnail tests and retention reading from chat.
 VIDEO_PROPS = {
     'videos': {
@@ -100,7 +157,7 @@ VIDEO_PROPS = {
             'tests': {'type': 'array', 'description': 'The full list of thumbnail test rounds for the video, including rounds already saved.',
                       'items': {'type': 'object', 'properties': {
                           'id': {'type': 'string'}, 'changed': {'type': 'string', 'enum': ['text', 'visual', 'font', 'colour', 'face', 'layout', 'other']},
-                          'hypothesis': {'type': 'string'}, 'screenshot': {'type': 'string', 'description': 'Keep the asset id already saved.'},
+                          'hypothesis': {'type': 'string'}, 'screenshot': {'type': 'string', 'description': 'Keep the asset id already saved, give the full path of an image file on this PC, or leave it out.'},
                           'variants': {'type': 'array', 'items': {'type': 'object', 'properties': {
                               'label': {'type': 'string'}, 'text': {'type': 'string'}, 'look': {'type': 'string'},
                               'share': {'type': 'number', 'description': 'Watch time share in percent.'}, 'asset': {'type': 'string'}}}},
@@ -112,6 +169,7 @@ VIDEO_PROPS = {
                     'at': {'type': 'string', 'description': 'Time in the video, like 3:40.'}, 'kind': {'type': 'string', 'enum': ['drop', 'hold', 'spike']},
                     'script': {'type': 'string', 'description': 'The script line at that point.'}, 'why': {'type': 'string'}}}}}},
             'review': {'type': 'string', 'description': 'Your short review of the video against its funnel stage.'},
+            'transcript': {'type': 'string', 'description': 'The full transcript from YouTube Studio. Keep it out of the retention notes.'},
             'lessons': {'type': 'array', 'items': {'type': 'string'}, 'description': 'What this video taught, in a line each.'}},
             'required': ['project_id']},
     },
@@ -184,7 +242,7 @@ TRAINING = {
     # Saskia reads the course content and programme downloadables, and any saskia_*.md training files Josh adds.
     'saskia': {
         'embed': ['01_house-style.md'],
-        'read': [],
+        'read': ['08_lessons_writing.md', '09_lessons_slides.md', '10_lessons_guides-thumbnails-upload.md'],
         'dirs': ['04_Programme', '08_Strategy'],
     },
     # Anouk helps customers get value from the courses, so she reads the course content and audience notes,
@@ -405,7 +463,10 @@ class Agents:
             *(['- Each video has a Results tab in Josh OS. When you read a video\'s numbers, thumbnail test or retention graph (from',
                '  YouTube Studio, Linklr or the screenshots Josh adds), save them with the "videos" list in your answer, and open',
                '  any screenshot path from the snapshot with Read before you describe it. Send the full list of test rounds when you',
-               '  change tests. Follow your goals file for how to judge a video and what to learn from it.']
+               '  change tests. Follow your goals file for how to judge a video and what to learn from it.',
+               '  Screenshots you take in Chrome stay in your chat and Josh OS has no way to attach them. Save the numbers and your reading anyway,',
+               '  and ask Josh to drop the screenshots on the Results tab. Put a transcript in "transcript", never in the notes.',
+               '  Only say something is saved when it is in this answer, and say so plainly if a save comes back as failed.']
               if 'youtube' in (agent.get('workflows') or []) and getattr(self, 'results', None) is not None else []),
             *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
                '  entry changes an email when you give its id from the snapshot, or adds a new draft without one. You can change the',
@@ -556,6 +617,61 @@ class Agents:
                          f"{r.get('funnel') or 'funnel not set'} | {json.dumps(r.get('metrics') or {})} | {tests} | {retention}")
         return '\n'.join(lines)
 
+    def lesson_snapshot(self, agent):
+        courses = getattr(self, 'courses', None)
+        if courses is None or 'courses' not in (agent.get('workflows') or []):
+            return ''
+        lines = ['Course lessons in Josh OS. id | course | number | title | stage | what it has:']
+        for l in courses.all()['items']:
+            has = ', '.join(k for k, v in l['has'].items() if v) or 'nothing yet'
+            lines.append(f"- {l['id']} | {l['course']} | {l['number']} | {l['title']} | {l['stage']} | {has}")
+        return '\n'.join(lines)
+
+    def apply_lessons(self, courses, updates):
+        done = []
+        for u in (updates or [])[:10]:
+            if not isinstance(u, dict):
+                continue
+            lid = str(u.get('lesson_id') or '')
+            try:
+                current = courses.get(lid)
+                changes = {k: u[k] for k in ('script', 'prep', 'notes') if isinstance(u.get(k), str) and u[k].strip()}
+                if changes:
+                    courses.save(lid, changes, current['revision'])
+                done.append(dict(id=lid, title=f"{current['number']} {current['title']}", action='updated', kind='lesson'))
+            except Exception as e:  # noqa: BLE001 - every failure is shown in the chat
+                done.append(dict(id=lid, title='', action='failed', kind='lesson', error=str(e).strip("'\"")[:200]))
+        return done
+
+    def course_job(self, lesson, task, note, content_dir):
+        """One piece of lesson work for Saskia, with the tools and time it needs. Josh OS checks what comes back."""
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == 'saskia'), None)
+        if not agent:
+            raise AgentError('Saskia is not on the team.')
+        learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', 'saskia')][:80]
+        training_text, dirs = self.training('saskia')
+        course_dir = Path(content_dir) / {'hatt': 'Heard_at_the_Top', 'career': 'Career_Track', 'practical': 'Practical_Career_Track',
+                                          'data': 'Data_Storytelling'}[lesson['course']]
+        keep = ('id', 'course', 'number', 'title', 'type', 'minutes', 'part', 'part_name', 'stage', 'source_url', 'notes')
+        facts = {k: lesson.get(k) for k in keep if lesson.get(k) not in (None, '')}
+        facts['files'] = {k: v.get('path') for k, v in (lesson.get('files') or {}).items()}
+        facts['lesson_before'] = (lesson.get('neighbours') or {}).get('previous')
+        facts['lesson_after'] = (lesson.get('neighbours') or {}).get('next')
+        parts = [JOB_BRIEF[task], '', f'This course\'s folder is {course_dir}. Your training files are in {self.training_dir()}.',
+                 '', 'The lesson:', json.dumps(facts, ensure_ascii=False, indent=1)]
+        if note.strip():
+            parts += ['', 'Josh\'s note: ' + note.strip()]
+        if lesson.get('prep') and task != 'prepare':
+            parts += ['', 'Preparation notes:', lesson['prep']]
+        if lesson.get('script') and task != 'prepare':
+            parts += ['', 'The approved script:' if task == 'slides' else 'The current script:', lesson['script']]
+        system = self.desk_system_prompt(agent, learnings) + '\n\n' + '\n'.join([
+            'You are doing one piece of lesson work that Josh started from the Lessons page in Josh OS. Do the work fully, then',
+            'answer once. Josh OS saves what you send back and checks any file you name, so name the real path of every file you',
+            'save, and only save files inside the course folder. Never touch recordings, and never move or delete Josh\'s files.'])
+        return self.run(system, '\n'.join(parts), LESSON_JOB_SCHEMA, list(dirs) + [str(course_dir), str(Path(content_dir).parent.parent / '08_Strategy')],
+                        tools=JOB_TOOLS[task], timeout=JOB_TIMEOUT[task], full=True)
+
     def user_prompt(self, project, data, history):
         sel = data.get('selection') or {}
         parts = [
@@ -579,7 +695,7 @@ class Agents:
         return '\n'.join(parts)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -589,7 +705,7 @@ class Agents:
             wrapper = claude.lower().endswith(('.cmd', '.bat'))
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
-                   '--tools', ALLOWED_TOOLS, '--allowedTools', ','.join([ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
+                   '--tools', tools or ALLOWED_TOOLS, '--allowedTools', ','.join([tools or ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
             if chrome:
                 cmd.append('--chrome')
             for d in dirs:
@@ -601,7 +717,7 @@ class Agents:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
                 out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding='utf-8',
-                                     cwd=str(self.root), timeout=TIMEOUT * 2 if chrome else TIMEOUT,
+                                     cwd=str(self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
                                      creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except subprocess.TimeoutExpired:
                 raise AgentError('That took too long, so I stopped. Try a smaller selection.') from None
@@ -693,6 +809,17 @@ class Agents:
             return ('Josh has this creator post open right now, so "this" means this one. To change it, send it in the "inspo" '
                     'list with this id. Its slides are in the folder under E:\\CareerOS\\03_Community_Posts\\_Inspo.\n'
                     + json.dumps(body, ensure_ascii=False, indent=1))
+        if kind == 'lesson' and getattr(self, 'courses', None) is not None:
+            try:
+                l = self.courses.get(cid)
+            except KeyError:
+                return ''
+            body = keep(l, ('id', 'course', 'number', 'title', 'type', 'minutes', 'part_name', 'stage', 'next', 'prep', 'notes', 'script'))
+            body['files'] = {k: v.get('path') for k, v in (l.get('files') or {}).items()}
+            return ('Josh has this lesson open right now, so "this" and "the script" mean this one. To change it, send it in the '
+                    '"lessons" list with this id, with the whole script if you rewrite it. Approving, building slides and publishing '
+                    'are buttons on the lesson for Josh, so tell him when one is ready rather than doing it.\n'
+                    + json.dumps(body, ensure_ascii=False, indent=1))
         if kind == 'project':
             try:
                 p = self.store.get(cid)
@@ -749,6 +876,9 @@ class Agents:
             _, dirs = self.training(agent_id)
             keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
             parts = [self.desk_snapshot(agent_id, carousels, inspo if keeps else None)]
+            lessons = self.lesson_snapshot(agent)
+            if lessons:
+                parts += ['', lessons]
             if history:
                 parts += ['', 'Earlier in this conversation:']
                 for m in history[-12:]:
@@ -775,6 +905,9 @@ class Agents:
             results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
             if results is not None:
                 schema['properties'].update(VIDEO_PROPS)
+            courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
+            if courses is not None:
+                schema['properties'].update(LESSON_PROPS)
                 dirs = list(dirs) + [str(self.store.root / 'assets')]
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
@@ -789,6 +922,8 @@ class Agents:
                 saved += self.apply_emails(mails, answer['emails'])
             if results is not None and isinstance(answer.get('videos'), list):
                 saved += results.apply(answer['videos'])
+            if courses is not None and isinstance(answer.get('lessons'), list):
+                saved += self.apply_lessons(courses, answer['lessons'])
             if mails is not None and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):

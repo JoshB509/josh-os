@@ -1,21 +1,24 @@
 'use strict';
 // The dock: the right team member follows Josh to every page, knows what he has open,
 // and can change it. One conversation per team member, shared with their Team page.
-const DOCK_AGENT={board:'sam',youtube:'sam',carousels:'sam',calendar:'sam',today:'sam',editing:'tariq',email:'laia'};
+const DOCK_AGENT={courses:'saskia',board:'sam',youtube:'sam',carousels:'sam',calendar:'sam',today:'sam',editing:'tariq',email:'laia'};
 let dockOpen=(()=>{try{return localStorage.getItem('dock-open')==='1'}catch{return false}})(),dockStarted=0,dockTick=null,dockError=null;
 
 function dockAgentId(){return current?(typeof tab!=='undefined'&&tab==='edit'?'tariq':'sam'):(DOCK_AGENT[view]||'sam')}
 function dockContext(){
   if(view==='carousels'&&typeof carouselOpen!=='undefined'&&carouselOpen){const c=carouselFind(carouselOpen);return c?{kind:'carousel',id:c.id,label:c.title}:null}
   if(view==='carousels'&&typeof inspoOpen!=='undefined'&&inspoOpen){const p=inspoFind(inspoOpen);return p?{kind:'inspo',id:p.id,label:`${p.creator}'s post`}:null}
+  if(view==='courses'&&typeof courseOpen!=='undefined'&&courseOpen)return {kind:'lesson',id:courseOpen.id,label:`${courseOpen.number} ${courseOpen.title}`};
   if(view==='email'&&typeof emailCurrent!=='undefined'&&emailCurrent)return {kind:'email',id:emailCurrent.id,label:emailCurrent.subject||'this email'};
   if(current)return {kind:'project',id:current.id,label:current.name};
-  const names={board:'YouTube videos',carousels:'Carousels',calendar:'Calendar',today:'Today',editing:'Editing',email:'Email'};
+  const names={courses:'Lessons',board:'YouTube videos',carousels:'Carousels',calendar:'Calendar',today:'Today',editing:'Editing',email:'Email'};
   return names[view]?{kind:'page',name:names[view],label:names[view]}:null;
 }
 function dockQuick(ctx){
   if(ctx?.kind==='carousel')return ['Tighten the hook','Write the caption','What would you change?','How is it doing?'];
   if(ctx?.kind==='inspo')return ['Why did this work?','Could we try this?','Tag this post'];
+  if(ctx?.kind==='lesson')return ['What does this lesson need next?','Tighten the hook','Check it against the lesson rules'];
+  if(view==='courses')return ['What should we work on next?','Which lessons are ready to record?'];
   if(ctx?.kind==='project')return ['What does this video need next?','Ideas for a carousel from this'];
   if(view==='carousels')return ['What should we post next?','Draft three carousels','Check Ali and Hormozi for new carousels'];
   return ['What are you working on?','What needs me today?'];

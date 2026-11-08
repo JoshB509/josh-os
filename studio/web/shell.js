@@ -22,8 +22,8 @@
   const svg=k=>`<svg viewBox="0 0 16 16" aria-hidden="true">${I[k]}</svg>`;
   const NAV=[
     {items:[['today','Today','/#today'],['calendar','Calendar','/#calendar'],['team','Team','/#team']]},
-    {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['editing','Editing','/#editing'],['email','Email','/#email']]},
-    {label:'Workspace',items:[['library','Library','/#inspiration'],['tasks','Tasks & Goals','/tasks'],['lessons','Course lessons','/lessons'],['archive','Archive','/#archive']]},
+    {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['editing','Editing','/#editing'],['email','Email','/#email']]},
+    {label:'Workspace',items:[['library','Library','/#inspiration'],['tasks','Tasks & Goals','/tasks'],['lessons','Lesson recording','/lessons'],['archive','Archive','/#archive']]},
     {label:'Clients',later:true,items:[['clients','Clients','/admin#clients'],['customers','Customers','/admin#customers']]},
   ];
   const TABS=[['today','Today','/#today'],['youtube','YouTube','/#board'],['editing','Editing','/#editing'],['email','Email','/#email']];

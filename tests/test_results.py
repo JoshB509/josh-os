@@ -57,6 +57,31 @@ class ResultsTests(unittest.TestCase):
         self.assertEqual(r['metrics'], dict(views=1000, emails=40))
         self.assertEqual(r['lessons'], ['Short tips need a second hook', 'Text with a verb wins'])
 
+    def test_sam_save_keeps_everything_when_a_screenshot_is_unusable(self):
+        # What went wrong on 8 Nov: a screenshot that wasn't a saved image threw the whole save away.
+        kept = shot(self.store, 'red')
+        self.results.save(self.p['id'], dict(tests=[self.round_(screenshot=kept)]), 0)
+        first = self.results.get(self.p['id'])['tests'][0]
+        file = self.root / 'graph.png'
+        Image.new('RGB', (320, 180), 'blue').save(file)
+        done = self.results.apply([dict(
+            project_id=self.p['id'], funnel='top', metrics=dict(views=830),
+            tests=[dict(self.round_(), id=first['id'], screenshot='screenshot of the test panel')],
+            retention=dict(screenshot=str(file), notes='x' * 5000, summary='Holds well after the hook'),
+            transcript='Hook line.\nSection one.' * 2000)])
+        self.assertEqual(done[0]['action'], 'results')
+        self.assertEqual(done[0]['title'], 'Make them explain')
+        self.assertIn('Drop them on the Results tab', done[0]['note'])
+        r = self.results.get(self.p['id'])
+        self.assertEqual((r['funnel'], r['metrics']['views']), ('top', 830))
+        self.assertEqual(r['tests'][0]['screenshot'], kept)
+        self.assertEqual(self.store.asset(r['retention']['screenshot'])[0].suffix, '.png')
+        self.assertTrue(r['transcript'].startswith('Hook line.'))
+
+    def test_failed_video_save_names_the_video(self):
+        done = self.results.apply([dict(project_id=self.p['id'], funnel='sideways')])
+        self.assertEqual((done[0]['action'], done[0]['title']), ('failed', 'Make them explain'))
+
     def test_sam_reads_his_goals_and_sees_results_with_screenshots(self):
         (self.root / 'team/goals').mkdir(parents=True)
         (self.root / 'team/goals/sam.md').write_text('Customers matter more than views.', encoding='utf-8')

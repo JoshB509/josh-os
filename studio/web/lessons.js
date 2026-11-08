@@ -297,6 +297,7 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 (async()=>{try{
   await load();
   const today=new Date().toLocaleDateString('en-CA');
-  const start=catalog.binding?.lesson_id||catalog.lessons.find(x=>(x.recording.planned_date||x.suggested_date)===today&&!x.recording.preferred_take)?.id||catalog.lessons[0]?.id;
+  const asked=new URLSearchParams(location.search).get('lesson');
+  const start=(asked&&catalog.lessons.some(x=>x.id===asked)?asked:null)||catalog.binding?.lesson_id||catalog.lessons.find(x=>(x.recording.planned_date||x.suggested_date)===today&&!x.recording.preferred_take)?.id||catalog.lessons[0]?.id;
   if(start)await select(start);else $('#page').innerHTML='<div class="empty">No lessons are mapped yet.</div>';
 }catch(e){toast(e.message,true);$('#page').innerHTML='<div class="empty">Could not load lessons.</div>'}})();

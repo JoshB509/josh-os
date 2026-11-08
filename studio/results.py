@@ -8,13 +8,15 @@ Josh can add screenshots and notes himself.
 """
 import json
 import uuid
+from pathlib import Path
 from datetime import date
 from .store import Conflict, now
 
 FUNNEL = ['top', 'middle', 'bottom']
 METRICS = ('views', 'impressions', 'ctr', 'avg_view_duration', 'avg_percent_viewed', 'subscribers', 'emails', 'customers', 'revenue')
 CHANGES = ['text', 'visual', 'font', 'colour', 'face', 'layout', 'other']
-FIELDS = {'funnel', 'metrics', 'tests', 'retention', 'review', 'lessons'}
+FIELDS = {'funnel', 'metrics', 'tests', 'retention', 'review', 'lessons', 'transcript'}
+IMAGE_TYPES = ('.png', '.jpg', '.jpeg', '.webp')
 
 
 def _text(v, limit, label):
@@ -40,7 +42,7 @@ class VideoResults:
             c.execute('CREATE TABLE IF NOT EXISTS video_results(project_id TEXT PRIMARY KEY,revision INTEGER NOT NULL,body TEXT NOT NULL)')
 
     def empty(self, pid):
-        return dict(project_id=pid, revision=0, funnel='', metrics={}, tests=[], retention={}, review='', lessons=[], updated_at=None)
+        return dict(project_id=pid, revision=0, funnel='', metrics={}, tests=[], retention={}, review='', lessons=[], transcript='', updated_at=None)
 
     def get(self, pid):
         self.store.get(pid)
@@ -102,12 +104,13 @@ class VideoResults:
         dips = ret.get('dips') or []
         if not isinstance(dips, list) or len(dips) > 20:
             raise ValueError('Up to 20 retention moments.')
-        r['retention'] = dict(screenshot=self._asset(ret.get('screenshot')), notes=_text(ret.get('notes'), 3000, 'Notes'),
-                              summary=_text(ret.get('summary'), 3000, 'Summary'),
+        r['retention'] = dict(screenshot=self._asset(ret.get('screenshot')), notes=_text(ret.get('notes'), 20000, 'Notes'),
+                              summary=_text(ret.get('summary'), 6000, 'Summary'),
                               dips=[dict(at=_text(d.get('at'), 20, 'Time'), kind=d.get('kind') if d.get('kind') in ('drop', 'hold', 'spike') else 'drop',
                                          script=_text(d.get('script'), 600, 'Script line'), why=_text(d.get('why'), 1000, 'Why'))
                                     for d in dips if isinstance(d, dict)])
         r['review'] = _text(r.get('review'), 6000, 'Review')
+        r['transcript'] = _text(r.get('transcript'), 300000, 'Transcript')
         lessons = r.get('lessons') or []
         if not isinstance(lessons, list) or len(lessons) > 30:
             raise ValueError('Up to 30 lessons per video.')
@@ -130,6 +133,42 @@ class VideoResults:
             c.execute('INSERT OR REPLACE INTO video_results VALUES(?,?,?)', (pid, r['revision'], json.dumps(r)))
         return r
 
+    def _shot(self, value, skipped):
+        """A screenshot from chat: a saved asset id, or an image file on this PC that gets imported. Anything else is left off."""
+        if not value or not isinstance(value, str):
+            return ''
+        value = value.strip()
+        if len(value) == 64:
+            try:
+                self.store.asset(value)
+                return value
+            except ValueError:
+                pass
+        path = Path(value.strip('"'))
+        if path.suffix.lower() in IMAGE_TYPES and path.is_file():
+            try:
+                return self.store.import_image(path.name, path.read_bytes())['asset']
+            except (OSError, ValueError):
+                pass
+        skipped.append(value[:80])
+        return ''
+
+    def _clean_shots(self, changes, current, skipped):
+        """Keep what's already saved when chat sends something that isn't a usable screenshot."""
+        old_tests = {t.get('id'): t for t in current.get('tests') or []}
+        for i, t in enumerate(changes.get('tests') or []):
+            if not isinstance(t, dict):
+                continue
+            prior = old_tests.get(t.get('id')) or ((current.get('tests') or [])[i] if i < len(current.get('tests') or []) else {})
+            t['screenshot'] = self._shot(t.get('screenshot'), skipped) or prior.get('screenshot', '')
+            old_vs = {v.get('label'): v for v in prior.get('variants') or []}
+            for v in t.get('variants') or []:
+                if isinstance(v, dict):
+                    v['asset'] = self._shot(v.get('asset'), skipped) or old_vs.get(v.get('label'), {}).get('asset', '')
+        if isinstance(changes.get('retention'), dict) and 'screenshot' in changes['retention']:
+            ret = changes['retention']
+            ret['screenshot'] = self._shot(ret.get('screenshot'), skipped) or (current.get('retention') or {}).get('screenshot', '')
+
     def apply(self, updates):
         """Sam's saves from chat. Each update names a video and the parts he is filling in."""
         done = []
@@ -137,8 +176,10 @@ class VideoResults:
             if not isinstance(u, dict):
                 continue
             pid = u.get('project_id', '')
+            title = ''
             try:
                 current = self.get(pid)
+                title = self.store.get(pid)['name']
                 changes = {k: v for k, v in u.items() if k in FIELDS}
                 if 'metrics' in changes:
                     changes['metrics'] = dict(current.get('metrics') or {}, **(changes['metrics'] or {}))
@@ -146,8 +187,14 @@ class VideoResults:
                     changes['retention'] = dict(current.get('retention') or {}, **(changes['retention'] or {}))
                 if 'lessons' in changes:
                     changes['lessons'] = list(dict.fromkeys((current.get('lessons') or []) + list(changes['lessons'] or [])))
-                saved = self.save(pid, changes, current['revision'])
-                done.append(dict(id=pid, title=self.store.get(pid)['name'], action='results', kind='video'))
+                skipped = []
+                self._clean_shots(changes, current, skipped)
+                self.save(pid, changes, current['revision'])
+                item = dict(id=pid, title=title, action='results', kind='video')
+                if skipped:
+                    item['note'] = ("Screenshots weren't attached, because chat can only attach a saved image or an image file on this PC. "
+                                    'Drop them on the Results tab.')
+                done.append(item)
             except Exception as e:  # noqa: BLE001 - report every failure back to Josh in the chat
-                done.append(dict(id=pid, title='', action='failed', kind='video', error=str(e).strip("'\"")[:200]))
+                done.append(dict(id=pid, title=title, action='failed', kind='video', error=str(e).strip("'\"")[:200]))
         return done

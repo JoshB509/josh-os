@@ -1,4 +1,5 @@
-import json, os, stat, sys, tempfile, unittest, uuid
+import json, os, stat, subprocess, sys, tempfile, unittest, uuid
+from unittest import mock
 from pathlib import Path
 from studio.store import Store
 from studio.team import Team
@@ -32,6 +33,17 @@ class AgentTests(unittest.TestCase):
         p = self.store.create('Promotion conversations')
         self.p = self.store.save(p['id'], {'script': '# Hook\nOld hook line.\n\n# Section 1\nBody.'}, 1)
         self.log = self.root / 'call.json'
+        if os.name == 'nt':
+            # Windows can't start the fake's #! script directly, so run it with Python.
+            # The fake keeps the plain name "claude", so the agent still takes its normal path with --json-schema.
+            run = subprocess.run
+            def run_fake(cmd, *a, **k):
+                if cmd and str(cmd[0]).startswith(str(self.root)):
+                    cmd = [sys.executable] + list(cmd)
+                return run(cmd, *a, **k)
+            patcher = mock.patch('studio.agent.subprocess.run', run_fake)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -128,14 +140,12 @@ class AgentTests(unittest.TestCase):
 
     def test_missing_claude_is_a_clear_error(self):
         (self.root / 'settings.json').write_text(json.dumps({'claude': str(self.root / 'missing')}))
-        old = os.environ.get('PATH')
-        os.environ['PATH'] = str(self.root)
-        try:
+        # Point PATH and every place find_claude looks at the empty test folder, so a real Claude on this PC isn't found.
+        empty = {k: str(self.root) for k in ('PATH', 'USERPROFILE', 'HOME', 'APPDATA', 'LOCALAPPDATA')}
+        with mock.patch.dict(os.environ, empty):
             self.assertFalse(self.agents.status()['available'])
             with self.assertRaises(AgentError):
                 self.ask()
-        finally:
-            os.environ['PATH'] = old
 
 
 if __name__ == '__main__':
