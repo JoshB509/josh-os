@@ -41,7 +41,7 @@ class RulesTests(unittest.TestCase):
 class BridgeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.store = Store(self.root / 'Data')
         self.calls = []
         out = self.root / 'slide.png'
@@ -77,7 +77,7 @@ class BridgeTests(unittest.TestCase):
 class ChatFileTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.store = Store(self.root / 'Data')
         self.agents = Agents(self.store, self.root, Team(self.store))
         self.inbox = self.root / 'Data' / 'discord' / 'inbox' / 'tariq'
