@@ -169,6 +169,7 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts)==5 and parts[:2]==['api','inspo'] and parts[3]=='slide' and parts[4].isdigit():
                     file,mime=s.inspo.image(parts[2],int(parts[4]))
                     return self.send(file.read_bytes(),mime=mime,cache='private, max-age=3600')
+                if path=='/api/edit-review/decks':return self.send(s.edit_review.decks())
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-review':return self.send(s.edit_review.review(parts[2]))
                 if len(parts)==6 and parts[:2]==['api','projects'] and parts[3:5]==['edit-review','img']:
                     return self.send(s.edit_review.image(parts[2],parts[5]).read_bytes(),mime='image/jpeg',cache='private, max-age=60')

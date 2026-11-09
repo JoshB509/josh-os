@@ -246,3 +246,26 @@ class EditReview:
         manifest.write_text(json.dumps(dict(at=now(), slides=slides.name, images=images,
                                             slides_hash=hashlib.sha1(html.encode('utf-8')).hexdigest()[:12]), indent=1), encoding='utf-8')
         return self.review(pid)
+
+    def decks(self):
+        """Every video with an animation deck in its folder, newest first, for the Editing page."""
+        out = []
+        for p in self.store.projects():
+            if p.get('archived'):
+                continue
+            try:
+                slides, shots = self.deck_files(p['id'])
+            except (KeyError, ValueError, OSError):
+                continue
+            if not slides:
+                continue
+            manifest = self.out_folder(p['id']) / 'manifest.json'
+            made = json.loads(manifest.read_text(encoding='utf-8')) if manifest.is_file() else {}
+            images = made.get('images') or {}
+            first = next((v[-1] for k, v in sorted(images.items(), key=lambda kv: int(kv[0])) if v), '')
+            html = slides.read_text(encoding='utf-8')
+            out.append(dict(id=p['id'], name=p['name'], stage=p['stage'], slides=slides.name, shot_list=shots.name if shots else '',
+                            animations=len(parse_scenes(html)), rendered=made.get('at'), cover=first,
+                            stale=bool(made) and made.get('slides_hash') != hashlib.sha1(html.encode('utf-8')).hexdigest()[:12],
+                            modified=slides.stat().st_mtime))
+        return sorted(out, key=lambda d: d['modified'], reverse=True)

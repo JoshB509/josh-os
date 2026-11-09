@@ -129,3 +129,23 @@ function erInjectButton(){
 }
 document.addEventListener('click',e=>{const o=e.target.closest('[data-er-open]');if(o)openEditReview(o.dataset.erOpen)});
 (()=>{const w=document.getElementById('workspace');if(!w)return;let t=null;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(erInjectButton,120)}).observe(w,{childList:true})})();
+
+// The Editing page leads with the animation decks, so a review is one click from where Josh looks for edits.
+let erDeckList=null;
+function erDecksSection(){
+  if(!erDeckList)return '<section class="er-decks"><h2>Animation decks</h2><p class="hint">Looking for decks…</p></section>';
+  if(!erDeckList.length)return `<section class="er-decks"><h2>Animation decks</h2><p class="hint">No decks yet. Once a video is recorded, Tariq makes its slides and shot list, and they show here to review.</p></section>`;
+  const open=erDeckList.filter(d=>d.stage!=='Published'),done=erDeckList.filter(d=>d.stage==='Published');
+  const card=d=>`<button class="er-deck" data-er-open="${esc(d.id)}"><span class="er-deck-cover">${d.cover?`<img src="/api/projects/${encodeURIComponent(d.id)}/edit-review/img/${encodeURIComponent(d.cover)}?v=${encodeURIComponent(d.rendered||'')}" alt="">`:'<span>No pictures yet</span>'}</span>
+    <span class="er-deck-text"><b>${esc(d.name)}</b><small>${d.animations} animation${d.animations===1?'':'s'}, ${esc(d.stage)}${d.stale?', slides changed since the pictures':''}</small></span><span class="er-deck-go">Review</span></button>`;
+  return `<section class="er-decks"><h2>Animation decks</h2>${open.length?`<div class="er-deck-grid">${open.map(card).join('')}</div>`:'<p class="hint">No decks waiting for review.</p>'}
+    ${done.length?`<details class="er-done"><summary>Published videos (${done.length})</summary><div class="er-deck-grid">${done.map(card).join('')}</div></details>`:''}</section>`;
+}
+const erBaseEditing=renderEditing;
+renderEditing=function(){
+  const r=erBaseEditing.apply(this,arguments);
+  const lanes=document.querySelector('#workspace .edit-lanes');
+  if(lanes&&!document.querySelector('.er-decks'))lanes.insertAdjacentHTML('beforebegin',erDecksSection());
+  if(!erDeckList)api('/api/edit-review/decks').then(d=>{erDeckList=d;const s=document.querySelector('.er-decks');if(s&&view==='editing')s.outerHTML=erDecksSection()}).catch(()=>{erDeckList=[]});
+  return r;
+};
