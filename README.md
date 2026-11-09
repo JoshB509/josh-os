@@ -76,6 +76,14 @@ Every video has a **Results** tab. It holds the funnel stage (top, middle or bot
 
 What Sam is aiming for, and how he judges a video, is in `team/goals/sam.md`. Edit it to change his priorities. Any team member can have a goals file at `team/goals/<id>.md`.
 
+## Customer success and Anouk
+
+The **Customer success** page is Anouk's tracker. It holds everyone she looks after across four pathways: people who replied to a newsletter, leads from calls, clients, and course buyers. Each person has a stage, a summary, the next step with a date, anything you promised them, and a history of every touchpoint. Overdue check-ins and promises rise to the top, and you can edit any of it yourself. Anouk keeps it up to date from her chat, and the dock on that page is Anouk, so she knows who you have open.
+
+What she's aiming for, and how each pathway works, is in `team/goals/anouk.md`. Step-by-step flows you write for her, such as your nurture conversation flow, go in `team/playbooks/anouk/` as Markdown files. She gets each one in full and follows it exactly.
+
+Anouk starts in **setup mode**. She can read Josh OS and her files, keep the tracker, and write messages in chat for you to send, but she has no Gmail, Calendly, Kit, Linklr or Chrome. When you're ready, add `"team_live": ["anouk"]` to `settings.json`. She can then read Gmail and save replies as Gmail drafts (never send), read Calendly and make single-use booking links, and read Kit and Linklr.
+
 ## The team at work
 
 Sam, Tariq, Laia and Max run through Claude Code on this PC. When you ask Sam something in the script studio, Josh OS calls `claude -p` with his profile from the Team page, the team's lessons learned, and his skills from `.claude/skills/` (Sam has `script-touch-up`, and Tariq has `video-editing-prep`). He gets read-only access to `reference_sources/`, which holds the Ed Lawrence movement library, curiosity lines, audience notes and magnet index, so he can look things up but can't change files. Every suggestion comes back as a rewrite you can replace or copy. Nothing changes in the script until you click Replace, and each change is kept in the script's version history.

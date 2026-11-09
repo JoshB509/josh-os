@@ -9,7 +9,7 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
   document.addEventListener('click',e=>{if(document.body.classList.contains('menu-open')&&!e.target.closest('.rail,#menu'))close()});
 
-  Object.assign(viewNames,{today:'Today',board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
+  Object.assign(viewNames,{success:'Customer success',today:'Today',board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
 
   if(location.hostname!=='127.0.0.1'){const w=$('#where');if(w)w.innerHTML='<i></i>Remote'}
 
@@ -20,7 +20,7 @@
     document.querySelectorAll('.tabbar .tab[data-view]').forEach(t=>t.classList.toggle('active',t.dataset.view===view||t.dataset.also===view));return r};
 
   // Today is the home page unless a link asks for somewhere else.
-  if(['today','team','carousels','editing'].includes(initialView)||!initialView){view=initialView||'today';refresh().then(render).catch(()=>{})}
+  if(['today','team','carousels','editing','success'].includes(initialView)||!initialView){view=initialView||'today';refresh().then(render).catch(()=>{})}
   $('#tab-more').onclick=e=>{e.stopPropagation();menu.click()};
 
   $('#phone-access').onclick=async()=>{

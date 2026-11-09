@@ -43,7 +43,7 @@ LINKLR_READ = ('get_data_status', 'get_business_summary', 'get_daily_metrics', '
                'get_email_sequence_funnel', 'get_signup_cohorts', 'get_course_buyer_journeys', 'lookup_link_context',
                'preview_tracked_link')
 LINKLR_MAKE = ('register_video', 'create_tracked_link')
-LINKLR = {'sam': LINKLR_READ + LINKLR_MAKE, 'laia': LINKLR_READ + LINKLR_MAKE, 'max': LINKLR_READ}
+LINKLR = {'sam': LINKLR_READ + LINKLR_MAKE, 'laia': LINKLR_READ + LINKLR_MAKE, 'max': LINKLR_READ, 'anouk': LINKLR_READ}
 CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
 CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
     'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
@@ -61,10 +61,20 @@ KIT_READ = tuple('mcp__claude_ai_Kit__' + t for t in (
     'list_broadcasts', 'get_broadcast', 'get_stats_for_a_broadcast', 'get_stats_for_a_list_of_broadcasts',
     'get_link_clicks_for_a_broadcast', 'get_email_stats', 'get_growth_stats', 'list_sequences', 'get_sequence',
     'list_sequence_emails', 'get_sequence_email', 'list_tags', 'list_forms', 'list_segments', 'get_current_account'))
-KIT = {'laia': KIT_READ, 'max': KIT_READ}
+KIT = {'laia': KIT_READ, 'max': KIT_READ, 'anouk': KIT_READ}
 # Reading Gmail, only to collect new emails from the creators in the library. Nothing that sends, labels or deletes.
 GMAIL_READ = tuple('mcp__claude_ai_Gmail__' + t for t in ('search_threads', 'get_thread', 'get_message', 'list_labels'))
-GMAIL = {'laia': GMAIL_READ}
+# Anouk reads Gmail and saves replies as drafts for Josh to send. Nothing that sends, labels or deletes.
+GMAIL_DRAFT = tuple('mcp__claude_ai_Gmail__' + t for t in ('create_draft', 'list_drafts', 'get_draft', 'update_draft'))
+GMAIL = {'laia': GMAIL_READ, 'anouk': GMAIL_READ + GMAIL_DRAFT}
+# Calendly through the connector linked to Claude on this PC: reading calls, and single-use links to book a meeting.
+CALENDLY_READ = tuple('mcp__claude_ai_Calendly__' + t for t in (
+    'users-get_current_user', 'meetings-list_events', 'meetings-get_event', 'meetings-list_event_invitees',
+    'event_types-list_event_types', 'availability-list_user_busy_times', 'scheduling_links-create_single_use_scheduling_link'))
+CALENDLY = {'anouk': CALENDLY_READ}
+# Team members still being set up. They get none of their outside tools (Gmail, Calendly, Kit, Linklr, Chrome)
+# until Josh adds their id to "team_live" in settings.json. Until then they plan and draft in chat only.
+SETUP_MODE = {'anouk'}
 EMAIL_PROPS = {
     'emails': {
         'type': 'array',
@@ -183,6 +193,33 @@ VIDEO_PROPS = {
             'required': ['project_id']},
     },
 }
+# Anouk keeps the customer success tracker from chat.
+PEOPLE_PROPS = {
+    'people': {
+        'type': 'array',
+        'description': 'People to add or update in the customer success tracker. Leave empty when nothing needs saving.',
+        'items': {'type': 'object', 'properties': {
+            'id': {'type': 'string', 'description': 'Id from the snapshot to update someone. Leave out to add, or give their email.'},
+            'name': {'type': 'string'}, 'email': {'type': 'string'},
+            'pathway': {'type': 'string', 'enum': ['reply', 'lead', 'client', 'buyer']},
+            'stage': {'type': 'string', 'description': 'A stage from that pathway, exactly as written in the snapshot.'},
+            'source': {'type': 'string', 'description': 'Where they came from, like the newsletter they replied to or the call date.'},
+            'summary': {'type': 'string', 'description': 'Who they are, their situation and what they want, in a few lines.'},
+            'next_step': {'type': 'string'}, 'next_due': {'type': 'string', 'description': 'YYYY-MM-DD'},
+            'promises': {'type': 'array', 'description': 'Things Josh promised them. Send only the ones you are adding or ticking off.',
+                         'items': {'type': 'object', 'properties': {'text': {'type': 'string'}, 'due': {'type': 'string'}, 'done': {'type': 'boolean'}},
+                                   'required': ['text']}},
+            'tags': {'type': 'array', 'items': {'type': 'string'}},
+            'add_history': {'type': 'array', 'description': 'New touchpoints to log, oldest first.',
+                            'items': {'type': 'object', 'properties': {
+                                'at': {'type': 'string', 'description': 'YYYY-MM-DD'},
+                                'direction': {'type': 'string', 'enum': ['in', 'out', 'note', 'draft'],
+                                              'description': 'in = they wrote, out = Josh sent, draft = you saved a Gmail draft, note = anything else'},
+                                'channel': {'type': 'string', 'description': 'email, call, course, kit and so on'},
+                                'summary': {'type': 'string'}, 'link': {'type': 'string', 'description': 'Gmail thread or other link'}},
+                                'required': ['summary']}}}},
+    },
+}
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
 LEARN_PROPS = {
     'edits_noted': {'type': 'array', 'items': {'type': 'string'},
@@ -266,7 +303,8 @@ TRAINING = {
 
 
 PERSONALITIES = Path('team') / 'personalities.md'
-GOALS = Path('team') / 'goals'  # team/goals/<id>.md: what success means for that person, read every time
+GOALS = Path('team') / 'goals'
+PLAYBOOKS = Path('team') / 'playbooks'  # team/playbooks/<id>/*.md: step-by-step flows Josh writes, followed exactly  # team/goals/<id>.md: what success means for that person, read every time
 # Sections every team member reads, found by title so renumbering the file never breaks it.
 SHARED_SECTIONS = ('purpose', 'shared', 'team dynamics', 'overall experience', 'the overall experience')
 
@@ -419,6 +457,52 @@ class Agents:
         file = self.root / '.claude' / 'skills' / name / 'SKILL.md'
         return file.read_text(encoding='utf-8') if file.is_file() else ''
 
+    def admin_people(self, people):
+        """Clients, recent course buyers and call leads from Admin, marked when they're already in the tracker."""
+        admin = getattr(self, 'admin', None)
+        if admin is None:
+            return ['', 'Admin (clients, course buyers, Calendly calls) is not connected here.']
+        known = {p['email'] for p in people.all()['items'] if p.get('email')}
+        mark = lambda e: ' [in tracker]' if e and e in known else ''
+        out, buyers_seen, client_emails = [], set(), set()
+        try:
+            clients = admin.roster()[:40]
+            out += ['', 'Clients in Admin. name | emails | programme | status | last call | next call:']
+            for c in clients:
+                client_emails.update(c.get('emails') or [])
+                nxt = (c.get('next_call') or {}).get('start', '')[:10]
+                out.append(f"- {c['name']} | {', '.join(c.get('emails') or []) or 'no email'} | {c.get('programme') or ''} | {c.get('status') or ''}"
+                           f" | {c.get('last_call') or 'no call yet'} | {nxt or 'none booked'}{mark((c.get('emails') or [''])[0])}")
+        except Exception as e:  # noqa: BLE001 - Admin may not be set up on this PC
+            out += ['', f'Clients in Admin could not be read ({str(e)[:80]}).']
+        try:
+            buyers = admin.customers_page().get('customers', [])
+            buyers = [b for b in buyers if not b.get('refunded')][:40]
+            out += ['', 'Recent course buyers in Admin (newest first). name | email | first bought | what:']
+            for b in buyers:
+                buyers_seen.add(b['email'])
+                out.append(f"- {b.get('name') or '?'} | {b['email']} | {(b.get('first') or '')[:10]} | "
+                           f"{', '.join(sorted({i['product'] for i in b.get('items', [])}))}{mark(b['email'])}")
+        except Exception as e:  # noqa: BLE001
+            out += ['', f'Course buyers in Admin could not be read ({str(e)[:80]}).']
+        try:
+            leads = [e for e in admin.events() if e.get('email') and e['email'] not in client_emails and e['email'] not in buyers_seen][:30]
+            out += ['', 'Calendly calls with people who are not clients or buyers (possible leads). date | name | email | event:']
+            out += [f"- {e['start'][:10]} | {e.get('name') or '?'} | {e['email']} | {e.get('event') or ''}{mark(e['email'])}" for e in leads] or ['- none']
+        except Exception as e:  # noqa: BLE001
+            out += ['', f'Calendly calls could not be read ({str(e)[:80]}).']
+        return out
+
+    def live(self, agent_id):
+        """False while a team member is still being set up and may not act outside Josh OS."""
+        if agent_id not in SETUP_MODE:
+            return True
+        try:
+            on = json.loads((self.root / 'settings.json').read_text(encoding='utf-8-sig')).get('team_live') or []
+        except (OSError, ValueError):
+            on = []
+        return agent_id in on
+
     def roster(self, agent):
         """Who else is on the team, so people refer work to each other by name."""
         others = [a for a in self.team.all()['agents'] if a['id'] != agent['id']]
@@ -431,6 +515,10 @@ class Agents:
             f"Your personality: {agent['personality']}",
             'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
             self.roster(agent),
+            *([] if self.live(agent['id']) else [
+                'You are still being set up. You have no access to Gmail, Calendly, Kit, Linklr or Chrome yet, and you must not',
+                'send, book, schedule or change anything outside Josh OS. You can read Josh OS and your files, keep your tracker',
+                'up to date from what Josh tells you, and write any message here in chat for Josh to send himself.']),
             '',
             'How to work with Josh:',
             '- Be yourself, as described in "Who you are" below. Talk like his colleague, keep it short, and give your view.',
@@ -457,6 +545,10 @@ class Agents:
         goals = self.root / GOALS / f"{agent['id']}.md"
         if goals.is_file():
             lines += ['', f"=== Your goals (team/goals/{agent['id']}.md) ===", goals.read_text(encoding='utf-8')]
+        book = self.root / PLAYBOOKS / agent['id']
+        for f in (sorted(book.glob('*.md')) if book.is_dir() else []):
+            if f.name.lower() != 'readme.md':
+                lines += ['', f"=== Playbook: {f.name} (follow it exactly) ===", f.read_text(encoding='utf-8')]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         for name in SKILLS.get(agent['id'], []):
@@ -477,6 +569,10 @@ class Agents:
             'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
             f"Your check-in: {agent['check_in']}",
             self.roster(agent),
+            *([] if self.live(agent['id']) else [
+                'You are still being set up. You have no access to Gmail, Calendly, Kit, Linklr or Chrome yet, and you must not',
+                'send, book, schedule or change anything outside Josh OS. You can read Josh OS and your files, keep your tracker',
+                'up to date from what Josh tells you, and write any message here in chat for Josh to send himself.']),
             '',
             'This is the chat on your own page in Josh OS. Josh comes here to ask what you are working on, talk through plans and ideas,',
             'ask about results, and give you direction.',
@@ -575,6 +671,10 @@ class Agents:
         goals = self.root / GOALS / f"{agent['id']}.md"
         if goals.is_file():
             lines += ['', f"=== Your goals (team/goals/{agent['id']}.md) ===", goals.read_text(encoding='utf-8')]
+        book = self.root / PLAYBOOKS / agent['id']
+        for f in (sorted(book.glob('*.md')) if book.is_dir() else []):
+            if f.name.lower() != 'readme.md':
+                lines += ['', f"=== Playbook: {f.name} (follow it exactly) ===", f.read_text(encoding='utf-8')]
         if learnings:
             lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
         if training:
@@ -644,6 +744,13 @@ class Agents:
                 lines.append(f"- {e['id']} | {e.get('planned_date') or 'no date'} | {e.get('send_time') or ''} | {e['status']}"
                              + (' (missed its date)' if e['status'] == 'Draft' and e.get('planned_date') and e['planned_date'] < today else '')
                              + f" | {e.get('subject', '')[:90]}")
+        people = getattr(self, 'people', None)
+        if people is not None and 'customers' in (agent.get('workflows') or []):
+            from .people import PATHWAYS
+            lines += ['', 'Your customer success tracker. id | name <email> | pathway | stage | next step | open promises | last touchpoint | summary.',
+                      'Stages by pathway: ' + '; '.join(f"{k} ({v[0]}): {', '.join(v[1])}" for k, v in PATHWAYS.items())]
+            lines += people.describe() or ['- nobody yet']
+            lines += self.admin_people(people)
         lines += ['', 'Videos in Josh OS:']
         videos = [p for p in self.store.projects() if not p.get('archived')]
         results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
@@ -906,6 +1013,13 @@ class Agents:
                     + '\n' + json.dumps(dict(id=p['id'], name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
                                             notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:20000],
                                             results=saved), ensure_ascii=False, indent=1))
+        if kind == 'person' and getattr(self, 'people', None) is not None:
+            try:
+                person = self.people.get(cid)
+            except KeyError:
+                return ''
+            return ('Josh has this person open on the Customer success page, so "them" and "this person" mean this one. To change '
+                    'their record, send it in the "people" list with this id.\n' + json.dumps(person, ensure_ascii=False, indent=1))
         if kind == 'email' and getattr(self, 'emails', None) is not None:
             try:
                 e = self.emails.get(cid)
@@ -982,14 +1096,20 @@ class Agents:
             results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
             if results is not None:
                 schema['properties'].update(VIDEO_PROPS)
+            people = getattr(self, 'people', None) if 'customers' in (agent.get('workflows') or []) else None
+            if people is not None:
+                schema['properties'].update(PEOPLE_PROPS)
             courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
             if courses is not None:
                 schema['properties'].update(LESSON_PROPS)
                 if str(self.store.root / 'assets') not in dirs:
                     dirs = list(dirs) + [str(self.store.root / 'assets')]
+            live = self.live(agent_id)
+            outside = (['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ()))
+                       + list(CALENDLY.get(agent_id, ()))) if live else []
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
-                                     schema, dirs, chrome=agent_id in CHROME and not proactive,
-                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True)
+                                     schema, dirs, chrome=agent_id in CHROME and not proactive and live,
+                                     extra_tools=outside, full=True)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -998,6 +1118,8 @@ class Agents:
                 saved += inspo.apply(found)
             if mails is not None and isinstance(answer.get('emails'), list):
                 saved += self.apply_emails(mails, answer['emails'])
+            if people is not None and isinstance(answer.get('people'), list):
+                saved += people.apply(answer['people'])
             if results is not None and isinstance(answer.get('videos'), list):
                 saved += results.apply(answer['videos'])
             if courses is not None and isinstance(answer.get('lessons'), list):

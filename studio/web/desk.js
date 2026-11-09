@@ -16,6 +16,7 @@ async function deskData(){
   if(!team&&!deskTeamLoading)deskTeamLoading=api('/api/team').then(t=>team=t).catch(()=>{});
   if(!deskCarousels)jobs.push(api('/api/carousels').then(c=>{deskCarousels=c;if(typeof carousels!=='undefined'&&!carousels)carousels=c}).catch(()=>{}));
   if(!deskLessons)jobs.push(api('/api/lessons').then(l=>deskLessons=l).catch(()=>{deskLessons={lessons:[],missing:true}}));
+  if(typeof people!=='undefined'&&!people&&typeof peopleLoad==='function')jobs.push(peopleLoad().catch(()=>{}));
   if(deskTeamLoading)jobs.push(deskTeamLoading);
   await Promise.all(jobs);
 }
@@ -96,6 +97,7 @@ function deskBrief(id,scope=null){
       :`${ls.length-todo.length} of ${ls.length} lessons are recorded.${planned.length?` The next one to record is ${label(planned[0])}, ${deskWhen(planned[0].recording.planned_date)}.`:''}${undated.length?` ${deskPlural(undated.length,'lesson')} still need${undated.length===1?'s':''} a recording date.`:''}`;
     return {say,items,chips:[{label:'Course lessons',act:'view:lessons'},{label:'Tasks & goals',act:'view:tasks'}]};
   }
+  if(id==='anouk'&&typeof people!=='undefined'&&people)return anoukBrief();
   if(id==='anouk')return {unknown:true,say:'I can\'t see how customers are getting on with the courses yet. Once course progress is connected to Josh OS, I\'ll show you who started and stalled, who looks stuck, and the check-ins I\'d send them.',items:[],chips:[{label:'Customers',act:'view:customers'}]};
   return {say:'I start once the business numbers are connected to Josh OS. Then I\'ll track sales and revenue against the USD 15,000 a month goal.',items:[],chips:[]};
 }
@@ -119,7 +121,7 @@ function agentDesk(id,{compact=false,scope=null,head=true}={}){
   all=[...all.filter(i=>i.needs),...all.filter(i=>!i.needs)];
   const items=all.slice(0,compact?(scope==='board'?2:3):5),needs=all.filter(i=>i.needs).length;
   const chips=b.chips.filter(c=>!(DESK_SKIP[scope]||[]).includes(c.act));
-  const home={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons',anouk:'customers'}[id];
+  const home={sam:'carousels',tariq:'editing',laia:'email',saskia:'lessons',anouk:'success'}[id];
   const count=a.status==='Coming later'?'':needs?`<span class="desk-count">${needs} for you</span>`:all.length?'':`<span class="desk-count clear">All clear</span>`;
   return `<section class="desk ${compact?'compact':''} ${min?'min':''}" style="--agent:${esc(a.color)}" data-desk="${esc(id)}" aria-label="${esc(a.name)}'s desk">
     <header class="desk-head" ${head?'':'hidden'}>${teamAvatar(a,'md')}

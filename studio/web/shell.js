@@ -17,12 +17,13 @@
     archive:'<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/>',
     clients:'<circle cx="6" cy="5.5" r="2.5"/><path d="M1.8 13.5c.6-2.4 2.2-3.6 4.2-3.6s3.6 1.2 4.2 3.6"/><path d="M10.5 3.2a2.4 2.4 0 0 1 0 4.6M12 9.9c1.2.4 2 1.6 2.3 3.6"/>',
     customers:'<path d="M2 3h1.6l1.6 7.4h7.2L14 5.2H4.3"/><circle cx="6" cy="13" r="1"/><circle cx="11.6" cy="13" r="1"/>',
+    success:'<circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.7-2.6 2.6-4 5-4s4.3 1.4 5 4"/><path d="m11.5 2.5 1 1 2-2"/>',
     more:'<circle cx="3.5" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="12.5" cy="8" r="1"/>',
   };
   const svg=k=>`<svg viewBox="0 0 16 16" aria-hidden="true">${I[k]}</svg>`;
   const NAV=[
     {items:[['today','Today','/#today'],['calendar','Calendar','/#calendar'],['team','Team','/#team']]},
-    {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['editing','Editing','/#editing'],['email','Email','/#email']]},
+    {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['editing','Editing','/#editing'],['email','Email','/#email'],['success','Customer success','/#success']]},
     {label:'Workspace',items:[['library','Library','/#inspiration'],['tasks','Tasks & Goals','/tasks'],['lessons','Lesson recording','/lessons'],['archive','Archive','/#archive']]},
     {label:'Clients',later:true,items:[['clients','Clients','/admin#clients'],['customers','Customers','/admin#customers']]},
   ];
