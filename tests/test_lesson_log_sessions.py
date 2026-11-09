@@ -39,6 +39,8 @@ class SessionTests(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.folder=Path(self.tmp.name).resolve()
         self.input=self.folder/'input';self.input.mkdir();self.logs=self.folder/'appdata/obs-studio/logs';self.logs.mkdir(parents=True)
         self.env=patch.dict(os.environ,{'APPDATA':str(self.folder/'appdata')});self.env.start()
+        # Preparing a lesson opens its slides and Notion page on this PC. Tests must never open Josh's real files.
+        opener=patch.object(os,'startfile',create=True);opener.start();self.addCleanup(opener.stop)
         self.log=self.logs/'2026-10-17 10-59-00.txt';self.log.write_text('10:59:00.000: OBS startup\n')
         cfg=copy.deepcopy(json.loads((ROOT/'Data/lesson-catalog.json').read_text()));cfg['lessons']=cfg['lessons'][:2]
         cfg.update(recording_input=str(self.input),recording_archive=str(self.folder/'archive'))

@@ -1,10 +1,10 @@
 // Images in team chats. Attach with the clip button, paste, or drop onto the box you type in.
 // Each image is saved in Josh OS first, so a message only carries asset ids.
 const CHAT_MAX_IMAGES=6;
-let chatAttach={room:[],dock:[]},chatUploading={room:0,dock:0};
+let chatAttach={room:[],dock:[],sam:[]},chatUploading={room:0,dock:0,sam:0};
 const chatClip='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 4.5 5.6 9.4a1.4 1.4 0 0 0 2 2l5.2-5.2a2.8 2.8 0 0 0-4-4L3.6 7.4a4.2 4.2 0 0 0 6 6l4-4"/></svg>';
 
-function chatRedraw(key){if(key==='dock'){if(typeof dockRender==='function')dockRender()}else if(typeof roomRender==='function')roomRender()}
+function chatRedraw(key){if(key==='dock'){if(typeof dockRender==='function')dockRender()}else if(key==='sam'){if(typeof samRender==='function')samRender()}else if(typeof roomRender==='function')roomRender()}
 function chatAttachButton(key,disabled){
   return `<button class="chat-clip" data-chat-attach="${key}" ${disabled?'disabled':''} aria-label="Attach images" title="Attach images. You can also paste or drop them here.">${chatClip}</button>`;
 }
@@ -36,7 +36,7 @@ async function chatAdd(key,files){
 }
 // Takes the attached images for sending and clears the box.
 function chatTake(key){const list=chatAttach[key];chatAttach[key]=[];return list}
-function chatKeyFor(el){if(!el?.closest)return null;if(el.closest('.dock-compose'))return 'dock';if(el.closest('.room-compose'))return 'room';return null}
+function chatKeyFor(el){if(!el?.closest)return null;if(el.closest('.dock-compose'))return 'dock';if(el.closest('.room-compose'))return 'room';if(el.closest('.sam-compose'))return 'sam';return null}
 
 (()=>{
   const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/webp';input.multiple=true;input.hidden=true;input.id='chat-files';
@@ -51,10 +51,10 @@ function chatKeyFor(el){if(!el?.closest)return null;if(el.closest('.dock-compose
     const files=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));
     if(files.length){e.preventDefault();chatAdd(key,files)}
   });
-  document.addEventListener('dragover',e=>{const key=chatKeyFor(e.target);if(key&&e.dataTransfer?.types.includes('Files')){e.preventDefault();e.target.closest('.dock-compose,.room-compose').classList.add('chat-over')}});
-  document.addEventListener('dragleave',e=>{const z=e.target.closest?.('.dock-compose,.room-compose');if(z&&!z.contains(e.relatedTarget))z.classList.remove('chat-over')});
+  document.addEventListener('dragover',e=>{const key=chatKeyFor(e.target);if(key&&e.dataTransfer?.types.includes('Files')){e.preventDefault();e.target.closest('.dock-compose,.room-compose,.sam-compose').classList.add('chat-over')}});
+  document.addEventListener('dragleave',e=>{const z=e.target.closest?.('.dock-compose,.room-compose,.sam-compose');if(z&&!z.contains(e.relatedTarget))z.classList.remove('chat-over')});
   document.addEventListener('drop',e=>{
     const key=chatKeyFor(e.target);if(!key||!e.dataTransfer?.files.length)return;
-    e.preventDefault();e.stopPropagation();e.target.closest('.dock-compose,.room-compose')?.classList.remove('chat-over');chatAdd(key,e.dataTransfer.files);
+    e.preventDefault();e.stopPropagation();e.target.closest('.dock-compose,.room-compose,.sam-compose')?.classList.remove('chat-over');chatAdd(key,e.dataTransfer.files);
   },true);
 })();

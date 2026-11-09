@@ -42,18 +42,19 @@ function samPanel(){
   const off=samStatus&&!samStatus.available;
   const quick=samSel?['Tighten this','Make this a stronger signpost','Turn this into a Parker line','Rewrite in Ed\'s rhythm']:['Review my hook','Check every signpost','Where does it drag?','Write the close'];
   return `<header class="sam-head" style="--agent:${esc(a.color)}">${teamAvatar(a,'sm')}<div><b>${esc(a.name)}</b><small>${off?'Offline on this PC':samBusy?'Working on it…':'Using your script-touch-up skill'}</small></div></header>
-    <div class="sam-thread" id="sam-thread">${samThread.length?samThread.map(samMessage).join(''):`<div class="sam-empty"><p>Highlight any part of the script and tell me what you want. I'll rewrite it in your house style and you choose whether to use it.</p></div>`}
+    <div class="sam-thread" id="sam-thread">${samThread.length?samThread.map(samMessage).join(''):`<div class="sam-empty"><p>Highlight any part of the script and tell me what you want. I'll rewrite it in your house style and you choose whether to use it. You can also paste screenshots here, and ask me for anything else.</p></div>`}
       ${samBusy?'<div class="sam-msg agent typing"><span></span><span></span><span></span></div>':''}</div>
     ${off?`<p class="sam-off">${esc(samStatus.help)}</p>`:''}
     <div class="sam-compose">
       ${samSel?`<div class="sam-sel"><span>Working on “${esc(samSel.text.slice(0,70))}${samSel.text.length>70?'…':''}”</span><button class="subtle small" data-sam-clear aria-label="Clear selection">✕</button></div>`:'<p class="sam-tip">Tip: select text in the script to work on just that part.</p>'}
       <div class="sam-quick">${quick.map(q=>`<button class="chip-btn" data-sam-quick="${esc(q)}" ${off||samBusy?'disabled':''}>${esc(q)}</button>`).join('')}</div>
-      <div class="sam-input"><textarea id="sam-input" rows="2" placeholder="${samSel?'What should Sam do with this part?':'Ask Sam about the script'}" ${off?'disabled':''}></textarea><button class="primary" data-sam-send ${off||samBusy?'disabled':''} aria-label="Send to Sam">Send</button></div>
+      ${chatAttachStrip('sam')}
+      <div class="sam-input">${chatAttachButton('sam',off)}<textarea id="sam-input" rows="2" placeholder="${samSel?'What should Sam do with this part?':'Ask Sam about the script'}" ${off?'disabled':''}></textarea><button class="primary" data-sam-send ${off||samBusy?'disabled':''} aria-label="Send to Sam">Send</button></div>
     </div>`;
 }
 function samMessage(m){
-  if(m.role==='josh')return `<div class="sam-msg josh">${m.selection?`<q>${esc(m.selection.text.slice(0,120))}${m.selection.text.length>120?'…':''}</q>`:''}<p>${esc(m.text)}</p></div>`;
-  return `<div class="sam-msg agent"><p>${esc(m.text)}</p>${m.replacement!=null?`<div class="sam-suggestion"><small>${m.selection?'Suggested rewrite':'Suggested script'}</small><pre>${esc(m.replacement)}</pre>
+  if(m.role==='josh')return `<div class="sam-msg josh">${m.selection?`<q>${esc(m.selection.text.slice(0,120))}${m.selection.text.length>120?'…':''}</q>`:''}${chatImagesHtml(m.images)}${m.text?`<p>${esc(m.text)}</p>`:''}</div>`;
+  return `<div class="sam-msg agent"><p>${esc(m.text)}</p>${m.saved?.length&&typeof roomSaved==='function'?roomSaved(m.saved):''}${m.replacement!=null?`<div class="sam-suggestion"><small>${m.selection?'Suggested rewrite':'Suggested script'}</small><pre>${esc(m.replacement)}</pre>
     <div class="row"><button class="small primary" data-sam-apply="${esc(m.id)}">${m.selection?'Replace selection':'Replace whole script'}</button><button class="small subtle" data-sam-copy="${esc(m.id)}">Copy</button></div></div>`:''}${m.learned?.length?m.learned.map(l=>`<div class="room-learned">Added to lessons: ${esc(l)}</div>`).join(''):''}</div>`;
 }
 function samRender(){const box=$('#sam-panel');if(!box)return;box.innerHTML=samPanel();const t=$('#sam-thread');if(t)t.scrollTop=t.scrollHeight}
@@ -61,19 +62,23 @@ async function samLoad(){
   if(!current||tab!=='script')return;const id=current.id;
   try{
     if(!team)team=await api('/api/team');
-    [samThread,samStatus]=await Promise.all([api(`/api/agents/thread?project=${encodeURIComponent(id)}&agent=sam`),samStatus?Promise.resolve(samStatus):api('/api/agents/status')]);
+    [samThread,samStatus]=await Promise.all([api('/api/agents/thread?project=desk&agent=sam'),samStatus?Promise.resolve(samStatus):api('/api/agents/status')]);
     if(current?.id===id&&tab==='script')samRender();
   }catch(e){toast(e.message,true)}
 }
 async function samSend(message){
-  message=(message||'').trim();if(!message||samBusy||!current)return;
+  message=(message||'').trim();if(samBusy||!current)return;
+  if(chatUploading.sam){toast('Wait a moment for the images to finish adding.',true);return}
+  if(!message&&!chatAttach.sam.length)return;
   const doc=$('#script-document');
   if(dirty){clearTimeout(autoTimer);await autosaveProject(current.id);while(autoBusy)await autoBusy}
   if(samSel&&doc&&doc.value.slice(samSel.start,samSel.end)!==samSel.text){samSel=null;toast('The script changed, so select the passage again.',true);samRender();return}
-  const body={agent_id:'sam',project_id:current.id,message,selection:samSel};
-  samThread=[...samThread,{id:'pending',role:'josh',text:message,selection:samSel}];samBusy=true;samRender();
-  try{const r=await api('/api/agents/ask',body);samThread=r.messages}
-  catch(e){samThread=samThread.filter(m=>m.id!=='pending');toast(e.message,true)}
+  const images=chatTake('sam');
+  const body={agent_id:'sam',project_id:current.id,message,selection:samSel,images};
+  samThread=[...samThread,{id:'pending',role:'josh',text:message,selection:samSel,images}];samBusy=true;samRender();
+  try{const r=await api('/api/agents/ask',body);samThread=r.messages;if(typeof roomThread!=='undefined')roomThread.sam=r.messages;
+    if(r.reply?.saved?.length&&typeof dockRefresh==='function')await dockRefresh(r.reply.saved)}
+  catch(e){samThread=samThread.filter(m=>m.id!=='pending');chatAttach.sam=images;toast(e.message,true)}
   finally{samBusy=false;samRender()}
 }
 function samApply(id){

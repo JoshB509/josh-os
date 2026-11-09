@@ -69,16 +69,33 @@ async function dockSend(message,images=null){
   try{
     const r=await api('/api/agents/chat',{agent_id:id,message,images,context:ctx&&{kind:ctx.kind,id:ctx.id,name:ctx.name}});
     roomThread[id]=r.messages;
-    if(r.reply?.saved?.length)await dockRefresh();
+    if(r.reply?.saved?.length)await dockRefresh(r.reply.saved);
   }catch(e){roomThread[id]=(roomThread[id]||[]).filter(m=>m.id!=='pending');dockError={error:e.message,message,images}}
   finally{clearInterval(dockTick);roomBusy=null;dockRender()}
 }
-// After the agent saves something, show the change on the page Josh is looking at.
-async function dockRefresh(){
+// After an agent saves something from any chat, show the latest version of it on the page Josh is looking at.
+// Anything Josh is in the middle of editing and hasn't saved is left alone.
+async function dockRefresh(saved=[]){
+  const kinds=new Set(saved.filter(x=>x.action!=='failed').map(x=>x.kind||'carousel')),ids=new Set(saved.map(x=>x.id));
   try{
-    if(typeof deskCarousels!=='undefined')deskCarousels=null;
-    if(view==='carousels'){await carouselLoad();if(typeof inspo!=='undefined'&&inspo)await inspoLoad();if(!current)render()}
-    else if(typeof carousels!=='undefined')carousels=null;
+    if(kinds.has('carousel')||kinds.has('inspo')){
+      if(typeof deskCarousels!=='undefined')deskCarousels=null;
+      if(view==='carousels'){if(typeof carouselSaver!=='undefined')await carouselSaver.flush();await carouselLoad();if(typeof inspo!=='undefined'&&inspo)await inspoLoad();if(!current)render()}
+      else if(typeof carousels!=='undefined')carousels=null;
+    }
+    if(kinds.has('email')&&typeof emailRows!=='undefined'){
+      emailRows=await api('/api/emails');
+      if(emailCurrent&&ids.has(emailCurrent.id)&&!dirty){const f=emailRows.find(p=>p.id===emailCurrent.id);if(f)emailCurrent=structuredClone(f)}
+      if(view==='email'&&!current)render();
+    }
+    if(kinds.has('lesson')&&typeof courses!=='undefined'){
+      courses=null;
+      if(view==='courses'&&!current){const pending=courseQueue.pending&&Object.keys(courseQueue.pending).length;if(courseOpen&&!pending)await courseFetch(courseOpen.id);render()}
+    }
+    if((kinds.has('project')||kinds.has('video'))&&current&&ids.has(current.id)&&!dirty){
+      const id=current.id;await refresh();const p=state.projects.find(x=>x.id===id);
+      if(p&&current?.id===id&&!dirty){current=structuredClone(p);if(tab==='results'&&typeof resLoad==='function')await resLoad();else renderDetail()}
+    }
   }catch{}
 }
 

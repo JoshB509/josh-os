@@ -67,16 +67,39 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(out['reply']['replacement'], 'New hook line.')
         call = json.loads(self.log.read_text(encoding='utf-8'))
         self.assertIn('You are Sam', call['system'])
-        self.assertIn('Every signpost is a named Ed move.', call['system'])
+        self.assertIn('Every signpost is a named Ed move.', call['prompt'])
         self.assertIn('Number-led hooks get more saves', call['system'])
         self.assertIn('Old hook line.', call['prompt'])
         self.assertIn('Josh has selected this passage', call['prompt'])
         self.assertIn('--json-schema', call['args'])
         self.assertEqual(call['args'][call['args'].index('--tools') + 1], 'Read,Grep,Glob')
-        thread = self.agents.thread(self.p['id'], 'sam')
+        thread = self.agents.thread('desk', 'sam')
         self.assertEqual([m['role'] for m in thread], ['josh', 'agent'])
+        self.assertEqual(thread[0]['selection']['text'], 'Old hook line.')
         self.ask(message='And the next line?')
         self.assertIn('Earlier in this conversation', json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
+
+    def test_the_script_chat_is_the_same_conversation_with_every_power(self):
+        import io
+        from PIL import Image
+        self.fake()
+        self.agents.chat(dict(agent_id='sam', message='Morning'), [])
+        buf = io.BytesIO()
+        Image.new('RGB', (8, 8), 'blue').save(buf, 'PNG')
+        aid = self.store.import_image('studio.png', buf.getvalue())['asset']
+        self.agents.ask(dict(agent_id='sam', project_id=self.p['id'], message='What do you see?', images=[aid]))
+        call = json.loads(self.log.read_text(encoding='utf-8'))
+        self.assertIn('Josh: Morning', call['prompt'])
+        self.assertIn(str(self.store.asset(aid)[0]), call['prompt'])
+        self.assertIn('--chrome', call['args'])
+        schema = json.loads(call['args'][call['args'].index('--json-schema') + 1])
+        self.assertIn('projects', schema['properties'])
+        self.assertIn('replacement', schema['properties'])
+        self.assertEqual(len(self.agents.thread('desk', 'sam')), 4)
+        done = self.agents.apply_projects([dict(project_id=self.p['id'], notes='New angle', add_titles=['Ask for the promotion'])])
+        self.assertEqual(done[0]['action'], 'updated')
+        p = self.store.get(self.p['id'])
+        self.assertEqual((p['notes'], [t['text'] for t in p['titles']]), ('New angle', ['Ask for the promotion']))
 
     def test_josh_can_send_images_in_a_team_chat(self):
         import base64, io
@@ -120,7 +143,8 @@ class AgentTests(unittest.TestCase):
         settings = json.loads((self.root / 'settings.json').read_text())
         (self.root / 'settings.json').write_text(json.dumps(dict(settings, training_dir=str(training))))
         self.agents.ask(dict(agent_id='saskia', project_id=self.p['id'], message='Turn this into a lesson outline'))
-        system = json.loads(self.log.read_text(encoding='utf-8'))['system']
+        call = json.loads(self.log.read_text(encoding='utf-8'))
+        system = call['system'] + call['prompt']
         self.assertIn('You are Saskia', system)
         self.assertIn('Beat-by-beat slides.', system)
         self.assertIn('Playbooks in house style.', system)
@@ -136,7 +160,8 @@ class AgentTests(unittest.TestCase):
             '# Profiles\n\n## Purpose\nBe colleagues.\n\n## 1. Sam\nDry humour.\n\n## 3. Laia\nPlayful.\n\n'
             '## 5. Shared Team Communication Principles\nNo "Great question!".\n\n## 6. Team Dynamics\nDisagree usefully.\n', encoding='utf-8')
         self.ask()
-        system = json.loads(self.log.read_text(encoding='utf-8'))['system']
+        call = json.loads(self.log.read_text(encoding='utf-8'))
+        system = call['system'] + call['prompt']
         for text in ['Be colleagues.', 'Dry humour.', 'No "Great question!".', 'Disagree usefully.']:
             self.assertIn(text, system)
         self.assertNotIn('Playful.', system)
@@ -150,7 +175,7 @@ class AgentTests(unittest.TestCase):
             self.ask(message=' ')
         with self.assertRaises(KeyError):
             self.ask(agent_id='nobody')
-        self.assertEqual(self.agents.thread(self.p['id'], 'sam'), [])
+        self.assertEqual(self.agents.thread('desk', 'sam'), [])
 
     def test_errors_and_plain_text_answers(self):
         self.fake('error')

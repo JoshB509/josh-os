@@ -311,6 +311,7 @@ class Handler(BaseHTTPRequestHandler):
                 if act=='check':return self.send(s.courses.check_slides(lid))
                 if act=='cues':return self.send(s.courses.save_cues(lid,data.get('text','')))
                 if act=='publish':return self.send(s.courses.publish(lid))
+                if act=='live':return self.send(s.courses.mark_live(lid,data.get('revision')))
                 if act=='open':return self.send(s.courses.open_path(lid,data.get('kind','')))
             if path=='/api/agents/reflect' and method=='POST':
                 try:return self.send(s.agents.reflect(data,s.carousels.all()['items'],s.carousels,s.inspo))
@@ -319,7 +320,7 @@ class Handler(BaseHTTPRequestHandler):
                 try:return self.send(s.agents.chat(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)
             if path=='/api/agents/ask' and method=='POST':
-                try:return self.send(s.agents.ask(data))
+                try:return self.send(s.agents.ask(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)
             if len(parts)==4 and parts[:3]==['api','team','learnings'] and method=='POST' and data.get('delete') is True:return self.send(s.team.forget(parts[3]))
             if path=='/api/inspo' and method=='POST':return self.send(s.inspo.create(data))

@@ -1,5 +1,6 @@
 import json, tempfile, time, unittest
 from pathlib import Path
+from unittest import mock
 from studio.store import Store, Conflict
 from studio.course_lessons import CourseLessons, STAGES
 
@@ -30,7 +31,13 @@ class CourseLessonTests(unittest.TestCase):
         (hatt / 'Lesson_Guides/3.4_2026-10-31_v01_the-ask-slide_lesson-guide.pdf').write_bytes(b'%PDF-1.4')
         (hatt / 'Thumbnails/3.4_2026-10-31_v03_the-ask-slide_thumb.jpg').write_bytes(b'jpg')
         self.drive = self.root / 'drive'
-        (self.drive / '2 · Heard at the Top scripts').mkdir(parents=True)
+        part3 = self.drive / 'Communication Track' / 'Part 3 · Building the presentation'
+        part3.mkdir(parents=True)
+        (part3 / '3.4 Ask slide old.mp4').write_bytes(b'old')  # an earlier upload under another name
+        (part3 / '3.40 Another lesson.pdf').write_bytes(b'keep')
+        patcher = mock.patch('studio.course_lessons.PUBLISH_ROOT', '')
+        patcher.start()
+        self.addCleanup(patcher.stop)
         (self.root / 'settings.json').write_text(json.dumps({'course_content_dir': str(self.content)}), encoding='utf-8')
         (self.root / 'Data').mkdir()
         (self.root / 'Data/course-import.json').write_text(json.dumps({'courses': {
@@ -123,11 +130,13 @@ class CourseLessonTests(unittest.TestCase):
         self.wait('bbb')
         b = self.c.get('bbb')
         self.assertEqual((b['stage'], b['publish']['status']), ('Published', 'done'))
-        folder = self.drive / '2 · Heard at the Top scripts' / 'Part 3 · Building the presentation' / '3.4 The ask slide'
-        self.assertEqual(sorted(f.name for f in folder.iterdir()), ['3.4 The ask slide - Lesson guide.pdf', '3.4 The ask slide - Thumbnail.jpg',
-                                                                     '3.4 The ask slide.mp4', 'lesson.json'])
-        details = json.loads((folder / 'lesson.json').read_text(encoding='utf-8'))
-        self.assertEqual((details['number'], details['written_lesson'], details['course']), ('3.4', '3.4 The ask slide - Lesson guide.pdf', 'Heard at the Top'))
+        folder = self.drive / 'Communication Track' / 'Part 3 · Building the presentation'
+        files = sorted(f.name for f in folder.iterdir() if f.is_file())
+        self.assertEqual(files, ['3.4 The ask slide.mp4', '3.4 The ask slide.pdf', '3.40 Another lesson.pdf'])
+        archived = [f for f in folder.iterdir() if f.is_dir()]
+        self.assertEqual([f.name for f in archived[0].iterdir()], ['3.4 Ask slide old.mp4'])
+        self.assertTrue((self.drive / 'Communication Track' / 'Thumbnails' / '3.4_2026-10-31_v03_the-ask-slide_thumb.jpg').is_file())
+        self.assertEqual(b['publish']['folder'], str(folder))
 
     def test_saskia_prepares_drafts_and_builds_slides(self):
         slides = self.content / 'Heard_at_the_Top/Slides/3.3_2026-11-08_v01_situation-complication-resolution_slides.html'
@@ -194,6 +203,19 @@ class CourseLessonTests(unittest.TestCase):
             self.wait(x)
         self.assertEqual({self.c.get(x)['job']['status'] for x in (new, 'bbb', 'ccc')}, {'done'})
         self.assertIn((new, 'prepare', 'Cover the whole offer'), self.c.agents.calls)
+
+    def test_a_lesson_already_in_the_course_app_can_be_marked_live(self):
+        from studio.agent import Agents
+        with self.assertRaises(ValueError):
+            self.c.move('aaa', 'Published', None)
+        done = Agents.__new__(Agents).apply_lessons(self.c, [dict(lesson_id='aaa', stage='Published')])
+        self.assertEqual([(d['action'], d.get('stage')) for d in done], [('moved', 'Published')])
+        l = self.c.get('aaa')
+        self.assertEqual((l['stage'], l['publish']['status'], l['publish']['by']), ('Published', 'elsewhere', 'Saskia'))
+        self.assertIn('Already live', l['history'][-1]['why'])
+        self.assertEqual(self.c.mark_live('aaa')['stage'], 'Published')
+        with self.assertRaises(ValueError):
+            self.c.open_path('aaa', 'published')
 
     def test_a_slide_file_outside_the_course_folder_is_refused(self):
         stray = self.root / '3.3_2026-11-08_v01_x_slides.html'
