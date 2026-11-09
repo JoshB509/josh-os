@@ -6,7 +6,9 @@ from contextlib import contextmanager
 from PIL import Image
 
 STAGES=['Idea','Scripting','Ready to record','Recording','Recorded','Editing','Review','Scheduled','Published']
-FIELDS=['name','stage','publish_date','notes','script','titles','chosen_title','thumbnails','top_three','media','archived','packaging','lead_magnet','keying']
+FIELDS=['name','stage','publish_date','notes','script','titles','chosen_title','thumbnails','top_three','media','archived','packaging','lead_magnet','keying','locks']
+# Pieces of a video Josh has locked in on the video page, each with when it was locked.
+LOCKS={'title','thumbnail','script','recording','edit','animations','publish'}
 def now():return datetime.now(timezone.utc).isoformat()
 class Conflict(ValueError):pass
 
@@ -53,6 +55,9 @@ class Store:
         if not isinstance(p['name'],str) or not p['name'].strip() or len(p['name'])>240:raise ValueError('Give the project a name (1Ã¢â‚¬â€œ240 characters)')
         if p['stage'] not in STAGES:raise ValueError('Unknown stage')
         if p['publish_date']:date.fromisoformat(p['publish_date'])
+        locks=p.get('locks') or {}
+        if not isinstance(locks,dict) or set(locks)-LOCKS or any(not isinstance(v,str) or len(v)>40 for v in locks.values()):raise ValueError('Invalid locked-in pieces')
+        if 'locks' in p:p['locks']=locks
         for field,limit in [('notes',50000),('script',200000)]:
             if not isinstance(p[field],str) or len(p[field])>limit:raise ValueError(field+' is too long')
         packaging=p.get('packaging',{})

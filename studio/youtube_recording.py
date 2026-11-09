@@ -185,7 +185,8 @@ class Recording:
             if not source.is_file() or identity(source)!=s['source']:raise Conflict('Selected take changed. Select its finalized file again in JoshOS.')
             if time.time()-source.stat().st_mtime<5:raise Conflict('Take was just modified. Wait for recording/remux to finish.')
             # Reject a still-present alternate container with the same basename.
-            if any(x!=source and x.is_file() and x.stem==source.stem and x.suffix.lower() in ('.mp4','.mkv','.mov','.webm','.tmp','.partial') for x in self.input.iterdir()):
+            # OBS keeps the original .mkv beside the .mp4 it remuxes from it, so that one pair is expected and the .mkv stays put.
+            if any(x!=source and x.is_file() and x.stem==source.stem and x.suffix.lower() in ('.mp4','.mkv','.mov','.webm','.tmp','.partial') and not (source.suffix.lower()=='.mp4' and x.suffix.lower()=='.mkv') for x in self.input.iterdir()):
                 raise Conflict('Multiple containers or a remux/temp sibling exist for this take. Resolve the ambiguity before locking.')
             with stable_reader(source):
                 initial=identity(source);time.sleep(.3)

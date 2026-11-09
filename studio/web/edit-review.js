@@ -121,7 +121,7 @@ const erBaseRender=render;
 render=function(){if(view==='edit-review'&&!current)return renderEditReview();return erBaseRender.apply(this,arguments)};
 const erDecks={};
 function erInjectButton(){
-  if(!current||view==='edit-review')return;const top=document.querySelector('.project-top');if(!top||top.querySelector('[data-er-open]'))return;
+  if(!current||view==='edit-review')return;const top=document.querySelector('.project-top');if(!top||top.classList.contains('vp-top')||top.querySelector('[data-er-open]'))return;
   const pid=current.id,add=()=>{if(current?.id!==pid||top.querySelector('[data-er-open]'))return;
     top.insertAdjacentHTML('beforeend',`<button class="subtle" data-er-open="${esc(pid)}">${erDecks[pid]?'Review the animations':'Set up the edit'}</button>`)};
   if(pid in erDecks)return add();
