@@ -20,6 +20,7 @@ from .project_folders import ProjectFolders
 from .team import Team
 from .results import VideoResults
 from .people import People
+from .discord_bridge import Bridge as DiscordBridge
 from .course_lessons import CourseLessons
 from .carousels import Carousels
 from .inspo import Inspo
@@ -62,6 +63,7 @@ class Server(ThreadingHTTPServer):
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
         self.agents.admin=self.admin
+        self.discord=DiscordBridge(self).start()
         threading.Thread(target=self.admin.loop,daemon=True).start()
         threading.Thread(target=self.kit_loop,daemon=True).start()
         self.token=self.phone.key or secrets.token_urlsafe(32);self.demo=demo;self.picker_lock=threading.Lock()
@@ -159,6 +161,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/team':return self.send(s.team.all())
                 if len(parts)==3 and parts[:2]==['api','results']:return self.send(s.results.get(parts[2]))
                 if path=='/api/people':return self.send(s.people.all())
+                if path=='/api/discord':return self.send(s.discord.status)
                 if path=='/api/courses':return self.send(s.courses.all())
                 if len(parts)==3 and parts[:2]==['api','courses']:return self.send(s.courses.get(parts[2]))
                 if len(parts)==4 and parts[:2]==['api','courses'] and parts[3]=='cues':return self.send(dict(text=s.courses.cues(parts[2])))

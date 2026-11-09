@@ -253,6 +253,13 @@ PEOPLE_PROPS = {
                                 'required': ['summary']}}}},
     },
 }
+# On Discord, an answer can send files back to Josh: existing files only, inside CareerOS or Josh OS.
+SEND_FILES_PROPS = {
+    'send_files': {'type': 'array', 'items': {'type': 'string'},
+                   'description': 'Full paths of files to send Josh with this reply on Discord, such as a slide image, a PDF or a '
+                                  'script file you made or found. Only files that already exist. Up to 10.'},
+}
+MAX_SEND_BYTES = 25 * 1024 * 1024
 # Every chat answer can also note which of Josh's edits it covered, and save lessons.
 LEARN_PROPS = {
     'edits_noted': {'type': 'array', 'items': {'type': 'string'},
@@ -414,6 +421,30 @@ class Agents:
             items = items[-80:]
             c.execute('INSERT OR REPLACE INTO agent_threads VALUES(?,?,?)', (project_id, agent_id, json.dumps(items)))
         return items
+
+    def chat_files(self, data):
+        """Files Josh attached on Discord (not images), saved by the bridge in Data/discord/inbox."""
+        inbox = (self.store.root / 'discord' / 'inbox').resolve()
+        out = []
+        for f in (data.get('files') or [])[:10]:
+            path = Path(str(f)).resolve()
+            if not path.is_file() or not path.is_relative_to(inbox):
+                raise ValueError('One of those files is no longer saved. Send it again.')
+            out.append(str(path))
+        return out
+
+    def files_to_send(self, paths):
+        """Files an agent wants to send back on Discord: real files inside CareerOS or Josh OS, within Discord's size limit."""
+        roots = [self.store.root.resolve(), self.root.resolve(), self.training_dir().parent.resolve()]
+        out = []
+        for f in (paths or [])[:10] if isinstance(paths, list) else []:
+            try:
+                path = Path(str(f)).resolve()
+            except (OSError, ValueError):
+                continue
+            if path.is_file() and path.stat().st_size <= MAX_SEND_BYTES and any(path.is_relative_to(r) for r in roots) and str(path) not in out:
+                out.append(str(path))
+        return out
 
     def chat_images(self, data):
         """The images Josh attached to a chat message, as saved asset ids. Unknown ids are an error."""
@@ -1069,8 +1100,10 @@ class Agents:
         agent_id = data.get('agent_id', '')
         message = '' if proactive else str(data.get('message', '')).strip()
         images = [] if proactive else self.chat_images(data)
+        files = [] if proactive else self.chat_files(data)
+        via = 'discord' if data.get('via') == 'discord' else ''
         sel = None if proactive else self.selection(data)
-        if not proactive and (not (message or images) or len(message) > 4000):
+        if not proactive and (not (message or images or files) or len(message) > 4000):
             raise ValueError('Write a message, up to 4,000 characters.')
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         if not agent:
@@ -1122,11 +1155,20 @@ class Agents:
                 if images:
                     parts += ['', 'Josh attached these images to this message. Open every one with Read and look at it before you answer:']
                     parts += self.image_lines(images)
+                if files:
+                    parts += ['', 'Josh attached these files to this message. Open every one with Read before you answer:', *files]
+                if via:
+                    parts += ['', 'Josh sent this from Discord on his phone or computer. Reply as you would in Josh OS. To send him a file '
+                              'back, put its full path in send_files.']
             if images or any(m.get('images') for m in history[-12:]):
                 dirs = list(dirs) + [str(self.store.root / 'assets')]
+            if files:
+                dirs = list(dirs) + sorted({str(Path(f).parent) for f in files})
             schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
             schema['properties'].update(LEARN_PROPS)
             schema['properties'].update(PROJECT_PROPS)
+            if via:
+                schema['properties'].update(SEND_FILES_PROPS)
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
             if mails is not None:
                 schema['properties'].update(EMAIL_PROPS)
@@ -1194,6 +1236,11 @@ class Agents:
         finally:
             lock.release()
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
+        sending = self.files_to_send(answer.get('send_files')) if via and isinstance(answer, dict) else []
+        if sending:
+            theirs['files'] = sending
+        if via:
+            theirs['via'] = via
         if not proactive and sel:
             theirs.update(selection=sel, replacement=replacement)
         if saved:
@@ -1206,6 +1253,10 @@ class Agents:
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
         if images:
             mine['images'] = images
+        if files:
+            mine['files'] = [Path(f).name for f in files]
+        if via:
+            mine['via'] = via
         if sel:
             mine['selection'] = sel
         return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)

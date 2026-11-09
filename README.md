@@ -92,6 +92,18 @@ Claude Code needs to be installed on this PC and signed in to your Claude accoun
 
 To update a skill, replace its `SKILL.md` in `.claude/skills/`. Claude Code sessions opened in this folder use the same files.
 
+## Talking to the team on Discord
+
+Each team member can have their own Discord bot, so you can message Sam, Tariq, Laia, Saskia or Anouk from the Discord app on any device. Josh OS runs a small bridge on this PC that picks up your message, passes it to that person's normal chat (the same conversation you see in the app, with the same tools), and posts the reply back from their bot. You can attach images and files, and they can send files back to you.
+
+1. Go to the Discord Developer Portal, click **New Application** and name it after the team member (for example Sam). On the **Bot** page, set the bot's name and picture, turn on **Message Content Intent**, then click **Reset Token** and keep the token on screen for step 4.
+2. On the **OAuth2** page, open the URL Generator, tick `bot`, then tick **View Channels**, **Send Messages**, **Attach Files** and **Read Message History**. Open the link it makes and add the bot to your private server.
+3. In your server, make a channel for each bot, such as `#sam`. Each bot answers in its own channel, in direct messages, and anywhere you @mention it.
+4. On this PC, run `pip install "discord.py>=2.3"`, then `python discord_setup.py`. It asks for your Discord user id and each bot's token. Tokens are hidden while you type and are saved in `Data/discord.json`, which stays out of git. Never paste a token into a chat.
+5. Restart Josh OS.
+
+The bots only answer your Discord user id, so nobody else in a server can make a team member do anything. Files you send are kept in `Data/discord/inbox/`, and images go into Josh OS like any other image. Anouk stays in setup mode on Discord too, so she can't use Gmail, Kit, Linklr or Calendly until she is listed in `team_live`. To check which bots are connected, open `/api/discord` in Josh OS.
+
 ## Using Josh OS on your phone
 
 Josh OS only listens on this PC. To reach it from a phone, it uses Tailscale, which gives your phone a private, encrypted route to this PC that nobody outside your Tailscale account can use.
