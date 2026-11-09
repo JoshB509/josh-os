@@ -23,6 +23,7 @@ from .course_lessons import CourseLessons
 from .carousels import Carousels
 from .inspo import Inspo
 from .feedback import Feedback
+from .edit_review import EditReview,STANDIN
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
 
@@ -54,7 +55,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -168,6 +169,10 @@ class Handler(BaseHTTPRequestHandler):
                 if len(parts)==5 and parts[:2]==['api','inspo'] and parts[3]=='slide' and parts[4].isdigit():
                     file,mime=s.inspo.image(parts[2],int(parts[4]))
                     return self.send(file.read_bytes(),mime=mime,cache='private, max-age=3600')
+                if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-review':return self.send(s.edit_review.review(parts[2]))
+                if len(parts)==6 and parts[:2]==['api','projects'] and parts[3:5]==['edit-review','img']:
+                    return self.send(s.edit_review.image(parts[2],parts[5]).read_bytes(),mime='image/jpeg',cache='private, max-age=60')
+                if path=='/edit-standin.webp':return self.send(STANDIN.read_bytes(),mime='image/webp',cache='private, max-age=86400')
                 if path=='/api/carousels':return self.send(s.carousels.all())
                 if path=='/api/phone':return self.send(s.phone.status(s.token))
                 if path=='/manifest.webmanifest':return self.send(s.phone.manifest(),mime='application/manifest+json')
@@ -199,7 +204,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/edit-review.js','/edit-review.css','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -327,6 +332,9 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/inspo/import' and method=='POST':return self.send(s.inspo.import_folder(data['folder'],data['creator'],data.get('checked_at','')))
             if len(parts)==3 and parts[:2]==['api','inspo'] and method=='PUT':return self.send(s.inspo.save(parts[2],data['changes'],data['revision']))
             if len(parts)==4 and parts[:2]==['api','carousels'] and parts[3]=='design' and method=='POST':return self.send(s.carousels.make_design(parts[2]))
+            if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-review' and method=='POST':
+                return self.send(s.edit_review.render(parts[2],[int(n) for n in data.get('only') or []] or None))
+            if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-setup' and method=='POST':return self.send(s.edit_review.setup(parts[2]))
             if path=='/api/carousels' and method=='POST':return self.send(s.carousels.create(data))
             if len(parts)==3 and parts[:2]==['api','carousels'] and method=='PUT':
                 before=s.carousels.get(parts[2]);saved=s.carousels.save(parts[2],data['changes'],data['revision'])
@@ -387,6 +395,10 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==3 and parts[:2]==['api','projects'] and method=='PUT':
                 before=s.store.get(parts[2]);saved=s.store.save(parts[2],data['changes'],data['revision'])
                 if self.from_josh():s.feedback.record('project',before,saved)
+                if saved.get('stage')!=before.get('stage') and saved.get('stage') in ('Recording','Recorded','Editing'):
+                    # Once a video is being recorded, Tariq's edit folders are made the way Josh lays them out.
+                    try:s.edit_review.setup(parts[2])
+                    except (KeyError,ValueError,OSError):pass
                 return self.send(s.project_folders.present(saved))
             if path=='/api/images' and method=='POST':
                 raw=base64.b64decode(data['data'],validate=True);return self.send(s.store.import_image(data['name'],raw))

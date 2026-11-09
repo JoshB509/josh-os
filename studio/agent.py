@@ -185,6 +185,18 @@ VIDEO_PROPS = {
     },
 }
 # Every team member can change a video card from chat, whatever page Josh is on.
+# The video editor works on a video's animation deck from the edit review.
+EDIT_PROPS = {
+    'edit': {
+        'type': 'object',
+        'description': 'Actions on the open video\'s edit. Leave out when nothing needs doing.',
+        'properties': {
+            'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
+            'rerender': {'type': 'array', 'items': {'type': 'integer'},
+                         'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
+        },
+    },
+}
 PROJECT_PROPS = {
     'projects': {
         'type': 'array',
@@ -258,6 +270,8 @@ DESK = 'desk'  # thread key for the general chat on a team member's page
 # Training files each team member works from. The folder can be moved with "training_dir" in settings.json.
 TRAINING_DIR = r'E:\CareerOS\_Agent-Training'
 TRAINING = {
+    # Tariq edits the videos. His handoff (tariq_video-editing-handoff.md) is listed for him to read, and he can read the YouTube folders.
+    'tariq': {'embed': [], 'read': [], 'dirs': ['12_YouTube']},
     'sam': {
         'embed': ['README.md', '01_house-style.md', '07_carousel-queue.md', '06_tracking-and-learning.md'],
         'read': ['02_carousels_lead-magnet-engine.md', '03_carousels_value-posts.md', '04_youtube-scheduling.md', '05_thumbnails.md'],
@@ -753,7 +767,7 @@ class Agents:
                         tools=JOB_TOOLS[task], timeout=JOB_TIMEOUT[task], full=True)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -775,7 +789,7 @@ class Agents:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
                 out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding='utf-8',
-                                     cwd=str(self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
+                                     cwd=str(cwd or self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
                                      creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except subprocess.TimeoutExpired:
                 raise AgentError('That took too long, so I stopped. Try a smaller selection.') from None
@@ -898,6 +912,33 @@ class Agents:
                     + '\n' + json.dumps(dict(id=p['id'], name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
                                             notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:20000],
                                             results=saved), ensure_ascii=False, indent=1))
+        if kind == 'edit' and getattr(self, 'edit_review', None) is not None:
+            er = self.edit_review
+            try:
+                folder = er.project_folder(cid)
+                p = self.store.get(cid)
+            except KeyError:
+                return ''
+            slides, shots = er.deck_files(cid)
+            review = er.review(cid)
+            part = None
+            if isinstance(context.get('part'), int) and 0 <= context['part'] < len(review['parts']):
+                part = review['parts'][context['part']]
+            lines = [f"Josh is reviewing the animation deck for the video \"{p['name']}\" in the edit review. Its folder is {folder}.",
+                     f"Slides: {slides or 'none yet'}. Shot list: {shots or 'none yet'}. Edit folder: {er.edit_folder(cid) or 'not set up yet'}.",
+                     'You can read and edit files in this folder only. When Josh asks for a change to an animation, change the slides',
+                     'HTML (and the shot list if the presses or words move) with Edit, keeping the deck\'s structure: each animation is a',
+                     '.scene with data-from and data-to press numbers, grey number cards are .scene.mark, and elements reveal on data-b.',
+                     'If you add or remove a press, renumber every later data-from, data-to, data-b, data-off and data-add, and TOTAL.',
+                     'Josh OS takes the review pictures again by itself when the slides change. Follow the video-editing-prep skill for',
+                     'anything new, and the house style of the existing deck. Never touch the recordings, Premiere projects or masters.']
+            if part:
+                lines += ['', 'The part he has open:', json.dumps({k: part.get(k) for k in ('kind', 'n', 'type', 'time', 'desc', 'script', 'presses')},
+                                                                  ensure_ascii=False, indent=1)]
+                if part.get('images'):
+                    out = er.out_folder(cid)
+                    lines += ['Its review pictures, one per press, which you can look at with Read: ' + ', '.join(str(out / n) for n in part['images'])]
+            return '\n'.join(lines)
         if kind == 'email' and getattr(self, 'emails', None) is not None:
             try:
                 e = self.emails.get(cid)
@@ -991,9 +1032,28 @@ class Agents:
                 schema['properties'].update(LESSON_PROPS)
                 if str(self.store.root / 'assets') not in dirs:
                     dirs = list(dirs) + [str(self.store.root / 'assets')]
+            ctx = data.get('context') or {}
+            er = getattr(self, 'edit_review', None) if 'editing' in (agent.get('workflows') or []) else None
+            edit_folder, before, run_tools = None, None, None
+            if er is not None and ctx.get('kind') in ('edit', 'project') and ctx.get('id'):
+                schema['properties'].update(EDIT_PROPS)
+                try:
+                    edit_folder = er.project_folder(str(ctx['id']))
+                except KeyError:
+                    edit_folder = None
+                if edit_folder is not None and ctx.get('kind') == 'edit':
+                    # The editor may change the deck and shot list, and only inside this video's folder.
+                    run_tools = 'Read,Grep,Glob,Edit,Write'
+                    before = er.deck_files(str(ctx['id']))[0]
+                    before = (before, before.read_text(encoding='utf-8')) if before else None
+                    for name in SKILLS.get(agent_id, []):
+                        text = self.skill_text(name)
+                        if text:
+                            parts += ['', f'=== Skill: {name} (follow it for anything you make or change in the deck) ===', text]
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive,
-                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True)
+                                     extra_tools=['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ())), full=True,
+                                     tools=run_tools, cwd=edit_folder if run_tools else None)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -1008,6 +1068,8 @@ class Agents:
                 saved += self.apply_lessons(courses, answer['lessons'])
             if isinstance(answer.get('projects'), list):
                 saved += self.apply_projects(answer['projects'])
+            if er is not None and edit_folder is not None:
+                saved += self.apply_edit(er, str(ctx['id']), answer.get('edit') if isinstance(answer.get('edit'), dict) else {}, before)
             replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
             if mails is not None and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
@@ -1063,6 +1125,24 @@ class Agents:
                     done.append(dict(id=item['id'], title=item.get('subject', ''), action='added', kind='email'))
             except Exception as e:  # noqa: BLE001 - report every failure back to Josh in the chat
                 done.append(dict(id=eid, title=changes.get('subject', ''), action='failed', kind='email', error=str(e).strip("'\"")[:200]))
+        return done
+
+    def apply_edit(self, er, pid, action, before):
+        """Set up the edit folders, and take the review pictures again when the deck changed or Tariq asked."""
+        done = []
+        try:
+            if action.get('setup') is True:
+                made = er.setup(pid)
+                done.append(dict(id=pid, title='Edit folders in ' + made['edit'], action='updated', kind='edit'))
+            slides = er.deck_files(pid)[0]
+            changed = bool(slides) and (before is None or slides != before[0] or slides.read_text(encoding='utf-8') != before[1])
+            asked = [int(n) for n in action.get('rerender') or [] if isinstance(n, int)]
+            if changed or asked:
+                er.render(pid, None if changed else asked)
+                done.append(dict(id=pid, title='the review pictures' + ('' if changed else ' for animation ' + ', '.join(map(str, asked))),
+                                 action='updated', kind='edit'))
+        except (ValueError, KeyError, OSError) as e:
+            done.append(dict(id=pid, title='the edit review', action='failed', kind='edit', error=str(e)[:200]))
         return done
 
     def keep_lessons(self, agent, lessons):
