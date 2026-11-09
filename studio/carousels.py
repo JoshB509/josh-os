@@ -255,6 +255,9 @@ class Carousels:
                             merged[w] = dict(merged.get(w, {}), **(nums or {}))
                         u['results'] = merged
                     item = self.save(cid, {k: v for k, v in u.items() if k in FIELDS}, current['revision'])
+                    # New words on a post Josh OS already designed get a new design, so Josh never sees the old slides.
+                    if not redo and (current.get('design') or {}).get('words') and self.words_hash(item) != current['design']['words']:
+                        redo = True
                     if redo:
                         item = self.make_design(cid)
                     done.append(dict(id=item['id'], title=item['title'], action='designed' if redo else 'updated'))
@@ -273,11 +276,37 @@ class Carousels:
     def words_hash(item):
         return hashlib.sha1((item.get('slides') or '').strip().encode('utf-8')).hexdigest()[:12]
 
+    def slide_parts(self, block, n):
+        """One slide's words, plus a drawing (inline <svg>) or a picture ([image: asset id or path]) if it has one."""
+        out = {}
+        svg = re.search(r'<svg[\s\S]*?</svg>', block, re.I)
+        if svg:
+            out['svg'] = re.sub(r'<script[\s\S]*?</script>|\son\w+="[^"]*"', '', svg.group(0), flags=re.I)
+            block = block.replace(svg.group(0), '')
+        lines = []
+        for line in block.strip().splitlines():
+            m = re.fullmatch(r'\[(?:image|picture|photo):\s*(.+?)\]', line.strip(), re.I)
+            if m:
+                src = m.group(1).strip().strip('"')
+                try:
+                    path = Path(self.store.asset(src)[0]) if re.fullmatch(r'[a-f0-9]{64}', src) else Path(src)
+                except (ValueError, KeyError):
+                    path = None
+                if not path or not path.is_file() or path.suffix.lower() not in IMAGE_TYPES:
+                    raise ValueError(f"Slide {n} uses a picture Josh OS can't find: {src}")
+                out['image'] = str(path)
+            elif line.strip():
+                lines.append(line.strip())
+        if not lines:
+            raise ValueError(f'Slide {n} needs a headline line as well as its picture or drawing.')
+        out['lines'] = lines
+        return out
+
     def make_design(self, cid):
         """Render the slides in the Paper style into the post's folder and point the card at it."""
         item = self.get(cid)
         blocks = [b for b in re.split(r'\n-{3,}\n?', item.get('slides') or '') if b.strip()]
-        slides = [[line.strip() for line in b.strip().splitlines() if line.strip()] for b in blocks]
+        slides = [self.slide_parts(b, i + 1) for i, b in enumerate(blocks)]
         if not slides:
             raise ValueError('Write the slides first, then make the design.')
         current = self.folder(item)

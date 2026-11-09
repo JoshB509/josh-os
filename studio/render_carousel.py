@@ -1,12 +1,14 @@
 """Render one carousel's slides in the Paper style, using Josh's own renderer.
 
 Run as a script: python render_carousel.py <job.json>
-job.json holds {"slides": [[line, line], ...], "out": "<folder>"}.
+job.json holds {"slides": [{"lines": [line, ...], "svg": "<svg ...>", "image": "<path>"}, ...], "out": "<folder>"}.
+A slide can carry a drawing (inline SVG) or a picture, shown under its words. Plain lists of lines still work.
 
 The look lives in E:\\CareerOS\\07_Tools\\carousel-render\\render.py. This loads its slide
 template without running its own batch, so both always produce the same design.
 """
 import asyncio
+import base64
 import json
 import os
 import pathlib
@@ -49,6 +51,39 @@ MEASURE = """() => {
 }"""
 
 
+VISUAL_CSS = """
+.vis{position:relative;display:flex;justify-content:center;align-items:center;width:100%;max-width:840px}
+.vis img{display:block;max-width:840px;max-height:var(--vh,520px);border-radius:20px;object-fit:contain;
+  box-shadow:0 1px 2px rgba(21,23,28,.06),0 18px 44px -18px rgba(21,23,28,.35)}
+.vis svg{display:block;max-width:840px;height:var(--vh,520px);width:auto}
+"""
+# The picture or drawing gives way first, so the words keep their size. It shrinks until it clears the footer.
+VISUAL_FIT = ("<script>document.fonts.ready.then(()=>{const v=document.querySelector('.vis');if(!v)return;let h=520;"
+              "for(let i=0;i<30&&v.getBoundingClientRect().bottom>940&&h>200;i++){h*=.94;v.style.setProperty('--vh',h+'px')}})</script>")
+
+
+def visual(slide):
+    """The drawing or picture for one slide, as HTML."""
+    if slide.get('svg'):
+        return f'<div class="vis">{slide["svg"]}</div>'
+    if slide.get('image'):
+        p = pathlib.Path(slide['image'])
+        mime = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}.get(p.suffix.lower(), 'image/png')
+        return f'<div class="vis"><img src="data:{mime};base64,{base64.b64encode(p.read_bytes()).decode()}" alt=""></div>'
+    return ''
+
+
+def with_visual(html, slide):
+    part = visual(slide)
+    if not part:
+        return html
+    html = html.replace('</style>', VISUAL_CSS + '</style>', 1).replace('<script>', VISUAL_FIT + '<script>', 1)
+    at = html.index('\n<div class="foot">')
+    # Inside the text column when there is one, so it sits under the words. After a numbered list otherwise.
+    cut = at - len('</div>') if html[:at].endswith('</div>') else at
+    return html[:cut] + part + html[cut:]
+
+
 def steady(html, sizes=None):
     html = html.replace('</style>', STEADY_CSS + '</style>', 1)
     if sizes:
@@ -64,12 +99,13 @@ def steady(html, sizes=None):
 async def render(slides, out):
     ns = load_template()
     slide_html = ns['slide_html']
+    slides = [s if isinstance(s, dict) else {'lines': s} for s in slides]
     from playwright.async_api import async_playwright
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
     for old in out.glob('slide_*.png'):
         old.unlink()
-    slide_html.close_idx = len(slides) - 2 if any(l.startswith('QR ') for l in slides[-1]) else len(slides) - 1
+    slide_html.close_idx = len(slides) - 2 if any(l.startswith('QR ') for l in slides[-1]['lines']) else len(slides) - 1
     tmp = out / '_render.html'
     async with async_playwright() as pw:
         try:
@@ -79,7 +115,7 @@ async def render(slides, out):
         page = await browser.new_page(viewport={'width': 1080, 'height': 1080})
 
         async def load(i, sizes=None):
-            tmp.write_text(steady(slide_html(slides[i], i, len(slides)), sizes), encoding='utf-8')
+            tmp.write_text(steady(with_visual(slide_html(slides[i]['lines'], i, len(slides)), slides[i]), sizes), encoding='utf-8')
             await page.goto(tmp.as_uri())
             await page.wait_for_function('document.body.dataset.done==1')
             await page.evaluate('document.fonts.ready')

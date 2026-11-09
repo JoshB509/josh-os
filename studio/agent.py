@@ -113,10 +113,11 @@ LESSON_PROPS = {
             'script': {'type': 'string', 'description': 'The whole script, when you write or rewrite it. Never a part of it.'},
             'prep': {'type': 'string', 'description': 'Preparation notes for the lesson.'},
             'notes': {'type': 'string', 'description': 'A short note on what changed and why.'},
-            'stage': {'type': 'string', 'description': 'Move the lesson to this stage. Josh OS refuses a move its gates block.'},
+            'stage': {'type': 'string', 'description': 'Move the lesson to this stage. Josh OS refuses a move its gates block. Published means it is already live in the course app.'},
             'start': {'type': 'string', 'enum': ['prepare', 'draft', 'slides', 'guide', 'thumbnail'],
                       'description': 'Start this piece of work on the lesson now. It runs on this PC after your reply.'},
-            'start_note': {'type': 'string', 'description': 'What Josh asked for, passed to the job.'}}},
+            'start_note': {'type': 'string', 'description': 'What Josh asked for, passed to the job.'},
+            'publish': {'type': 'boolean', 'description': 'Publish the lesson to the CareerOS Google Drive folder now. It needs the video, guide and thumbnail.'}}},
     },
 }
 # What Saskia sends back from a lesson job (prepare, draft, slides, guide or thumbnail).
@@ -192,6 +193,38 @@ VIDEO_PROPS = {
             'lessons': {'type': 'array', 'items': {'type': 'string'}, 'description': 'What this video taught, in a line each.'}},
             'required': ['project_id']},
     },
+}
+# Every team member can change a video card from chat, whatever page Josh is on.
+# The video editor works on a video's animation deck from the edit review.
+EDIT_PROPS = {
+    'edit': {
+        'type': 'object',
+        'description': 'Actions on the open video\'s edit. Leave out when nothing needs doing.',
+        'properties': {
+            'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
+            'rerender': {'type': 'array', 'items': {'type': 'integer'},
+                         'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
+        },
+    },
+}
+PROJECT_PROPS = {
+    'projects': {
+        'type': 'array',
+        'description': 'Changes to video cards in Josh OS. Leave empty when nothing needs saving. Only include the fields you change.',
+        'items': {'type': 'object', 'properties': {
+            'project_id': {'type': 'string', 'description': 'Id of the video from the snapshot or the one Josh has open.'},
+            'name': {'type': 'string'},
+            'stage': {'type': 'string', 'enum': ['Idea', 'Scripting', 'Ready to record', 'Recording', 'Recorded', 'Editing', 'Review',
+                                                 'Scheduled', 'Published']},
+            'publish_date': {'type': 'string', 'description': 'YYYY-MM-DD.'},
+            'notes': {'type': 'string', 'description': 'The whole angle and notes field, when you change it.'},
+            'script': {'type': 'string', 'description': 'The whole script, when Josh asks you to change it directly. Never a part of it.'},
+            'add_titles': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Title ideas to add to the video.'}},
+            'required': ['project_id']},
+    },
+    'replacement': {'type': ['string', 'null'],
+                    'description': 'When Josh has selected a passage of the open script, the rewritten passage ready to drop in. '
+                                   'Null otherwise.'},
 }
 # Anouk keeps the customer success tracker from chat.
 PEOPLE_PROPS = {
@@ -274,6 +307,8 @@ DESK = 'desk'  # thread key for the general chat on a team member's page
 # Training files each team member works from. The folder can be moved with "training_dir" in settings.json.
 TRAINING_DIR = r'E:\CareerOS\_Agent-Training'
 TRAINING = {
+    # Tariq edits the videos. His handoff (tariq_video-editing-handoff.md) is listed for him to read, and he can read the YouTube folders.
+    'tariq': {'embed': [], 'read': [], 'dirs': ['12_YouTube']},
     'sam': {
         'embed': ['README.md', '01_house-style.md', '07_carousel-queue.md', '06_tracking-and-learning.md'],
         'read': ['02_carousels_lead-magnet-engine.md', '03_carousels_value-posts.md', '04_youtube-scheduling.md', '05_thumbnails.md'],
@@ -303,8 +338,8 @@ TRAINING = {
 
 
 PERSONALITIES = Path('team') / 'personalities.md'
-GOALS = Path('team') / 'goals'
-PLAYBOOKS = Path('team') / 'playbooks'  # team/playbooks/<id>/*.md: step-by-step flows Josh writes, followed exactly  # team/goals/<id>.md: what success means for that person, read every time
+GOALS = Path('team') / 'goals'  # team/goals/<id>.md: what success means for that person, read every time
+PLAYBOOKS = Path('team') / 'playbooks'  # team/playbooks/<id>/*.md: step-by-step flows Josh writes, followed exactly
 # Sections every team member reads, found by title so renumbering the file never breaks it.
 SHARED_SECTIONS = ('purpose', 'shared', 'team dynamics', 'overall experience', 'the overall experience')
 
@@ -399,7 +434,7 @@ class Agents:
         paths = []
         for aid in ids:
             try:
-                paths.append(str(self.store.asset(aid)[0]))
+                paths.append(f'{self.store.asset(aid)[0]} (asset id {aid})')
             except ValueError:
                 continue
         return paths
@@ -407,6 +442,8 @@ class Agents:
     def history_line(self, m):
         who = 'Josh' if m['role'] == 'josh' else 'You'
         line = f"{who}: {m['text']}"
+        if m.get('selection'):
+            line = f"{who} (about the passage \"{m['selection']['text'][:200]}\"): {m['text']}"
         if m.get('images'):
             line += ' [attached images, which you can open with Read: ' + ', '.join(self.image_lines(m['images'])) + ']'
         return line
@@ -508,58 +545,6 @@ class Agents:
         others = [a for a in self.team.all()['agents'] if a['id'] != agent['id']]
         return 'The rest of the team: ' + '; '.join(f"{a['name']} ({a['role']}{', starts later' if a['status'] == 'Coming later' else ''})" for a in others) + '.'
 
-    def system_prompt(self, agent, learnings):
-        lines = [
-            f"You are {agent['name']}, {agent['role']} on Josh's team at CareerOS. You work inside Josh OS, his studio app.",
-            f"Your mission: {agent['mission']}",
-            f"Your personality: {agent['personality']}",
-            'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
-            self.roster(agent),
-            *([] if self.live(agent['id']) else [
-                'You are still being set up. You have no access to Gmail, Calendly, Kit, Linklr or Chrome yet, and you must not',
-                'send, book, schedule or change anything outside Josh OS. You can read Josh OS and your files, keep your tracker',
-                'up to date from what Josh tells you, and write any message here in chat for Josh to send himself.']),
-            '',
-            'How to work with Josh:',
-            '- Be yourself, as described in "Who you are" below. Talk like his colleague, keep it short, and give your view.',
-            '  Only ask a question when you need a decision or a missing piece to move the work on.',
-            '- Write chat replies the way you would message a colleague. Plain sentences, no headings and no bold.',
-            '  Use a short list only when you are naming three or more separate things. Most replies are under 120 words.',
-            '- When something belongs to someone else on the team, name them. Never claim you have spoken to them.',
-            '- When he selects a passage and asks for a change, put the full rewritten passage in "replacement" so he can drop it in.',
-            '  Keep anything he did not ask you to change. Match his formatting, including any # headings.',
-            '- When he asks a question or wants your view, answer in "reply" and leave "replacement" null.',
-            '- Follow your skills below exactly. They are Josh\'s own rules and they override general writing habits.',
-            f'- Reference files the skills mention live in ./{REFERENCES}/ (for example ed-lawrence-movement-library.md,',
-            '  curiosity lines, audience-communication.md, magnet-index.md, parker-checkout-and-bumps.md). Read them when you need them.',
-            '- Never claim a client result, number or fact you cannot see in the material. Put it in [square brackets] for Josh to check.',
-            '- Most of Josh\'s feedback comes in chat. When he asks you to change your work ("make the hook punchier",',
-            '  "cut that line", "less salesy"), make the change, then work out the preference behind it. If it would apply to',
-            '  future work, save it in lessons as a rule. If you can\'t tell whether it was a one-off, ask in one short line, like',
-            '  "Want me to do that every time, or just here?" or "Was that to keep it shorter?". Save the rule once he answers.',
-            '- When a rule is clear, save it in lessons as one short instruction, with his words as evidence, and tell him you noted it.',
-        ]
-        persona = personality(self.root, agent)
-        if persona:
-            lines += ['', '=== Who you are (team/personalities.md) ===', persona]
-        goals = self.root / GOALS / f"{agent['id']}.md"
-        if goals.is_file():
-            lines += ['', f"=== Your goals (team/goals/{agent['id']}.md) ===", goals.read_text(encoding='utf-8')]
-        book = self.root / PLAYBOOKS / agent['id']
-        for f in (sorted(book.glob('*.md')) if book.is_dir() else []):
-            if f.name.lower() != 'readme.md':
-                lines += ['', f"=== Playbook: {f.name} (follow it exactly) ===", f.read_text(encoding='utf-8')]
-        if learnings:
-            lines += ['', 'What the team has learned so far (apply it):', *[f"- {l['lesson']}" + (f" ({l['evidence']})" if l.get('evidence') else '') for l in learnings]]
-        for name in SKILLS.get(agent['id'], []):
-            text = self.skill_text(name)
-            if text:
-                lines += ['', f'=== Skill: {name} ===', text]
-        style = self.training_dir() / '01_house-style.md'
-        if agent['id'] in TRAINING and style.is_file():
-            lines += ['', '=== Training: 01_house-style.md ===', style.read_text(encoding='utf-8')]
-        return '\n'.join(lines)
-
     def desk_system_prompt(self, agent, learnings):
         training, _ = self.training(agent['id'])
         lines = [
@@ -574,8 +559,14 @@ class Agents:
                 'send, book, schedule or change anything outside Josh OS. You can read Josh OS and your files, keep your tracker',
                 'up to date from what Josh tells you, and write any message here in chat for Josh to send himself.']),
             '',
-            'This is the chat on your own page in Josh OS. Josh comes here to ask what you are working on, talk through plans and ideas,',
-            'ask about results, and give you direction.',
+            'This is your chat with Josh in Josh OS. It is one conversation, wherever he opens it, on your own page, in the side',
+            'dock or beside a script. When the prompt says what he has open, that tells you what "this" means. It never limits',
+            'what you can do. Everything you can change or start is open to you in every reply, on any page.',
+            '- Josh can attach images such as screenshots. Open each one with Read and look at it before you answer. To put one on',
+            '  a video\'s Results tab, use its asset id as the screenshot.',
+            '- Change a video card with the "projects" list: its name, stage, publish date, notes, script or new title ideas.',
+            *([f'- Your skills are in .claude/skills ({", ".join(n + "/SKILL.md" for n in SKILLS.get(agent["id"], []))}). Read the one that',
+               '  fits before you write, unless it is already in the prompt.'] if SKILLS.get(agent['id']) else []),
             '- Be yourself, as described in "Who you are" below. Keep replies short and plain, and give your view.',
             '- Write chat replies the way you would message a colleague. Plain sentences, no headings and no bold.',
             '  Use a short list only when you are naming three or more separate things. Most replies are under 120 words.',
@@ -602,7 +593,7 @@ class Agents:
                '  any screenshot path from the snapshot with Read before you describe it. Send the full list of test rounds when you',
                '  change tests. Follow your goals file for how to judge a video and what to learn from it.',
                '  Screenshots you take in Chrome stay in your chat and Josh OS has no way to attach them. Save the numbers and your reading anyway,',
-               '  and ask Josh to drop the screenshots on the Results tab. Put a transcript in "transcript", never in the notes.',
+               '  and ask Josh to paste the screenshots into this chat, then save them on the Results tab by asset id. Put a transcript in "transcript", never in the notes.',
                '  Only say something is saved when it is in this answer, and say so plainly if a save comes back as failed.']
               if 'youtube' in (agent.get('workflows') or []) and getattr(self, 'results', None) is not None else []),
             *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
@@ -637,6 +628,12 @@ class Agents:
                '  "lessons" list in your answer. Each entry names a lesson_id from the snapshot. You can rename it (title), set minutes,',
                '  write or rewrite the whole script, save preparation notes and notes, and move its stage. Leave lesson_id out and give',
                '  course, number and title to add a new lesson (part_name only when it starts a new part).',
+               '- Stage Published marks a lesson as already live in the course app, put there outside Josh OS. It needs no files,',
+               '  so use it only when Josh says the lesson is live. Other moves still pass the same checks as the Lessons page.',
+               '- "publish": true copies a lesson that is Ready to publish into the CareerOS Google Drive folder the course app reads.',
+               '  The video and the lesson guide PDF go into its track and part folder named "<number> <title>", and the thumbnail',
+               '  goes into the track\'s Thumbnails folder. An older file for the same lesson moves to an archive folder there.',
+               '  Josh OS refuses it when the video, guide or thumbnail is missing, so say what is missing.',
                '- Start the real work with "start" on a lesson. prepare gathers what the lesson needs, draft writes the script, slides',
                '  builds the deck, guide makes the lesson guide PDF, and thumbnail makes the thumbnail. Each one runs on this PC right',
                '  after your reply, two at a time, and the rest wait their turn. Josh sees progress on each lesson. Put what he asked',
@@ -650,8 +647,8 @@ class Agents:
               if agent['id'] in CHROME or 'email' in (agent.get('workflows') or []) else
               ['- Your lesson work happens through the Lessons page as described above. Anything else you can only read from here.']
               if 'courses' in (agent.get('workflows') or []) and getattr(self, 'courses', None) is not None else
-              ['- From this chat you can read but not change anything. Your scheduled tasks on this PC do the making, scheduling and tracking.',
-               '  When Josh asks for something to be done, say what you will do on your next run, or what he needs to change.']),
+              ['- Do what Josh asks in this answer with the lists you have. When something can only be done by one of your scheduled',
+               '  tasks on this PC, say so plainly and say what will happen on the next run.']),
             "- Josh's edits to your work are how he teaches you. When your prompt lists changes he made, study what he changed",
             '  and match it from now on. If the reason is clear, say in a line what you will do next time. If it is not, ask about it',
             '  in plain words, like "Why did you change this line? Was it to sound less salesy?". Never ask about typo fixes.',
@@ -695,9 +692,21 @@ class Agents:
             f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
             '  Tags and results you send are merged into what is already saved. Tell Josh in your reply what you saved.',
             '- To make or redo a Paper post\'s slide images, set make_design true on that carousel (with any slide changes in the',
-            '  same entry). Josh OS draws them with the house template. You cannot edit render.py or any other file. If Josh wants',
-            '  the look itself changed (colours, sizes, layout), say what should change and that it needs a change to the template',
-            '  in Josh OS, which Josh can ask Claude Code to make.',
+            '  same entry). Josh OS draws them with the house template. When you change the words of a post that already has a',
+            '  Paper design, Josh OS makes the design again by itself, so Josh always sees the new slides.',
+            '- Slides can show more than words. Use a drawing or a picture whenever it explains the point better than text, like',
+            '  a chart for a post about charts, a before and after, a simple diagram, a mock slide or email, or a photo.',
+            '  Under a slide\'s words, add either one drawing or one picture.',
+            '  A drawing is an inline <svg viewBox="0 0 840 520" ...>...</svg> you write yourself, in the house look. Colours are',
+            '  ink #15171C, paper #F6F5F1, card #FFFFFF, line #D9D4C9, grey text #4D4A44, gold #F5C21B and deep gold #7A5A00.',
+            '  Use font-family Outfit for labels and Manrope for small text, at 22px or more so it reads on a phone. Keep it',
+            '  simple with one idea, flat shapes, rounded corners and one gold highlight. No scripts, and no lines of three dashes.',
+            '  A picture is a line like [image: <asset id>] for an image Josh attached in chat, or [image: <full path>] for an',
+            '  image file on this PC, such as E:\\CareerOS\\03_Community_Posts\\_shared-assets. Every slide still needs its headline.',
+            '  The drawing or picture shrinks to fit, so keep the words short on those slides. The images are made after your',
+            '  reply, so to check them later open the slide files in the post\'s folder with Read and fix anything that reads badly.',
+            '  If Josh wants the look itself changed (colours, sizes, layout), say what should change and that it needs a change',
+            '  to the template in Josh OS, which Josh can ask Claude Code to make.',
             '- The Creators tab on the same page holds the carousels we learn from (Ali Abdaal and Alex Hormozi). Save to it with',
             '  the "inspo" list. Each entry adds a post, or changes one when you give its id from the snapshot.',
             '  To add new posts, open the creator\'s Posts tab in Chrome (youtube.com/@aliabdaal/posts, youtube.com/@AlexHormozi/posts),',
@@ -811,9 +820,15 @@ class Agents:
                 title = f"{current['number']} {current['title']}"
                 if changes and u.get('lesson_id'):
                     done.append(dict(id=lid, title=title, action='updated', kind='lesson'))
-                if u.get('stage') and u['stage'] != current['stage']:
+                if u.get('stage') == 'Published' and current['stage'] != 'Published':
+                    current = courses.mark_live(lid, current['revision'], by='Saskia')
+                    done.append(dict(id=lid, title=title, action='moved', kind='lesson', stage=current['stage']))
+                elif u.get('stage') and u['stage'] != current['stage']:
                     current = courses.move(lid, str(u['stage']), current['revision'])
                     done.append(dict(id=lid, title=title, action='moved', kind='lesson', stage=current['stage']))
+                if u.get('publish') is True:
+                    courses.publish(lid)
+                    done.append(dict(id=lid, title=title, action='started', kind='lesson', task='publish'))
                 if u.get('start'):
                     courses.start(lid, str(u['start']), str(u.get('start_note') or ''))
                     done.append(dict(id=lid, title=title, action='started', kind='lesson', task=str(u['start'])))
@@ -850,30 +865,8 @@ class Agents:
         return self.run(system, '\n'.join(parts), LESSON_JOB_SCHEMA, list(dirs) + [str(course_dir), str(Path(content_dir).parent.parent / '08_Strategy')],
                         tools=JOB_TOOLS[task], timeout=JOB_TIMEOUT[task], full=True)
 
-    def user_prompt(self, project, data, history):
-        sel = data.get('selection') or {}
-        parts = [
-            f"Video: {project['name']}  (stage: {project['stage']}, planned for {project.get('publish_date') or 'no date yet'})",
-            f"Angle and notes: {project.get('notes') or '(none yet)'}",
-        ]
-        packaging = {k: v for k, v in (project.get('packaging') or {}).items() if v}
-        if packaging:
-            parts.append('Packaging brief: ' + '; '.join(f'{k.replace("_", " ")}: {v}' for k, v in packaging.items()))
-        magnet = project.get('lead_magnet') or {}
-        if magnet.get('decision') and magnet['decision'] != 'unknown':
-            parts.append('Lead magnet: ' + json.dumps(magnet, ensure_ascii=False))
-        parts += ['', '--- Full script ---', project.get('script') or '(empty)', '--- End of script ---']
-        if sel.get('text'):
-            parts += ['', '--- Josh has selected this passage ---', sel['text'], '--- End of selection ---']
-        if history:
-            parts += ['', 'Earlier in this conversation:']
-            for m in history[-10:]:
-                parts.append(f"{'Josh' if m['role'] == 'josh' else 'You'}: {m['text']}")
-        parts += ['', f"Josh: {data['message']}"]
-        return '\n'.join(parts)
-
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -895,7 +888,7 @@ class Agents:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
                 out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding='utf-8',
-                                     cwd=str(self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
+                                     cwd=str(cwd or self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
                                      creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
             except subprocess.TimeoutExpired:
                 raise AgentError('That took too long, so I stopped. Try a smaller selection.') from None
@@ -924,45 +917,50 @@ class Agents:
             return reply, answer
         return reply, replacement
 
-    def ask(self, data):
+    def ask(self, data, carousels=(), tracker=None, inspo=None):
+        """The chat beside a video's script. It is the same conversation, with the same powers, as every other chat
+        with that team member. The open video and any passage Josh selected are its context."""
         if not isinstance(data, dict):
             raise ValueError('Invalid request.')
-        agent_id, project_id = data.get('agent_id', ''), data.get('project_id', '')
-        message = str(data.get('message', '')).strip()
-        if not message or len(message) > 4000:
-            raise ValueError('Write a message for the team member, up to 4,000 characters.')
-        agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
-        if not agent:
-            raise KeyError('Team member not found.')
-        project = self.store.get(project_id)
-        sel = data.get('selection') or {}
-        if sel:
-            start, end, text = sel.get('start'), sel.get('end'), sel.get('text', '')
-            if not (isinstance(start, int) and isinstance(end, int) and 0 <= start <= end <= len(project['script'])):
-                raise ValueError('The selection no longer matches the script. Select the passage again.')
-            if project['script'][start:end] != text:
-                raise ValueError('The script changed since you selected that passage. Select it again.')
-        lock = self.locks.setdefault((agent_id, project_id), threading.Lock())
-        if not lock.acquire(blocking=False):
-            raise ValueError(f"{agent['name']} is still working on your last message.")
-        try:
-            history = self.thread(project_id, agent_id)
-            learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:80]
-            schema = json.loads(json.dumps(SCHEMA))
-            schema['properties']['lessons'] = LEARN_PROPS['lessons']
-            reply, answer = self.run(self.system_prompt(agent, learnings), self.user_prompt(project, data, history), schema, full=True)
-            answer = answer if isinstance(answer, dict) else {}
-            replacement = answer.get('replacement') if isinstance(answer.get('replacement'), str) else None
-            learned = self.keep_lessons(agent, answer.get('lessons'))
-        finally:
-            lock.release()
-        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now(),
-                    selection={'start': sel['start'], 'end': sel['end'], 'text': sel['text']} if sel else None)
-        theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now(), replacement=replacement,
-                      selection=mine['selection'])
-        if learned:
-            theirs['learned'] = learned
-        return dict(messages=self._append(project_id, agent_id, mine, theirs), reply=theirs)
+        self.store.get(data.get('project_id', ''))
+        return self.chat(dict(data, context={'kind': 'project', 'id': data.get('project_id', '')}), carousels, tracker, inspo)
+
+    def selection(self, data):
+        """The passage of the open script Josh selected, checked against the saved script."""
+        sel, ctx = data.get('selection') or {}, data.get('context') or {}
+        if not sel:
+            return None
+        if not isinstance(sel, dict) or ctx.get('kind') != 'project':
+            raise ValueError('Open the video to work on part of its script.')
+        script = self.store.get(str(ctx.get('id') or ''))['script']
+        start, end, text = sel.get('start'), sel.get('end'), sel.get('text', '')
+        if not (isinstance(start, int) and isinstance(end, int) and 0 <= start <= end <= len(script)):
+            raise ValueError('The selection no longer matches the script. Select the passage again.')
+        if script[start:end] != text:
+            raise ValueError('The script changed since you selected that passage. Select it again.')
+        return dict(start=start, end=end, text=text)
+
+    def apply_projects(self, updates):
+        """Video card changes a team member made from chat."""
+        done = []
+        for u in (updates or [])[:20]:
+            if not isinstance(u, dict):
+                continue
+            pid, title = str(u.get('project_id') or ''), ''
+            try:
+                p = self.store.get(pid)
+                title = p['name']
+                changes = {k: u[k] for k in ('name', 'stage', 'publish_date', 'notes', 'script') if isinstance(u.get(k), str) and u[k].strip()}
+                ideas = [t.strip() for t in (u.get('add_titles') or []) if isinstance(t, str) and t.strip()]
+                if ideas:
+                    have = {t['text'] for t in p['titles']}
+                    changes['titles'] = p['titles'] + [dict(id=str(uuid.uuid4()), text=t) for t in dict.fromkeys(ideas) if t not in have]
+                if changes:
+                    p = self.store.save(pid, changes, p['revision'])
+                done.append(dict(id=pid, title=p['name'], action='updated', kind='project'))
+            except Exception as e:  # noqa: BLE001 - every failure is shown in the chat
+                done.append(dict(id=pid, title=title, action='failed', kind='project', error=str(e).strip("'\"")[:200]))
+        return done
 
     def focus(self, context, carousels, inspo=None):
         """What Josh has open in Josh OS while he chats, so "this" means that thing."""
@@ -995,8 +993,7 @@ class Agents:
             body = keep(l, ('id', 'course', 'number', 'title', 'type', 'minutes', 'part_name', 'stage', 'next', 'prep', 'notes', 'script'))
             body['files'] = {k: v.get('path') for k, v in (l.get('files') or {}).items()}
             return ('Josh has this lesson open right now, so "this" and "the script" mean this one. To change it, send it in the '
-                    '"lessons" list with this id, with the whole script if you rewrite it. Approving, building slides and publishing '
-                    'are buttons on the lesson for Josh, so tell him when one is ready rather than doing it.\n'
+                    '"lessons" list with this id, with the whole script if you rewrite it. Josh approves scripts himself.\n'
                     + json.dumps(body, ensure_ascii=False, indent=1))
         if kind == 'project':
             try:
@@ -1006,13 +1003,41 @@ class Agents:
             title = next((t.get('text') for t in p.get('titles') or [] if t.get('id') == p.get('chosen_title')), '') or p['name']
             results = getattr(self, 'results', None)
             saved = results.get(cid) if results is not None else None
-            return ('Josh has this video open right now, so "this video" means this one. You can read it but not change the video '
-                    'card from this chat, so say what to change. '
+            return ('Josh has this video open right now, so "this video" and "the script" mean this one. Change its card with the '
+                    '"projects" list using this id. For a rewrite of part of the script, put the new passage in "replacement" so '
+                    'Josh can drop it in. Change the whole script in "projects" only when he asks you to change it directly. '
                     + ('You can save its results, thumbnail tests and retention reading with the "videos" list, using this id. '
                        'The full script is below, so line retention moments up with the exact words.' if saved is not None else '')
                     + '\n' + json.dumps(dict(id=p['id'], name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
                                             notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:20000],
                                             results=saved), ensure_ascii=False, indent=1))
+        if kind == 'edit' and getattr(self, 'edit_review', None) is not None:
+            er = self.edit_review
+            try:
+                folder = er.project_folder(cid)
+                p = self.store.get(cid)
+            except KeyError:
+                return ''
+            slides, shots = er.deck_files(cid)
+            review = er.review(cid)
+            part = None
+            if isinstance(context.get('part'), int) and 0 <= context['part'] < len(review['parts']):
+                part = review['parts'][context['part']]
+            lines = [f"Josh is reviewing the animation deck for the video \"{p['name']}\" in the edit review. Its folder is {folder}.",
+                     f"Slides: {slides or 'none yet'}. Shot list: {shots or 'none yet'}. Edit folder: {er.edit_folder(cid) or 'not set up yet'}.",
+                     'You can read and edit files in this folder only. When Josh asks for a change to an animation, change the slides',
+                     'HTML (and the shot list if the presses or words move) with Edit, keeping the deck\'s structure: each animation is a',
+                     '.scene with data-from and data-to press numbers, grey number cards are .scene.mark, and elements reveal on data-b.',
+                     'If you add or remove a press, renumber every later data-from, data-to, data-b, data-off and data-add, and TOTAL.',
+                     'Josh OS takes the review pictures again by itself when the slides change. Follow the video-editing-prep skill for',
+                     'anything new, and the house style of the existing deck. Never touch the recordings, Premiere projects or masters.']
+            if part:
+                lines += ['', 'The part he has open:', json.dumps({k: part.get(k) for k in ('kind', 'n', 'type', 'time', 'desc', 'script', 'presses')},
+                                                                  ensure_ascii=False, indent=1)]
+                if part.get('images'):
+                    out = er.out_folder(cid)
+                    lines += ['Its review pictures, one per press, which you can look at with Read: ' + ', '.join(str(out / n) for n in part['images'])]
+            return '\n'.join(lines)
         if kind == 'person' and getattr(self, 'people', None) is not None:
             try:
                 person = self.people.get(cid)
@@ -1044,6 +1069,7 @@ class Agents:
         agent_id = data.get('agent_id', '')
         message = '' if proactive else str(data.get('message', '')).strip()
         images = [] if proactive else self.chat_images(data)
+        sel = None if proactive else self.selection(data)
         if not proactive and (not (message or images) or len(message) > 4000):
             raise ValueError('Write a message, up to 4,000 characters.')
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
@@ -1072,6 +1098,16 @@ class Agents:
             focus = self.focus(data.get('context'), carousels, inspo)
             if focus:
                 parts += ['', focus]
+            if sel:
+                parts += ['', '--- Josh has selected this passage of the open script ---', sel['text'], '--- End of selection ---',
+                          'When he asks for a change to it, put the full rewritten passage in "replacement". Keep anything he did '
+                          'not ask you to change and match his formatting, including any # headings. Leave it null when you are '
+                          'only answering.']
+            if (data.get('context') or {}).get('kind') == 'project':
+                for name in SKILLS.get(agent_id, []):
+                    text = self.skill_text(name)
+                    if text:
+                        parts += ['', f'=== Skill: {name} (follow it exactly for any writing on this script) ===', text]
             if edits:
                 parts += ['', 'Changes Josh made to your work that you have not raised with him yet (before and after):',
                           feedback.describe(edits)]
@@ -1090,6 +1126,7 @@ class Agents:
                 dirs = list(dirs) + [str(self.store.root / 'assets')]
             schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
             schema['properties'].update(LEARN_PROPS)
+            schema['properties'].update(PROJECT_PROPS)
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
             if mails is not None:
                 schema['properties'].update(EMAIL_PROPS)
@@ -1104,12 +1141,31 @@ class Agents:
                 schema['properties'].update(LESSON_PROPS)
                 if str(self.store.root / 'assets') not in dirs:
                     dirs = list(dirs) + [str(self.store.root / 'assets')]
+            ctx = data.get('context') or {}
+            er = getattr(self, 'edit_review', None) if 'editing' in (agent.get('workflows') or []) else None
+            edit_folder, before, run_tools = None, None, None
+            if er is not None and ctx.get('kind') in ('edit', 'project') and ctx.get('id'):
+                schema['properties'].update(EDIT_PROPS)
+                try:
+                    edit_folder = er.project_folder(str(ctx['id']))
+                except KeyError:
+                    edit_folder = None
+                if edit_folder is not None and ctx.get('kind') == 'edit':
+                    # The editor may change the deck and shot list, and only inside this video's folder.
+                    run_tools = 'Read,Grep,Glob,Edit,Write'
+                    before = er.deck_files(str(ctx['id']))[0]
+                    before = (before, before.read_text(encoding='utf-8')) if before else None
+                    for name in SKILLS.get(agent_id, []):
+                        text = self.skill_text(name)
+                        if text:
+                            parts += ['', f'=== Skill: {name} (follow it for anything you make or change in the deck) ===', text]
             live = self.live(agent_id)
             outside = (['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ()))
                        + list(CALENDLY.get(agent_id, ()))) if live else []
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive and live,
-                                     extra_tools=outside, full=True)
+                                     extra_tools=outside, full=True,
+                                     tools=run_tools, cwd=edit_folder if run_tools else None)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -1124,6 +1180,11 @@ class Agents:
                 saved += results.apply(answer['videos'])
             if courses is not None and isinstance(answer.get('lessons'), list):
                 saved += self.apply_lessons(courses, answer['lessons'])
+            if isinstance(answer.get('projects'), list):
+                saved += self.apply_projects(answer['projects'])
+            if er is not None and edit_folder is not None:
+                saved += self.apply_edit(er, str(ctx['id']), answer.get('edit') if isinstance(answer.get('edit'), dict) else {}, before)
+            replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
             if mails is not None and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):
@@ -1133,6 +1194,8 @@ class Agents:
         finally:
             lock.release()
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
+        if not proactive and sel:
+            theirs.update(selection=sel, replacement=replacement)
         if saved:
             theirs['saved'] = saved
         if learned:
@@ -1143,6 +1206,8 @@ class Agents:
         mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
         if images:
             mine['images'] = images
+        if sel:
+            mine['selection'] = sel
         return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)
 
     def reflect(self, data, carousels, tracker=None, inspo=None):
@@ -1174,6 +1239,24 @@ class Agents:
                     done.append(dict(id=item['id'], title=item.get('subject', ''), action='added', kind='email'))
             except Exception as e:  # noqa: BLE001 - report every failure back to Josh in the chat
                 done.append(dict(id=eid, title=changes.get('subject', ''), action='failed', kind='email', error=str(e).strip("'\"")[:200]))
+        return done
+
+    def apply_edit(self, er, pid, action, before):
+        """Set up the edit folders, and take the review pictures again when the deck changed or Tariq asked."""
+        done = []
+        try:
+            if action.get('setup') is True:
+                made = er.setup(pid)
+                done.append(dict(id=pid, title='Edit folders in ' + made['edit'], action='updated', kind='edit'))
+            slides = er.deck_files(pid)[0]
+            changed = bool(slides) and (before is None or slides != before[0] or slides.read_text(encoding='utf-8') != before[1])
+            asked = [int(n) for n in action.get('rerender') or [] if isinstance(n, int)]
+            if changed or asked:
+                er.render(pid, None if changed else asked)
+                done.append(dict(id=pid, title='the review pictures' + ('' if changed else ' for animation ' + ', '.join(map(str, asked))),
+                                 action='updated', kind='edit'))
+        except (ValueError, KeyError, OSError) as e:
+            done.append(dict(id=pid, title='the edit review', action='failed', kind='edit', error=str(e)[:200]))
         return done
 
     def keep_lessons(self, agent, lessons):

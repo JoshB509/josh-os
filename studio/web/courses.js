@@ -39,8 +39,7 @@ async function renderCourses(){
   const groups=[];for(const l of shown){const key=l.course+'|'+l.part;let g=groups.find(x=>x.key===key);if(!g)groups.push(g={key,course:l.course,title:`${COURSE_SHORT[l.course]} · ${/^[A-Z]$/.test(l.part)?'':'Part '+l.part+' · '}${l.part_name}`,items:[]});g.items.push(l)}
   const needWhy=l=>l.job&&l.job.status==='failed'?'Saskia got stuck':l.publish&&l.publish.status==='failed'?'Publishing failed':l.stage==='Script review'?(l.stale?'Script changed since you approved it':'Read and approve the script'):'Ready to publish';
   $('#workspace').innerHTML=`<div class="ls">
-    ${courses.publish_ready?'':`<section class="ls-drive"><div><b>Publishing needs Google Drive for desktop on this PC.</b><p>Install it and sign in as joshua.brindley@gmail.com, then paste the path of the Drive folder that holds “${esc(courses.courses.hatt.publish)}”. Josh OS copies each lesson’s video, lesson guide and thumbnail there for Lovable to pick up.</p></div>
-      <form class="ls-drive-form" data-course-drive><input name="root" placeholder="For example G:\\My Drive\\Heard at the Top" value="${esc(courses.publish_root||'')}" aria-label="Google Drive folder on this PC"><button class="primary">Save</button></form></section>`}
+    ${courses.publish_ready?'':`<section class="ls-drive"><div><b>Google Drive isn’t open on this PC.</b><p>Publishing copies lessons into ${esc(courses.publish_root||'the CareerOS Drive folder')}. Start Google Drive for desktop and that folder comes back.</p></div></section>`}
     <div class="ls-top"><div class="cv-tabs ls-courses" role="tablist">${[['all','All courses'],...Object.entries(COURSE_SHORT)].map(([k,v])=>`<button role="tab" aria-selected="${courseFilter===k}" data-course-filter="${k}">${esc(v)}</button>`).join('')}</div></div>
     <div class="ls-stages" role="group" aria-label="Filter by stage">${courses.stages.map(s=>`<button class="ls-stage ${courseStageFilter===s?'on':''}" data-course-stage="${esc(s)}" ${counts[s]?'':'disabled'}><b>${counts[s]}</b><span>${esc(s)}</span></button>`).join('')}</div>
     ${needs.length&&!courseStageFilter?`<section class="ls-needs"><h2>Needs you</h2>${needs.slice(0,12).map(l=>`<button class="ls-need" data-course-open="${esc(l.id)}"><span class="ls-num">${esc(l.number)}</span><span class="ls-need-body"><b>${esc(l.title)}</b><small>${esc(COURSE_SHORT[l.course])}. ${esc(needWhy(l))}</small></span><span class="ls-go">Open</span></button>`).join('')}${needs.length>12?`<p class="hint">${needs.length-12} more below.</p>`:''}</section>`:''}
@@ -55,7 +54,7 @@ function courseRow(l){
 }
 
 function renderCourseLesson(){
-  const l=courseOpen,act=COURSE_ACTION[l.stage],at=courses.stages.indexOf(l.stage),job=l.job,pub=l.publish;
+  const l=courseOpen,act=l.stage==='Published'&&!(l.publish&&l.publish.folder)?null:COURSE_ACTION[l.stage],at=courses.stages.indexOf(l.stage),job=l.job,pub=l.publish;
   page(`${l.number} ${l.title}`,'');
   const stepper=`<ol class="ls-steps">${courses.stages.map((s,i)=>`<li class="${i<at?'done':i===at?'now':''}" title="${esc(s)}"><span></span><small>${esc(s)}</small></li>`).join('')}</ol>`;
   const tabs=[['script','Script'],['prep','Preparation'],['slides','Slides'],['publish','Files and publishing'],['history','History']];
@@ -67,7 +66,7 @@ function renderCourseLesson(){
       <div><p class="ls-next">${coursePill(l.stage)} ${esc(l.next)}</p>
         ${l.stale?'<p class="ls-warn">The script changed after you approved it, so it needs approving again before slides.</p>':''}
         ${job?`<p class="ls-job ${esc(job.status)}">${job.status==='running'?`<span class="dots"><i></i><i></i><i></i></span> ${job.waiting?`${esc((COURSE_TASKS.find(t=>t[0]===job.task)||[,'This'])[1])} is waiting its turn. Saskia works on two lessons at a time.`:`Saskia is working on ${esc((COURSE_TASKS.find(t=>t[0]===job.task)||[,'it'])[1].toLowerCase())}. This can take a while for slides.`}`:job.status==='failed'?`Saskia got stuck. ${esc(job.message||'')}`:esc(job.message||'Saskia finished.')}</p>`:''}
-        ${pub&&pub.status!=='done'?`<p class="ls-job ${esc(pub.status)}">${pub.status==='copying'?'<span class="dots"><i></i><i></i><i></i></span> Copying the files to Google Drive.':`Publishing failed. ${esc(pub.message||'')}`}</p>`:''}</div>
+        ${pub&&!['done','elsewhere'].includes(pub.status)?`<p class="ls-job ${esc(pub.status)}">${pub.status==='copying'?'<span class="dots"><i></i><i></i><i></i></span> Copying the files to Google Drive.':`Publishing failed. ${esc(pub.message||'')}`}</p>`:''}</div>
       <div class="ls-acts">${act?`<button class="primary" data-course-act="${esc(act[0])}" ${courseBusyNow(l)?'disabled':''}>${esc(act[1])}</button>`:''}
         <label class="ls-move"><span>Move to</span><select data-course-move aria-label="Move to stage">${courses.stages.map(s=>`<option ${s===l.stage?'selected':''} ${s==='Published'?'disabled':''}>${esc(s)}</option>`).join('')}</select></label></div>
     </section>
@@ -98,8 +97,10 @@ function courseBody(l){
     <p class="hint">${rec?(rec.take?`The recording page has ${rec.takes} take${rec.takes===1?'':'s'}, and ${esc(rec.take.name)} is the one chosen.`:rec.takes?`The recording page has ${rec.takes} take${rec.takes===1?'':'s'} and none is chosen yet.`:'Nothing has been recorded on the recording page yet.'):''} <a href="/lessons?lesson=${encodeURIComponent(l.id)}">Open the recording page</a></p>
     <label class="ls-notes"><small>Video file, if it wasn't recorded through Josh OS</small><input data-course-field="video" value="${esc(l.video||'')}" placeholder="Full path of the MP4"></label>
     <h3>Publishing</h3>
-    ${l.destination?`<p>Goes to <code>${esc(l.destination)}</code> as the video, the lesson guide PDF, the thumbnail and a lesson.json with the details Lovable reads.</p>`:'<p class="ls-warn">Set the Google Drive folder on the Lessons page first.</p>'}
+    ${l.destination?`<p>The video and lesson guide PDF go to <code>${esc(l.destination)}</code>, and the thumbnail goes to the Thumbnails folder beside it. An older version of either moves to an archive folder there.</p>`:'<p class="ls-warn">Google Drive isn’t open on this PC, so there is nowhere to publish yet.</p>'}
     ${l.blockers['Ready to publish']?`<p class="ls-warn">${esc(l.blockers['Ready to publish'])}</p>`:''}
+    ${l.publish&&l.publish.status==='elsewhere'?`<p class="ls-ok">Marked as already live in the course app${l.publish.by&&l.publish.by!=='Josh'?' by '+esc(l.publish.by):''}.</p>`:''}
+    ${l.stage!=='Published'?`<p class="hint">If this lesson is already in the course app, mark it as live and it moves to Published without the files. <button class="link" data-course-act="live" ${courseBusyNow(l)?'disabled':''}>It's already live</button></p>`:''}
     ${l.publish&&l.publish.status==='done'?`<p class="ls-ok">Published ${new Date(l.publish.finished_at).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}. <button class="link" data-course-act="open:published">Open the folder</button></p>`:''}
     <button class="${l.stage==='Ready to publish'?'primary':'chip-btn'}" data-course-act="publish" ${l.blockers['Ready to publish']||!l.destination||courseBusyNow(l)?'disabled':''}>${l.publish&&l.publish.status==='done'?'Publish again':'Publish to Google Drive'}</button></div>`}
   return `<ol class="ls-history">${(l.history||[]).slice().reverse().map(h=>`<li><b>${esc(h.stage)}</b> <small>${new Date(h.at).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small>${h.why?`<p>${esc(h.why)}</p>`:''}</li>`).join('')}</ol>`;
@@ -131,6 +132,7 @@ async function courseAct(act){
     else if(act.startsWith('work:'))await api(`/api/courses/${encodeURIComponent(l.id)}/work`,{task:act.slice(5),note:($('#course-note')||{}).value||''});
     else if(act==='check'){toast('Checking every beat. This takes a little while.');await api(`/api/courses/${encodeURIComponent(l.id)}/check`,{});courseTab='slides'}
     else if(act==='publish')await api(`/api/courses/${encodeURIComponent(l.id)}/publish`,{});
+    else if(act==='live')await api(`/api/courses/${encodeURIComponent(l.id)}/live`,{revision:courseOpen.revision});
     else if(act==='record'){location.href='/lessons?lesson='+encodeURIComponent(l.id);return}
     else if(act.startsWith('open:'))await api(`/api/courses/${encodeURIComponent(l.id)}/open`,{kind:act.slice(5)});
     await courseFetch(l.id);courses=null;renderCourseLesson();

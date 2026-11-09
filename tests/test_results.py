@@ -92,7 +92,7 @@ class ResultsTests(unittest.TestCase):
         self.results.save(self.p['id'], dict(funnel='bottom', tests=[self.round_(winner='A', screenshot=aid)]), 0)
         sam = next(a for a in team.all()['agents'] if a['id'] == 'sam')
         self.assertIn('Customers matter more than views.', agents.desk_system_prompt(sam, []))
-        self.assertIn('Customers matter more than views.', agents.system_prompt(sam, []))
+        self.assertIn('Customers matter more than views.', agents.desk_system_prompt(sam, []))
         snap = agents.desk_snapshot('sam', [])
         self.assertIn(self.p['id'], snap)
         self.assertIn('winner A', snap)

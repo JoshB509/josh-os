@@ -8,8 +8,10 @@ A lesson moves through STAGES. Saskia prepares the lesson and drafts the script.
 and approves it, and slides can only be built once the approved script is the current one.
 Saskia builds the space-bar slides and Josh OS checks every beat. Josh records on the Lessons
 recording page, which this module feeds. The lesson guide and thumbnail are added, then Publish
-copies the video, the lesson guide PDF and the thumbnail into the Google Drive folder that the
-Lovable course app picks lessons up from.
+copies the video, the lesson guide PDF and the thumbnail into Josh's CareerOS Google Drive folder
+(PUBLISH_ROOT), which the Lovable course app picks lessons up from. Each track has its own folder
+there, with one folder per part holding "<number> <title>.mp4" and "<number> <title>.pdf", and
+the thumbnails together in the track's Thumbnails folder.
 
 The files themselves stay on the E drive, named the way the course folders already name them
 (number, date, version, slug). Josh OS finds the newest version of each and writes a new script
@@ -32,14 +34,15 @@ STAGES = ['Planned', 'Preparing', 'Drafting', 'Script review', 'Approved', 'Slid
 AT = {s: i for i, s in enumerate(STAGES)}
 
 CONTENT_DIR = r'E:\CareerOS\04_Programme\Course_Content'
+PUBLISH_ROOT = r'H:\My Drive\CareerOS'  # Google Drive for desktop on Josh's PC
 COURSES = {
     'hatt': dict(name='Heard at the Top', dir='Heard_at_the_Top', track='Communication', track_key='communication',
-                 publish='2 · Heard at the Top scripts'),
-    'career': dict(name='Career Track', dir='Career_Track', track='Career', track_key='career', publish='5 · Career Track'),
+                 publish='Communication Track'),
+    'career': dict(name='Career Track', dir='Career_Track', track='Career', track_key='career', publish='Career Track'),
     'practical': dict(name='Practical Career Track', dir='Practical_Career_Track', track='Practical career',
-                      track_key='practical', publish='6 · Practical Career Track'),
+                      track_key='practical', publish='Practical Career Track'),
     'data': dict(name='Data storytelling', dir='Data_Storytelling', track='Data storytelling', track_key='data',
-                 publish='7 · Data storytelling'),
+                 publish='Data Storytelling Track'),
 }
 # The kinds of file each lesson has, the folder they live in and how the file name ends.
 KINDS = {
@@ -126,7 +129,7 @@ class CourseLessons:
 
     def publish_root(self):
         """The Google Drive for desktop folder on this PC that holds the course folders Lovable reads."""
-        value = self.settings().get('lesson_publish_root') or ''
+        value = self.settings().get('lesson_publish_root') or PUBLISH_ROOT
         return Path(value) if value else None
 
     def set_publish_root(self, value):
@@ -135,7 +138,7 @@ class CourseLessons:
             p = Path(value)
             if not p.is_dir():
                 raise ValueError("That folder isn't on this PC. Install Google Drive for desktop, sign in, then paste the folder's path.")
-            if not (p / COURSES['hatt']['publish']).is_dir():
+            if not any((p / c['publish']).is_dir() for c in COURSES.values()):
                 raise ValueError(f'Pick the Drive folder that has "{COURSES["hatt"]["publish"]}" inside it.')
             value = str(p)
         path = self.root / 'settings.json'
@@ -370,7 +373,7 @@ class CourseLessons:
         if stage not in STAGES:
             raise ValueError('Unknown stage.')
         if stage == 'Published':
-            raise ValueError('Use Publish, which copies the files to Google Drive first.')
+            raise ValueError('Use Publish to copy the files to Google Drive, or mark it as already live in the course app.')
         with self.lock:
             l = self._get(lid)
             if AT[stage] > AT[l['stage']]:
@@ -382,6 +385,19 @@ class CourseLessons:
                     raise ValueError('Approve the script to move it on.')
             self._log(l, stage, 'Moved by Josh.')
             return self._put(l, revision)
+
+    def mark_live(self, lid, revision=None, by='Josh'):
+        """A lesson that is already in the course app, put there outside Josh OS. It skips the file checks."""
+        with self.lock:
+            l = self._get(lid)
+            t = self.jobs.get(lid)
+            if t and t.is_alive():
+                raise ValueError('This lesson is still busy. Wait for it to finish.')
+            if l['stage'] != 'Published':
+                l['publish'] = dict(status='elsewhere', finished_at=now(), by=by)
+                self._log(l, 'Published', f'Already live in the course app. Marked by {by}.')
+                self._put(l, revision)
+        return self.get(lid)
 
     def approve(self, lid, revision):
         with self.lock:
@@ -663,8 +679,15 @@ class CourseLessons:
             if quiet:
                 return None
             raise ValueError('Set the Google Drive folder first. Install Google Drive for desktop, then paste the folder path.')
-        part = l['part_name'] if l['part_name'].startswith('Bonus') else f"Part {l['part']} · {l['part_name']}"
-        return str(root / COURSES[l['course']]['publish'] / safe_name(part) / safe_name(f"{l['number']} {l['title']}"))
+        track = root / COURSES[l['course']]['publish']
+        # Use the part folder that is already there, even when its name differs a little from the lesson's part name.
+        lead = f"Bonus {l['part']} ·" if re.fullmatch(r'[A-Z]', l['part']) else f"Part {l['part']} ·"
+        if track.is_dir():
+            for d in sorted(track.iterdir()):
+                if d.is_dir() and d.name.startswith(lead):
+                    return str(d)
+        name = l['part_name'] if l['part_name'].startswith('Bonus') else f"{lead} {l['part_name']}".strip()
+        return str(track / safe_name(name))
 
     def publish(self, lid):
         with self.lock:
@@ -691,22 +714,36 @@ class CourseLessons:
             l = self._get(lid)
             f = self.files(l)
             dest = Path(self.destination(l))
+            thumbs = dest.parent / 'Thumbnails'
             dest.mkdir(parents=True, exist_ok=True)
+            thumbs.mkdir(exist_ok=True)
             name = safe_name(f"{l['number']} {l['title']}")
-            plan = [(f['video']['path'], name + Path(f['video']['path']).suffix.lower()),
-                    (f['guide']['path'], name + ' - Lesson guide.pdf'),
-                    (f['thumbnail']['path'], name + ' - Thumbnail' + Path(f['thumbnail']['path']).suffix.lower())]
-            for src, target in plan:
-                part = dest / (target + '.partial')
+            plan = [(f['video']['path'], dest, name + Path(f['video']['path']).suffix.lower()),
+                    (f['guide']['path'], dest, name + '.pdf'),
+                    (f['thumbnail']['path'], thumbs, Path(f['thumbnail']['path']).name)]
+            # An older file for the same lesson under another name moves to an archive folder, so the part
+            # folder only ever holds one video and one guide per lesson. Nothing is deleted.
+            archive = dest / f'Archive - replaced by Josh OS - {date.today().isoformat()}'
+            for src, folder, target in plan[:2]:
+                ext = Path(target).suffix.lower()
+                for old in folder.iterdir():
+                    if (old.is_file() and old.name != target and old.suffix.lower() == ext
+                            and (old.name.startswith(l['number'] + ' ') or old.name.startswith(l['number'] + '_'))):
+                        archive.mkdir(exist_ok=True)
+                        old.replace(archive / old.name)
+            for old in thumbs.iterdir():
+                if old.is_file() and old.name != plan[2][2] and old.name.startswith(l['number'] + '_') and '_thumb.' in old.name:
+                    archive = thumbs / f'Archive - replaced by Josh OS - {date.today().isoformat()}'
+                    archive.mkdir(exist_ok=True)
+                    old.replace(archive / old.name)
+            for src, folder, target in plan:
+                part = folder / (target + '.partial')
                 shutil.copy2(src, part)
-                part.replace(dest / target)
-            details = dict(course=COURSES[l['course']]['name'], course_key=l['course'], part=l['part'], part_name=l['part_name'],
-                           number=l['number'], title=l['title'], type=l['type'], minutes=l.get('minutes'), order=l.get('order'),
-                           video=plan[0][1], written_lesson=plan[1][1], thumbnail=plan[2][1], lesson_id=l['id'], published_at=now())
-            (dest / 'lesson.json').write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding='utf-8')
+                part.replace(folder / target)
             with self.lock:
                 l = self._get(lid)
-                l['publish'] = dict(l['publish'], status='done', finished_at=now(), files=[t for _, t in plan] + ['lesson.json'])
+                l['publish'] = dict(l['publish'], status='done', finished_at=now(),
+                                    files=[str(Path(folder.name) / target) for _, folder, target in plan])
                 self._log(l, 'Published', 'Copied to the Google Drive folder for the course app.')
                 self._put(l)
         except Exception as e:  # noqa: BLE001 - shown on the lesson
@@ -722,7 +759,9 @@ class CourseLessons:
         if kind == 'folder':
             p = self.content_dir() / COURSES[l['course']]['dir']
         elif kind == 'published':
-            p = Path((l.get('publish') or {}).get('folder') or '')
+            if not (l.get('publish') or {}).get('folder'):
+                raise ValueError('This lesson went live outside Josh OS, so there is no published folder to open.')
+            p = Path(l['publish']['folder'])
         elif kind in f:
             p = Path(f[kind]['path'])
         else:

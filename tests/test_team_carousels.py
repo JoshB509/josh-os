@@ -141,6 +141,30 @@ class CarouselTests(unittest.TestCase):
         self.carousels.save(cid, {'folder': r'C:\Windows'}, rev)
         self.assertEqual(self.carousels.images(self.carousels.get(cid)), [])
 
+    def test_new_words_remake_the_design_and_slides_can_hold_pictures_and_drawings(self):
+        from unittest import mock
+        c = self.carousels.create({'title': 'Charts', 'slides': 'One\n---\nTwo'})
+        self.carousels.save(c['id'], {'design': {'style': 'Paper', 'words': self.carousels.words_hash(c)}}, 1)
+        made = []
+        def design(s, cid):  # stands in for the real renderer, which records the words it drew
+            made.append(cid)
+            item = s.get(cid)
+            return s.save(cid, {'design': dict(item['design'], words=s.words_hash(item))}, item['revision'])
+        with mock.patch.object(Carousels, 'make_design', design):
+            self.assertEqual(self.carousels.apply('sam', [{'id': c['id'], 'slides': 'One\n---\nTwo, sharper'}])[0]['action'], 'designed')
+            self.carousels.apply('sam', [{'id': c['id'], 'caption': 'Only the caption'}])
+        self.assertEqual(made, [c['id']])
+        pic = Path(self.temp.name) / 'chart.png'
+        pic.write_bytes(b'png')
+        parts = self.carousels.slide_parts(f'Mistake 01. Colour\nOne colour.\n[image: {pic}]', 2)
+        self.assertEqual((parts['lines'], parts['image']), (['Mistake 01. Colour', 'One colour.'], str(pic)))
+        drawn = self.carousels.slide_parts('Bars\n<svg viewBox="0 0 10 10" onload="x()"><script>bad()</script><rect/></svg>', 3)
+        self.assertEqual((drawn['lines'], drawn['svg']), (['Bars'], '<svg viewBox="0 0 10 10"><rect/></svg>'))
+        with self.assertRaises(ValueError):
+            self.carousels.slide_parts('Title\n[image: E:\\nowhere.png]', 4)
+        with self.assertRaises(ValueError):
+            self.carousels.slide_parts(f'[image: {pic}]', 5)
+
     def test_validation_and_conflicts(self):
         c = self.carousels.create({'title': 'Hook test'})
         for bad in [{'title': ' '}, {'stage': 'Viral'}, {'platforms': ['MySpace']}, {'post_date': '2026-02-30'},
