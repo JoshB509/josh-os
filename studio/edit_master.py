@@ -140,6 +140,27 @@ def mask_fill(camera, out, color, mask=None, feather=0.012):
     return dict(path=str(out), mask=mask or MASK)
 
 
+def mask_preview(camera, mask, out, at=0.5):
+    """A picture of the mask on the recording: the room outside it darkened, with a gold outline."""
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(str(camera))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, int((cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) * at))
+    ok, f = cap.read()
+    cap.release()
+    if not ok:
+        raise MasterError('Could not read a frame of the recording.')
+    f = cv2.resize(f, (960, int(round(f.shape[0] * 960 / f.shape[1]))), interpolation=cv2.INTER_AREA)
+    h, w = f.shape[:2]
+    pts = np.array([[x * (w - 1), y * (h - 1)] for x, y in (mask or MASK)], np.int32)
+    inside = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(inside, [pts], 1)
+    f = np.where(inside[..., None] > 0, f, (f * 0.3).astype(np.uint8))
+    cv2.polylines(f, [pts], True, (27, 194, 245), 3, cv2.LINE_AA)
+    cv2.imwrite(str(out), f, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return str(out)
+
+
 def josh_x(camera, mask=None, samples=6):
     """Where Josh sits across the recording, 0 to 1: the middle of what isn't green inside his mask, between head
     height and mid chest, over a few small frames. His hands and the desk are left out so they don't pull it."""
@@ -229,14 +250,19 @@ def open_project(flow, pid):
     return path
 
 
-def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
+def _print(key, text=None, **kw):
+    if text:
+        print(text)
+
+
+def build_master(flow, pid, camera, mic, look=None, background=None, say=_print):
     """Tariq's project and GREEN_MASTER, built from the raw files with Josh's look. Safe to run again: it never
-    overwrites, and an existing master is left as it is."""
+    overwrites, and an existing master is left as it is. say(step, text, images=[...]) hears each step as it starts."""
     from .edit_flow import wake_premiere
     look = look or json.loads((flow.data / 'look.json').read_text(encoding='utf-8'))
     background = Path(background or look.get('background_path') or BACKGROUND)
     path = project_path(flow, pid)
-    say('Opening Premiere')
+    say('project', 'Opening Premiere')
     wake_premiere(flow)
     if path.is_file():
         open_project(flow, pid)
@@ -244,12 +270,17 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
             return dict(project=str(path), master=MASTER, state='exists')
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
-        say('Making Tariq\'s Premiere project')
+        say('project', 'Making my Premiere project for this video')
         ops(flow, [dict(op='create_project', path=str(path))])
         if MASTER in ops(flow, [dict(op='project')])[0]['sequences']:
             return dict(project=str(path), master=MASTER, state='exists')
+    say('mask', 'Drawing your mask and painting the room outside it green')
     fill = mask_fill(camera, path.parent / (path.stem + ' - mask fill.png'), key_color(look), look.get('mask'))
-    say('Bringing in the camera, the mic and the background')
+    try:
+        say('mask', 'Your mask', images=[mask_preview(camera, look.get('mask'), path.parent / (path.stem + ' - mask.jpg'))])
+    except Exception:  # noqa: BLE001 - only a picture
+        pass
+    say('import', 'Bringing in the camera, the mic and the background')
     ops(flow, [dict(op='import', paths=[str(camera), str(mic), str(background), fill['path']])])
     # the mask: the recording with the room outside it painted key green, as a nest
     info = ops(flow, [dict(op='seq_from_media', name=FILL, media=str(camera))])[0]
@@ -259,7 +290,7 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
               dict(op='set_end', seq=FILL, kind='v', track=cam['track'] + 1, index=0, end=cam['end'])]
     ops(flow, steps)
     info = ops(flow, [dict(op='seq_from_media', name=MASTER, media=str(camera))])[0]
-    say('Laying out GREEN_MASTER')
+    say('layout', 'Laying out GREEN_MASTER with the background, your shadow and you')
     cam = next(i for i in info['items'] if i['kind'] == 'v')
     steps = [dict(op='remove_track', seq=MASTER, kind='a', track=t) for t in sorted({i['track'] for i in info['items'] if i['kind'] == 'a'})]
     steps += [dict(op='remove', seq=MASTER, kind='v', track=cam['track'], index=0),
@@ -278,8 +309,9 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
     if not all(t in first for t in (0, 1, 2)):
         raise MasterError('GREEN_MASTER did not get the background, shadow and presenter on V1 to V3. Premiere reported tracks '
                           + ', '.join('V%d' % (t + 1) for t in sorted(first)) + '.')
-    say('Keying you and copying your look')
+    say('centre', 'Finding where you sit so you end up in the middle')
     look, moved = centred(look, josh_x(camera, look.get('mask')))
+    say('look', 'Keying you and copying your look')
     steps = copy_steps(MASTER, 2, first[2]['effects'], look['presenter'])
     steps += copy_steps(MASTER, 1, first[1]['effects'], look.get('shadow') or look['presenter'])
     steps += copy_steps(MASTER, 0, first[0]['effects'], look.get('background'))

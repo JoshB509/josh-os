@@ -352,7 +352,7 @@ class EditFlow:
     def view(self, pid, proposal_id=None):
         prop = self.get(pid, proposal_id) if proposal_id else self.latest(pid, 'edit_proposal')
         if not prop:
-            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid))
+            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid))
         pl = prop['payload']
         rem, issues = self.computed(prop)
         total = pl['measurements']['samples']
@@ -367,7 +367,7 @@ class EditFlow:
             sync=pl['sync'], editorial=pl['editorial'], asr=pl['asr'], notes=pl['notes'],
             summary=dict(source_s=round(total / SR, 2), kept_s=round(kept / SR, 2), removed_s=round((total - kept) / SR, 2),
                          removals=len(rem), cards=len(ep.queue(pl['events'], pl['decisions'], issues))),
-            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid))
+            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid))
 
     def revise(self, pid, proposal_id, expected_digest, changes=(), words=(), note=''):
         """Josh's (or Tariq's) changes make a new revision. The old one is never edited."""
@@ -707,6 +707,108 @@ class EditFlow:
 
     # ------------------------------------------------------------ "Tariq, go ahead with the edit"
 
+    # The steps Josh watches on the Edit page while Tariq sets the edit up, each with a state, a line and pictures.
+    SETUP = (('files', 'Finding your camera and mic'), ('project', 'Making my Premiere project'), ('mask', 'Masking out the room'),
+             ('import', 'Bringing in your files'), ('layout', 'Laying out GREEN_MASTER'), ('centre', 'Centring you'),
+             ('look', 'Keying you and copying your look'), ('picture', 'Checking the picture'), ('sync', 'Lining up the mic with the camera'),
+             ('transcribe', 'Transcribing what you said'), ('cut', 'Finding silences, repeats and retakes'))
+    ANALYSE_STEP = dict(hash='sync', decode='sync', sync='sync', transcribe='transcribe', measure='cut', editorial='cut')
+
+    def _setup_dir(self, pid):
+        d = self.folder(pid) / 'setup'
+        d.mkdir(exist_ok=True)
+        return d
+
+    def setup(self, pid):
+        f = self._setup_dir(pid) / 'setup.json'
+        try:
+            s = json.loads(f.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return None
+        t = self.jobs.get(('go', pid))
+        if s.get('state') == 'running' and not (t and t.is_alive()):
+            s['state'] = 'interrupted'
+            for st in s['steps']:
+                if st['state'] == 'running':
+                    st['state'], st['message'] = 'failed', 'This stopped when Josh OS closed. Ask me to start the edit again.'
+        return s
+
+    def setup_image(self, pid, name):
+        f = self._setup_dir(pid) / Path(name).name
+        if not f.is_file() or f.suffix.lower() not in ('.jpg', '.png'):
+            raise FileNotFoundError(name)
+        return f
+
+    def _setup_write(self, pid, s):
+        write_atomic(self._setup_dir(pid) / 'setup.json', s)
+
+    def _setup_blank(self):
+        return dict(state='running', started=now(), steps=[dict(key=k, label=l, state='waiting', message='', images=[]) for k, l in self.SETUP])
+
+    def _setup_new(self, pid):
+        self._setup_write(pid, self._setup_blank())
+
+    def _setup_step(self, pid, key, state='running', message=None, images=None):
+        """Mark a step. Starting a step finishes the ones still running before it."""
+        import shutil
+        with self.lock:
+            s = self.setup(pid) or self._setup_blank()
+            keys = [st['key'] for st in s['steps']]
+            for st in s['steps']:
+                if st['key'] == key:
+                    if not (state == 'running' and st['state'] in ('done', 'problems')):
+                        st['state'] = state
+                    if message:
+                        st['message'] = message
+                    st['at'] = now()
+                    for img in images or []:
+                        if img and Path(img).is_file():
+                            name = f"{key}-{len(st['images']) + 1}{Path(img).suffix.lower()}"
+                            shutil.copy2(img, self._setup_dir(pid) / name)
+                            st['images'].append(name)
+                    break
+                if state == 'running' and st['state'] == 'running' and keys.index(st['key']) < keys.index(key):
+                    st['state'] = 'done'
+            self._setup_write(pid, s)
+
+    def _setup_running(self, pid, default):
+        s = self.setup(pid) or {}
+        return next((st['key'] for st in s.get('steps', []) if st['state'] == 'running'), default)
+
+    def _setup_finish(self, pid, state, message=''):
+        with self.lock:
+            s = self.setup(pid)
+            if not s:
+                return
+            s['state'], s['message'], s['finished'] = state, message, now()
+            for st in s['steps']:
+                if st['state'] == 'running':
+                    st['state'] = 'done' if state == 'done' else 'failed'
+            self._setup_write(pid, s)
+
+    def _setup_picture(self, pid, camera):
+        """A frame of GREEN_MASTER from Premiere, and the same frame with a red line down the middle."""
+        import cv2
+        cap = cv2.VideoCapture(str(camera))
+        n, fps = cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0, cap.get(cv2.CAP_PROP_FPS) or 30
+        cap.release()
+        at = int(n / fps * 0.4 * 254016000000) if n else 254016000000 * 30
+        d = self._setup_dir(pid)
+        for old in d.glob('master-*'):
+            old.unlink()
+        self.bridge_call('tq_export_frames', dict(sequence='GREEN_MASTER', times=[str(at)], dir=str(d), prefix='master', width=1280, height=720))
+        f = _frame_file(d, 'master-000.png')
+        img = cv2.imread(str(f)) if f else None
+        if img is None:
+            raise ValueError('Premiere did not export a frame of GREEN_MASTER.')
+        keyed = d / 'master-keyed.jpg'
+        cv2.imwrite(str(keyed), img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        h, w = img.shape[:2]
+        cv2.line(img, (w // 2, 0), (w // 2, h), (60, 60, 230), 2, cv2.LINE_AA)
+        line = d / 'master-centre.jpg'
+        cv2.imwrite(str(line), img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        return str(keyed), str(line)
+
     def _tell(self, pid, text, via=''):
         """Tariq tells Josh where the edit is, on his desk (and wherever Josh asked from)."""
         log = self.folder(pid) / 'go-ahead.jsonl'
@@ -735,49 +837,87 @@ class EditFlow:
         from . import edit_master as em
         import time as _t
         title = self.store.get(pid).get('name') or 'this video'
+        step = lambda key, text=None, images=None: self._setup_step(pid, key, 'running', text, images)
+        self._setup_new(pid)
         try:
+            step('files', 'Looking in the video folder')
             src = self.latest(pid, 'edit_sources')
             if not src or self.sources_ok(src):
                 found = self.suggest(pid)
                 if found['ambiguous']:
-                    self._tell(pid, f"I need you to pick the files for {title}. In {found['folder'] or 'the video folder'} I found "
-                                    f"{len(found['videos'])} camera files and {len(found['audio'])} audio files. Choose the camera and the good mic "
-                                    'on the clean cut screen, then ask me to start the edit again.', via)
+                    msg = (f"I found {len(found['videos'])} camera files and {len(found['audio'])} audio files in "
+                           f"{found['folder'] or 'the video folder'}. Pick the camera and the good mic on the Script tab, then ask me to start again.")
+                    self._setup_step(pid, 'files', 'failed', msg)
+                    self._setup_finish(pid, 'needs_you', msg)
+                    self._tell(pid, f"I need you to pick the files for {title}. {msg}", via)
                     return
                 src = self.register(pid, found['videos'][0], found['audio'][0])
             files = src['payload']['files']
+            self._setup_step(pid, 'files', 'done', f"Camera {Path(files['camera']['path']).name}, mic {Path(files['mic']['path']).name}")
             premiere = None
             try:
                 if not (self.data / 'look.json').is_file():
+                    step('project', 'Reading your look from the reference project')
                     em.read_look(self)
-                premiere = em.build_master(self, pid, files['camera']['path'], files['mic']['path'])
+                premiere = em.build_master(self, pid, files['camera']['path'], files['mic']['path'], say=step)
                 self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
+                if premiere.get('state') == 'exists':
+                    for k in ('project', 'mask', 'import', 'layout', 'centre', 'look'):
+                        self._setup_step(pid, k, 'done', 'Already set up in ' + Path(premiere['project']).name)
+                else:
+                    moved = premiere.get('centred_by')
+                    if moved is not None:
+                        self._setup_step(pid, 'centre', 'done', 'Moved you ' + ('right' if moved >= 0 else 'left') + f' by {abs(moved) * 100:.0f}% of the frame width')
+                    self._setup_step(pid, 'look', 'problems' if premiere.get('problems') else 'done',
+                                     ' '.join(premiere.get('problems') or []) or 'Ultra Key, shadow and background set from your look')
+                step('picture', 'Exporting a frame of GREEN_MASTER from Premiere')
+                try:
+                    keyed, line = self._setup_picture(pid, files['camera']['path'])
+                    self._setup_step(pid, 'look', 'done', images=[keyed])
+                    self._setup_step(pid, 'centre', 'done', images=[line])
+                    self._setup_step(pid, 'picture', 'done', 'The pictures are frames from Premiere')
+                except Exception as e:  # noqa: BLE001 - only a picture
+                    self._setup_step(pid, 'picture', 'problems', 'I could not export a frame: ' + str(e)[:200])
             except Exception as e:  # noqa: BLE001 - the review can go ahead without Premiere
                 premiere = dict(state='blocked', error=str(e)[:500])
                 self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
+                self._setup_step(pid, self._setup_running(pid, 'project'), 'failed', str(e)[:300])
             prop = self.latest(pid, 'edit_proposal')
             if not prop or prop['payload'].get('sources_id') != src['id']:
                 self.analyse(pid, src['id'], editorial=True)
                 _t.sleep(1)
                 while (self.progress(pid) or {}).get('state') == 'running':
+                    p = self.progress(pid) or {}
+                    key = self.ANALYSE_STEP.get(p.get('step'))
+                    if key:
+                        step(key, p.get('message'))
                     _t.sleep(2)
                 p = self.progress(pid) or {}
                 if p.get('state') != 'complete':
-                    self._tell(pid, f"I stopped on {title}. {p.get('message') or 'The transcript did not finish.'}", via)
+                    msg = p.get('message') or 'The transcript did not finish.'
+                    self._setup_step(pid, self._setup_running(pid, 'transcribe'), 'failed', msg)
+                    self._setup_finish(pid, 'failed', msg)
+                    self._tell(pid, f"I stopped on {title}. {msg}", via)
                     return
                 prop = self.latest(pid, 'edit_proposal')
+            else:
+                for k in ('sync', 'transcribe', 'cut'):
+                    self._setup_step(pid, k, 'done', 'Already done for this recording')
             v = self.view(pid, prop['id'])
             s = v.get('summary') or {}
             check = s.get('cards', 0)
+            self._setup_step(pid, 'cut', 'done', f"{s.get('removals', 0)} cuts marked and {check} moments for you to check")
             if premiere.get('state') in ('built', 'exists'):
                 where = f"Your timeline is set up in {Path(premiere['project']).name}, with you keyed on V3, the shadow on V2 and the background on V1."
                 if premiere.get('problems'):
                     where += ' Check these in Premiere: ' + ' '.join(premiere['problems'])
             else:
                 where = 'I could not set up Premiere: ' + str(premiere.get('error') or ' '.join(premiere.get('problems') or []))
+            self._setup_finish(pid, 'done', 'The script is ready for you on the Script tab.')
             self._tell(pid, f"{title} is ready for you to review. {where} I have marked {s.get('removals', 0)} cuts in red and "
                             f"{check} moments I want you to listen to. Approve the script when you are happy and I will build the cut.", via)
         except Exception as e:  # noqa: BLE001
+            self._setup_finish(pid, 'failed', str(e)[:300])
             self._tell(pid, f'I stopped on {title}: {str(e)[:300]}', via)
 
     def _after_script(self, pid, prop, via=''):

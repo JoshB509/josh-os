@@ -4,7 +4,7 @@
 const DOCK_AGENT={success:'anouk','edit-review':'tariq','edit-flow':'tariq',courses:'saskia',board:'sam',youtube:'sam',carousels:'sam',calendar:'sam',today:'sam',editing:'tariq',email:'laia'};
 let dockOpen=(()=>{try{return localStorage.getItem('dock-open')==='1'}catch{return false}})(),dockStarted=0,dockTick=null,dockError=null;
 
-function dockAgentId(){return current?(typeof tab!=='undefined'&&tab==='edit'?'tariq':'sam'):(DOCK_AGENT[view]||'sam')}
+function dockAgentId(){return current?((typeof tab!=='undefined'&&tab==='edit')||(typeof vpPiece==='function'&&vpPiece(current)==='edit')?'tariq':'sam'):(DOCK_AGENT[view]||'sam')}
 function dockContext(){
   if(view==='edit-review'&&typeof erPid!=='undefined'&&erPid){const p=erParts()[erAt];return {kind:'edit',id:erPid,part:erAt,label:p?(p.kind==='talk'?'the talking head part':`Animation ${p.n}`):'the animation deck'}}
   if(view==='carousels'&&typeof carouselOpen!=='undefined'&&carouselOpen){const c=carouselFind(carouselOpen);return c?{kind:'carousel',id:c.id,label:c.title}:null}

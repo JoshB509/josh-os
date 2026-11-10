@@ -18,7 +18,15 @@ async function efLoad(){
   try{efData=await api(efUrl())}catch(e){toast(e.message,true);return}
   renderEditFlow();
   clearTimeout(efPoll);
-  if(efData.progress?.state==='running')efPoll=setTimeout(()=>{if(view==='edit-flow')efLoad()},3000);
+  if(efWorking())efPoll=setTimeout(()=>{if(view==='edit-flow'||efEmbedded())efLoad()},2500);
+}
+// Tariq is working on something that will change what this page shows, so it keeps checking.
+function efWorking(){
+  if(!efData)return false;const st=Object.fromEntries((efData.status||[]).map(x=>[x.key,x.state]));
+  if(efData.progress?.state==='running'||efData.setup?.state==='running')return true;
+  if(efData.proposal?.approved&&['waiting','requested','running'].includes(st.cut))return true;
+  if(st.visuals==='approved'&&['waiting','requested','running'].includes(st.final))return true;
+  return false;
 }
 async function efPost(action,body,quiet){
   efBusy=true;renderEditFlow();
@@ -113,6 +121,9 @@ function efNext(){
     </section>`;
   }
   const cut=st.cut,vis=st.visuals,fin=st.final;
+  if(efEmbedded())return `<section class="ef-card ef-approve">
+    <p>You approved revision ${p.revision}. ${cut?.state==='verified'?'Tariq has built the cut in Premiere, so the animations are next.':cut?.state==='blocked'||cut?.state==='failed'?esc(cut.reason):'Tariq is building it in Premiere now.'}</p>
+    ${cut?.state==='verified'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':''}</section>`;
   return `<section class="ef-card ef-approve">
     <p>Revision ${p.revision} is approved. ${esc(cut?.reason||'')}</p>
     <details class="ef-setup"><summary>Set up Premiere</summary>
@@ -138,19 +149,27 @@ function efNext(){
   </section>`;
 }
 
+// The same review also sits inside the video page's Edit piece, on its Script tab.
+function efEmbedded(){return view!=='edit-flow'&&!!current&&efPid===current.id&&typeof vpPiece==='function'&&vpPiece(current)==='edit'}
 function renderEditFlow(){
+  if(efEmbedded())return vpEditRender();
   const project=state.projects.find(p=>p.id===efPid);
   page('Clean cut','');subPage(project?.name||'Video','Clean cut','data-ef-back');
   if(!efData){$('#workspace').innerHTML='<p class="hint">Loading…</p>';return}
-  const s=efData.summary,p=efData.proposal,ed=efData.editorial;
   const keep=$('#ef-script')?.scrollTop;
-  $('#workspace').innerHTML=`<div class="ef">
-    <header class="ef-head"><div><h1>${esc(project?.name||'Clean cut')}</h1>
+  $('#workspace').innerHTML=efInner(false);
+  if(keep!=null&&$('#ef-script'))$('#ef-script').scrollTop=keep;
+}
+function efInner(embedded){
+  const project=state.projects.find(p=>p.id===efPid);
+  const s=efData.summary,p=efData.proposal,ed=efData.editorial;
+  return `<div class="ef ${embedded?'embedded':''}">
+    <header class="ef-head"><div>${embedded?'':`<h1>${esc(project?.name||'Clean cut')}</h1>`}
       ${p?`<p>Revision ${p.revision}. ${s.removed_s}s cut from ${s.source_s}s, leaving ${s.kept_s}s. ${efData.sync?.verified?`Mic and camera in sync (mic ${Number(efData.sync.offset_seconds).toFixed(3)}s ahead).`:'Sync is not verified.'}
         ${ed?.ran?`Tariq marked ${ed.removals} retakes and ${ed.pauses} pauses.`:esc(ed?.note||'')}</p>`:'<p>Tariq proposes the cut, you check it here, and nothing reaches Premiere until you approve it.</p>'}</div>
       ${p?`<div class="ef-row"><button class="subtle" data-ef-undo ${efUndo.length?'':'disabled'}>Undo</button><button class="subtle" data-ef-redo ${efRedo.length?'':'disabled'}>Redo</button></div>`:''}
     </header>
-    ${efStages()}
+    ${embedded?'':efStages()}
     ${!p||efData.progress?.state==='running'||efData.status?.[0]?.state!=='ready'?efSources():''}
     ${p?`<div class="ef-body">
       <div class="ef-main">
@@ -164,7 +183,6 @@ function renderEditFlow(){
       <aside class="ef-rail"><h2>To check (${(efData.cards||[]).length})</h2>${efCardHtml()}${efQueue()}</aside>
     </div>`:''}
   </div>`;
-  if(keep!=null&&$('#ef-script'))$('#ef-script').scrollTop=keep;
 }
 
 // Changes always make a new revision; undo sends the opposite change as another new revision.
@@ -190,7 +208,7 @@ function efSelected(){
 }
 
 document.addEventListener('click',async e=>{
-  if(view!=='edit-flow')return;
+  if(view!=='edit-flow'&&!efEmbedded())return;
   if(e.target.closest('[data-ef-back]')){const pid=efPid;clearTimeout(efPoll);view='board';efPid=null;efData=null;openProject(pid);return}
   const ev=e.target.closest('[data-ef-ev]');if(ev){efCard=ev.dataset.efEv;renderEditFlow();return}
   if(e.target.closest('[data-ef-sources]')){
@@ -239,7 +257,7 @@ async function efListen(){
   if(r){efPrev[efCard+':'+efCtx]=r;renderEditFlow()}
 }
 document.addEventListener('mouseup',()=>{
-  if(view!=='edit-flow')return;const bar=$('#ef-selbar');if(!bar)return;bar.hidden=!efSelected().length;
+  if(view!=='edit-flow'&&!efEmbedded())return;const bar=$('#ef-selbar');if(!bar)return;bar.hidden=!efSelected().length;
 });
 
 // Routing, and a way in from the video page's Edit piece.

@@ -3,7 +3,7 @@
 // title, thumbnail, script, recording, edit, animations and publish, in any order, plus one
 // notes box. Clicking a piece opens just that piece underneath. The existing title, thumbnail,
 // script and results views are reused inside their pieces; everything else around them goes.
-const VP_PIECES=[['notes','Notes'],['title','Title'],['thumbnail','Thumbnail'],['script','Script'],['recording','Recording'],['edit','Edit'],['animations','Animations'],['publish','Publish']];
+const VP_PIECES=[['notes','Notes'],['title','Title'],['thumbnail','Thumbnail'],['script','Script'],['recording','Recording'],['edit','Edit'],['publish','Publish']];
 const VP_TAB={notes:'brief',title:'titles',thumbnail:'thumbnails',script:'script',publish:'results',recording:'brief',edit:'brief',animations:'brief'};
 let vpOpen={},vpStatus={},vpTakes=null,vpBusy=false;
 if(typeof fields!=='undefined'&&!fields.includes('locks'))fields.push('locks');
@@ -15,6 +15,7 @@ function vpDone(p,k){
   if(k==='notes')return null;
   if(k==='recording')return !!(L.recording||s.recording);
   if(k==='publish')return !!(L.publish||p.stage==='Published');
+  if(k==='edit')return vpEditStage(p)==='done';
   return !!L[k];
 }
 function vpSub(p,k){
@@ -25,13 +26,14 @@ function vpSub(p,k){
     case 'thumbnail':return `${(p.thumbnails||[]).length} option${(p.thumbnails||[]).length===1?'':'s'}`;
     case 'script':return words?`${words.toLocaleString()} words`:'Not started';
     case 'recording':return s.recording?s.recording.name:s.active?'Recording now':'Not recorded';
-    case 'edit':return vpLocks(p).edit?'With Tariq':s.edit?'Premiere file found':'Waiting for your edit';
-    case 'animations':return vpLocks(p).animations?'Approved':s.deck?'Deck ready to review':'Not made yet';
+    case 'edit':return {start:'Not started',setup:'Tariq is setting up',script:'Script ready for you',animations:'Animations',done:'Exported'}[vpEditStage(p)];
     case 'publish':return p.publish_date?new Date(p.publish_date+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'}):'No date';
   }
 }
 function vpDefault(p){return VP_PIECES.map(x=>x[0]).find(k=>k!=='notes'&&!vpDone(p,k))||'publish'}
-function vpPiece(p){return vpOpen[p.id]||vpDefault(p)}
+// An old saved 'animations' piece opens Edit, where the animations now live.
+function vpOpenKey(p){const k=vpOpen[p.id];return k==='animations'?'edit':k}
+function vpPiece(p){return vpOpenKey(p)||vpDefault(p)}
 
 function vpPiecesRow(p){
   const open=vpPiece(p);
@@ -43,7 +45,7 @@ function vpLockBar(p,k){
   if(k==='notes')return '';
   const L=vpLocks(p),locked=!!L[k],auto=vpDone(p,k)&&!locked;
   const label={title:'title',thumbnail:'thumbnail',script:'script',recording:'recording',edit:'edit',animations:'animations',publish:'video as published'}[k];
-  if(k==='recording'||k==='animations')return '';
+  if(k==='recording'||k==='animations'||k==='edit')return '';
   return `<div class="vp-lock">${locked?`<span class="vp-locked">✓ Locked in ${esc(new Date(L[k]).toLocaleDateString(undefined,{day:'numeric',month:'short'}))}</span><button class="subtle" data-vp-unlock="${k}">Unlock</button>`
     :auto?'':`<button class="primary" data-vp-lock="${k}" ${k==='title'&&!vpTitle(p)?'disabled title="Pick a title first"':''}>${k==='edit'?'Hand the edit to Tariq':k==='publish'?'Mark as published':`Lock in the ${label}`}</button>`}</div>`;
 }
@@ -62,19 +64,84 @@ function vpRecording(p){
       <button class="primary" data-vp-rec-move ${vpBusy?'disabled':''}>${vpBusy?'Moving it…':'Move it into this video'}</button></div>`:'<p class="hint">No recordings from today in E:\\Videos\\Input yet.</p>'):''}
   </div>`;
 }
-function vpEdit(p){
-  const s=vpStatus[p.id]||{};
-  return `<div class="vp-card"><h3>${vpLocks(p).edit?'The edit is with Tariq':'Your edit'}</h3>
-    ${s.edit?`<p>Josh OS found your Premiere project <b>${esc(s.edit.name)}</b>, saved ${esc(new Date(s.edit.saved).toLocaleString(undefined,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}.</p>`
-      :`<p>Do the cuts, sound and green screen, then save your Premiere project in this video's <b>video</b> folder. It shows here when it's there.</p>${s.folder?`<p class="hint">${esc(s.folder)}\\video</p>`:''}`}
-    ${vpLocks(p).edit?`<p>Tariq makes the animations from here. You review them in Animations.</p>`:''}
-    <div class="vp-actions"><button class="subtle" data-ef-open="${esc(p.id)}">Tariq's clean cut</button></div></div>`;
+// Edit belongs to Tariq. Three tabs: he sets the edit up (steps fill in as he goes, with pictures), then the
+// script with his cuts for Josh to check, then the animations. Each tab fills in once he reaches it.
+let vpEditTab={},vpEditBusy=false;
+const VP_EDIT_TABS=[['setup','Setting up'],['script','Script'],['animations','Animations']];
+function vpEf(p){return typeof efPid!=='undefined'&&efPid===p.id?efData:null}
+function vpEditStage(p){
+  const d=vpEf(p);if(!d)return vpLocks(p).edit?'setup':'start';
+  const st=Object.fromEntries((d.status||[]).map(x=>[x.key,x.state]));
+  if(['verified','exported'].includes(st.final))return 'done';
+  if(d.proposal?.approved)return 'animations';
+  if(d.proposal)return 'script';
+  return d.setup||vpLocks(p).edit?'setup':'start';
 }
-function vpAnimations(p){
-  const s=vpStatus[p.id]||{};
-  return `<div class="vp-card"><h3>${vpLocks(p).animations?'Animations approved':s.deck?'The animation deck is ready':'No animation deck yet'}</h3>
-    ${s.deck?`<p>${esc(s.deck.slides)} and ${esc(s.deck.shot_list||'no shot list yet')}.</p><div class="vp-actions"><button class="primary" data-er-open="${esc(p.id)}">Review the animations</button></div>`
-      :`<p>Once your edit is handed over, Tariq makes the slides and shot list. You can review them here as a slide show.</p><div class="vp-actions"><button class="subtle" data-dock-ask="Make the animation slides and shot list for this video.">Ask Tariq to make them</button></div>`}</div>`;
+function vpEditCurrent(p){
+  if(vpEditTab[p.id])return vpEditTab[p.id];
+  const k=vpEditStage(p);return k==='script'?'script':['animations','done'].includes(k)?'animations':'setup';
+}
+function vpEdit(p){
+  const d=vpEf(p);
+  if(!d)return `<div class="vp-card"><p class="hint">Loading the edit…</p></div>`;
+  const stage=vpEditStage(p),open=vpEditCurrent(p),order=['start','setup','script','animations','done'];
+  const reached={setup:true,script:order.indexOf(stage)>=2||!!d.proposal,animations:order.indexOf(stage)>=3};
+  return `<div class="vp-edit">
+    <nav class="vp-etabs" aria-label="Edit stages">${VP_EDIT_TABS.map(([k,l],i)=>`<button class="vp-etab ${k===open?'on':''} ${reached[k]?'':'later'}" data-vp-edit-tab="${k}" aria-pressed="${k===open}"><span>${i+1}</span>${l}</button>`).join('')}</nav>
+    <div class="vp-epane">${open==='setup'?vpEditSetup(p,d):open==='script'?vpEditScript(p,d):vpEditAnimations(p,d)}</div>
+  </div>`;
+}
+function vpEditSetup(p,d){
+  const su=d.setup;
+  if(!su)return `<div class="vp-card vp-start"><h3>Tariq does the edit</h3>
+    <p>He finds your camera and mic, sets up his own Premiere project with you keyed, masked and centred, then transcribes the recording and marks the silences, repeats and retakes. You watch each step here, then check his cuts on the Script tab.</p>
+    <p class="hint">You can also ask him in the chat. Premiere opens if it isn't open, but never while OBS is.</p>
+    <div class="vp-actions"><button class="primary" data-vp-go ${vpEditBusy?'disabled':''}>Start the edit</button></div></div>`;
+  const head={running:'Tariq is setting up the edit',done:'The setup is done',failed:'Tariq stopped',needs_you:'Tariq needs you',interrupted:'Tariq stopped'}[su.state]||'Setting up';
+  const icon={waiting:'',running:'',done:'✓',problems:'!',failed:'✕'};
+  return `<div class="vp-card vp-setup">
+    <div class="vp-setup-head"><h3>${head}</h3>${su.state==='running'?'':`<button class="subtle" data-vp-go ${vpEditBusy?'disabled':''}>Start again</button>`}</div>
+    ${su.message&&su.state!=='running'?`<p>${esc(su.message)}</p>`:''}
+    <ol class="vp-steps">${su.steps.map(st=>`<li class="vp-step ${esc(st.state)}">
+      <span class="vp-step-mark" aria-hidden="true">${icon[st.state]||''}</span>
+      <div class="vp-step-main"><div class="vp-step-top"><b>${esc(st.label)}</b><span class="vp-step-state">${{waiting:'Waiting',running:'Working',done:'Done',problems:'Check this',failed:'Stopped'}[st.state]||''}</span></div>
+        <div class="vp-bar"><i></i></div>
+        ${st.message?`<p>${esc(st.message)}</p>`:''}
+        ${st.images?.length?`<div class="vp-step-pics">${st.images.map(n=>`<a href="/api/projects/${encodeURIComponent(p.id)}/edit-flow/setup/${encodeURIComponent(n)}" target="_blank" rel="noopener"><img alt="${esc(st.label)}" src="/api/projects/${encodeURIComponent(p.id)}/edit-flow/setup/${encodeURIComponent(n)}?t=${encodeURIComponent(st.at||'')}"></a>`).join('')}</div>`:''}
+      </div></li>`).join('')}</ol>
+    ${su.state==='done'?'<div class="vp-actions"><button class="primary" data-vp-edit-tab="script">Check the script</button></div>':''}
+  </div>`;
+}
+function vpEditScript(p,d){
+  if(!d.proposal&&!(d.suggest?.ambiguous))return `<div class="vp-card vp-later"><h3>Nothing here yet</h3><p>Tariq puts the script here once he has transcribed the recording and marked his cuts. You can watch him get there on the Setting up tab.</p></div>`;
+  return `<div id="ef-embed">${efInner(true)}</div>`;
+}
+function vpEditAnimations(p,d){
+  const st=Object.fromEntries((d.status||[]).map(x=>[x.key,x])),s=vpStatus[p.id]||{};
+  if(st.cut?.state!=='verified')return `<div class="vp-card vp-later"><h3>Nothing here yet</h3><p>The animations come once you approve the script and Tariq has built the cut in Premiere.</p></div>`;
+  const vis=st.visuals,fin=st.final;
+  const finLine={verified:'Exported and checked.',exported:'Exported.',running:'Tariq is putting it all together and exporting it.',requested:'Tariq is putting it all together and exporting it.',failed:'The export stopped.',blocked:'The export stopped.'}[fin?.state];
+  return `<div class="vp-card"><h3>${vis?.state==='approved'?'Storyboard approved':s.deck?'The animations are ready to review':'No animation deck yet'}</h3>
+    ${s.deck?`<p>${esc(s.deck.slides)} and ${esc(s.deck.shot_list||'no shot list yet')}. Review them as a slide show, then approve the storyboard and Tariq puts it all together and exports it.</p>`
+      :`<p>Tariq makes the slides and shot list from the approved script.</p>`}
+    <div class="vp-actions">${s.deck?`<button class="${vis?.state==='approved'?'subtle':'primary'}" data-er-open="${esc(p.id)}">Review the animations</button>`:vis?.state==='approved'?'':`<button class="subtle" data-dock-ask="Make the animation slides and shot list for this video.">Ask Tariq to make them</button>`}
+      ${s.deck&&vis?.state!=='approved'?'<button class="subtle" data-ef-storyboard>Approve the storyboard</button>':''}</div>
+    ${vis?.state==='approved'?`<p class="vp-final ${esc(fin?.state||'')}">${esc(finLine||fin?.reason||'')}${fin?.reason&&finLine&&['failed','blocked'].includes(fin.state)?' '+esc(fin.reason):''}</p>`:''}
+  </div>`;
+}
+function vpEditRender(){
+  const p=current;if(!p||vpPiece(p)!=='edit')return;
+  const body=$('#tab-body');if(!body)return;
+  const keep=$('#ef-script')?.scrollTop,y=scrollY;
+  body.innerHTML=vpEdit(p);
+  if(keep!=null&&$('#ef-script'))$('#ef-script').scrollTop=keep;
+  scrollTo(0,y);
+  const row=document.querySelector('.vp-pieces');if(row)row.outerHTML=vpPiecesRow(p);
+}
+async function vpEditLoad(p){
+  if(typeof efPid==='undefined')return;
+  if(efPid!==p.id){efPid=p.id;efData=null;efCard=null;efUndo=[];efRedo=[];efPrev={}}
+  await efLoad();
 }
 function vpPublishTop(p){return `<label class="vp-date">Publish date<input type="date" data-field="publish_date" value="${esc(p.publish_date||'')}"></label>`}
 
@@ -101,19 +168,22 @@ function vpLayout(p,k){
   body.classList.add('vp-body');
   if(k==='notes')body.innerHTML=vpNotes(p);
   else if(k==='recording')body.innerHTML=vpRecording(p);
-  else if(k==='edit')body.innerHTML=vpEdit(p);
-  else if(k==='animations')body.innerHTML=vpAnimations(p);
+  else if(k==='edit'){body.innerHTML=vpEdit(p);if(vpEf(p)===null)vpEditLoad(p)}
   else if(k==='publish')body.insertAdjacentHTML('afterbegin',vpPublishTop(p));
 }
-function vpRefresh(){if(!current)return;const k=vpPiece(current);if(['notes','recording','edit','animations'].includes(k)||!document.querySelector('.vp-pieces'))return renderDetail();vpLayout(current,k)}
-async function vpLoad(pid){try{vpStatus[pid]=await api(`/api/projects/${encodeURIComponent(pid)}/pieces`)}catch{vpStatus[pid]={}}if(current?.id===pid){const row=document.querySelector('.vp-pieces');if(row){row.outerHTML=vpPiecesRow(current)}const k=vpPiece(current);if(['recording','edit','animations'].includes(k))renderDetail();else vpLayout(current,k)}}
+function vpRefresh(){if(!current)return;const k=vpPiece(current);if(['notes','recording','edit'].includes(k)||!document.querySelector('.vp-pieces'))return renderDetail();vpLayout(current,k)}
+async function vpLoad(pid){try{vpStatus[pid]=await api(`/api/projects/${encodeURIComponent(pid)}/pieces`)}catch{vpStatus[pid]={}}if(current?.id===pid){const row=document.querySelector('.vp-pieces');if(row){row.outerHTML=vpPiecesRow(current)}const k=vpPiece(current);if(k==='edit')vpEditRender();else if(k==='recording')renderDetail();else vpLayout(current,k)}}
 function vpSetLock(k,on){const p=current;const L={...vpLocks(p)};if(on)L[k]=new Date().toISOString().slice(0,19);else delete L[k];p.locks=L;
   if(on&&k==='publish'&&p.stage!=='Published')p.stage='Published';if(on&&k==='edit'&&['Recording','Recorded','Ready to record'].includes(p.stage))p.stage='Editing';
   mark();renderDetail()}
 
 document.addEventListener('click',async e=>{
   if(!current||view==='edit-review')return;
-  const pc=e.target.closest('[data-vp-piece]');if(pc){if(typeof leave==='function'&&dirty){/* autosave keeps edits */}vpOpen[current.id]=pc.dataset.vpPiece;vpTakes=null;renderDetail();return}
+  const pc=e.target.closest('[data-vp-piece]');if(pc){if(typeof leave==='function'&&dirty){/* autosave keeps edits */}vpOpen[current.id]=pc.dataset.vpPiece;vpTakes=null;renderDetail();if(typeof dockRender==='function')dockRender();return}
+  const et=e.target.closest('[data-vp-edit-tab]');if(et){vpEditTab[current.id]=et.dataset.vpEditTab;vpEditRender();return}
+  if(e.target.closest('[data-vp-go]')){const pid=current.id;vpEditBusy=true;vpEditRender();
+    try{await api(`/api/projects/${encodeURIComponent(pid)}/edit-flow/go`,{});if(!vpLocks(current).edit)vpSetLock('edit',true);vpEditTab[pid]='setup';toast('Tariq has started the edit')}catch(err){toast(err.message,true)}
+    finally{vpEditBusy=false}if(current?.id===pid){await efLoad();vpEditRender()}return}
   const lk=e.target.closest('[data-vp-lock]');if(lk){vpSetLock(lk.dataset.vpLock,true);toast('Locked in');return}
   const ul=e.target.closest('[data-vp-unlock]');if(ul){vpSetLock(ul.dataset.vpUnlock,false);return}
   if(e.target.closest('[data-vp-folder]')){const f=vpStatus[current.id]?.folder;if(f){try{await navigator.clipboard.writeText(f);toast('Folder path copied')}catch{toast(f)}}return}

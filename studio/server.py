@@ -207,6 +207,8 @@ class Handler(BaseHTTPRequestHandler):
                 if path=='/api/edit-review/decks':return self.send(s.edit_review.decks())
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-flow':
                     v=s.edit_flow.view(parts[2]);v['suggest']=s.edit_flow.suggest(parts[2]);v['sources']=s.edit_flow.latest(parts[2],'edit_sources');v['cut_id']=(s.edit_flow.latest(parts[2],'edit_cut') or {}).get('id');v['visuals_id']=(s.edit_flow.latest(parts[2],'edit_visuals') or {}).get('id');return self.send(v)
+                if len(parts)==6 and parts[:2]==['api','projects'] and parts[3:5]==['edit-flow','setup']:
+                    f=s.edit_flow.setup_image(parts[2],parts[5]);return self.send(f.read_bytes(),mime='image/png' if f.suffix=='.png' else 'image/jpeg',cache='private, max-age=3600')
                 if len(parts)==6 and parts[:2]==['api','projects'] and parts[3:5]==['edit-flow','audio']:
                     return self.send(s.edit_flow.preview_file(parts[2],parts[5]).read_bytes(),mime='audio/wav',cache='private, max-age=3600')
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='pieces':return self.send(s.pieces.status(parts[2]))
