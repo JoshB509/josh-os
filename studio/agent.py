@@ -265,8 +265,21 @@ THUMB_JOB_SCHEMA = {
             'label': {'type': 'string', 'description': 'A short name, like A Make Them Explain.'},
             'format': {'type': 'string', 'enum': ['middle', 'close']},
             'pose': {'type': 'string', 'description': 'The cutout file name without .png, like seated-13-palm-present-neutral.'},
-            'words': {'type': 'string', 'description': 'middle only. The one line of words.'},
-            'lines': {'type': 'array', 'items': {'type': 'string'}, 'description': 'close only. One or two lines of words.'},
+            'words': {'type': 'string', 'description': 'middle. The one line of words.'},
+            'lines': {'type': 'array', 'items': {'type': 'string'}, 'description': 'close, or either format with a style. One or two lines of words.'},
+            'style': {'type': 'object', 'description': 'Leave out for the house look. Set it for another font, colour, size or bar.', 'properties': {
+                'font': {'type': 'string', 'description': 'A font name from the list in the brief.'},
+                'weight': {'type': 'string', 'description': 'One of the weights listed for that font. Leave out for its heaviest.'},
+                'color': {'type': 'string', 'description': 'Words colour, a name from the list or a hex code like #FFE500.'},
+                'size': {'type': 'number', 'description': 'Font size in pixels on the 1920 wide frame, 60 to 360.'},
+                'fit': {'type': 'string', 'enum': ['size', 'fill'], 'description': 'size uses the size (shrunk if it would not fit). fill makes the words fill the bar width.'},
+                'bar': {'type': 'boolean', 'description': 'A coloured bar behind the words.'},
+                'bar_color': {'type': 'string'},
+                'bolden': {'type': 'number', 'description': '0 to 6. Thickens the letters.'},
+                'outline': {'type': 'number', 'description': '0 to 14. An outline round the letters.'},
+                'outline_color': {'type': 'string'},
+                'shadow': {'type': 'boolean', 'description': 'The house glow and drop shadow. On unless you turn it off.'},
+                'case': {'type': 'string', 'enum': ['as-is', 'upper']}}},
             'size': {'type': 'number', 'description': 'close only. Font size in 1280-wide units, about 142.'},
             'face_cx': {'type': 'number'}, 'face_cy': {'type': 'number'}, 'face_w': {'type': 'number'},
             'head_top': {'type': 'number'}, 'body_bottom': {'type': 'number'}, 'desk_top': {'type': 'number'},
@@ -290,6 +303,13 @@ The two formats you can use:
   The line positions are fixed by the format.
 Read the approved specs in the tools folder (spec_make-them-explain_desk-bottom_v01.json, spec_close_never-go-blank_v03.json)
 and the thumb-notes files the training names. Look at the pose previews in the Pose Catalogue before you pick a pose.
+Text style. Leave "style" out for the house look (Josh Thumbnail V2, white words on the yellow bar). When Josh asks for
+another font, colour, size or weight, set "style" and give the words in "lines" (one or two). Josh OS shrinks words that
+would run off the frame and tells Josh it did. Three or more big words stay bigger split over two lines. Fonts you can use, as font: weights:
+{fonts}
+Colours by name: {colours}, or any hex code. Big bold yellow words, for example, are style font anton (or impact, chivo,
+gotham black), color bright-yellow, bar false, size 220 to 300, case upper, with the shadow on and outline 0 to 6 in black.
+If Josh asks for a font that isn't in this list, say it isn't available and pick the closest one from the list.
 Pick words that name the outcome and add to the title rather than repeat it. The other formats in the training (boardroom,
 whiteboard, before and after, close face) can't be built from chat yet, so say so if Josh asks for one.
 Your reply is posted together with the finished images, so describe the options as made, not as on the way."""
@@ -786,7 +806,9 @@ class Agents:
         return ['- You make the YouTube thumbnails. When Josh asks for thumbnails (new ones, changes, other words or poses), put',
                 '  the video in "thumbnails" with what he asked in "note". Josh OS starts the job after your reply and posts the',
                 '  images back here, usually within a few minutes, so tell him they are on the way. Do not describe options you',
-                '  have not made. The middle shot and close portrait formats can be built from chat. Boardroom, whiteboard, before',
+                '  have not made. The middle shot and close portrait formats can be built from chat, in the house look or with',
+                '  another font, colour, size or bar (fourteen local fonts, including Anton, Impact, Gotham and Franie). Put the',
+                '  style Josh wants in the note. Boardroom, whiteboard, before',
                 '  and after and close face can not yet, so say so if he asks for one.']
 
     def carousel_rules(self):
@@ -959,7 +981,11 @@ class Agents:
         facts = dict(id=project['id'], name=project['name'], title=title, stage=project['stage'],
                      title_ideas=[t.get('text') for t in project.get('titles') or []][:12], notes=(project.get('notes') or '')[:3000],
                      script=(project.get('script') or '')[:8000], folder=str(folder))
-        parts = [THUMB_BRIEF, '', f'Your training files are in {self.training_dir()}. The tools folder is {TOOLS}. '
+        from .thumbnail_build import COLOURS, FONTS
+        fonts = '\n'.join(f"- {k}: {', '.join(v['weights'])} ({v['label']})" + ('' if all(f.is_file() for f in v['weights'].values())
+                                                                                    else ', some files missing on this PC') for k, v in FONTS.items())
+        brief = THUMB_BRIEF.replace('{fonts}', fonts).replace('{colours}', ', '.join(COLOURS))
+        parts = [brief, '', f'Your training files are in {self.training_dir()}. The tools folder is {TOOLS}. '
                  f'The Pose Catalogue is {POSES}. This video\'s folder is {folder}, and its thumbnails folder shows earlier rounds.',
                  '', 'The video:', json.dumps(facts, ensure_ascii=False, indent=1)]
         if note.strip():

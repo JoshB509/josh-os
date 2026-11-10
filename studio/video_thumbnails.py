@@ -19,7 +19,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from .thumbnail_build import FORMATS, TEMPLATE, TOOLS
+from .thumbnail_build import FORMATS, TEMPLATE, TOOLS, check_style
 
 POSES = TEMPLATE / 'Pose Catalogue'
 MAX_OPTIONS = 3
@@ -83,6 +83,8 @@ def check(option):
     if fmt not in FORMATS:
         raise ValueError(f"Format must be one of {', '.join(FORMATS)}.")
     pose = str(pose_path(option.get('pose')))
+    if option.get('style') is not None:
+        return styled_spec(fmt, option, pose)
     if fmt == 'middle':
         spec = dict(scene='seated', shade_start=_num(option, 'shade_start', fmt),
                     pose=dict(path=pose, face_cx=_num(option, 'face_cx', fmt), head_top=_num(option, 'head_top', fmt),
@@ -103,6 +105,27 @@ def check(option):
                     lines=[dict(text=t, cx=1297, baseline=round(470 + i * size * 1.5 * 0.92), size=size) for i, t in enumerate(texts)])
         words = ' '.join(texts)
     return fmt, spec, words
+
+
+def styled_spec(fmt, option, pose):
+    """An option with a text style: chosen font, colours, size and fitting. The builder checks the style again."""
+    style = check_style(option['style'])
+    lines = option.get('lines') if option.get('lines') is not None else [option.get('words')]
+    if not isinstance(lines, list) or not 1 <= len(lines) <= 2:
+        raise ValueError('Give one or two lines of words.')
+    texts = [_words(t) for t in lines]
+    if style['case'] == 'upper':
+        texts = [t.upper() for t in texts]
+    if fmt == 'middle':
+        spec = dict(scene='seated', shade_start=_num(option, 'shade_start', fmt), lines=texts, style=style,
+                    baseline=_num(option, 'baseline', fmt), bar_left=_num(option, 'bar_left', fmt), bar_right=_num(option, 'bar_right', fmt),
+                    pose=dict(path=pose, face_cx=_num(option, 'face_cx', fmt), head_top=_num(option, 'head_top', fmt),
+                              body_bottom=_num(option, 'body_bottom', fmt), desk_top=_num(option, 'desk_top', fmt)))
+    else:
+        spec = dict(scene='close', shade_start=_num(option, 'shade_start', fmt), lines=texts, style=style,
+                    pose=dict(path=pose, face_cx=_num(option, 'face_cx', fmt), face_cy=_num(option, 'face_cy', fmt),
+                              face_w=_num(option, 'face_w', fmt)))
+    return fmt, spec, ' '.join(texts)
 
 
 class VideoThumbnails:
@@ -161,8 +184,11 @@ class VideoThumbnails:
                     if not out.exists() and not out.with_suffix('.jpg').exists():
                         break
                     n += 1
-                self.build(fmt, spec, out)
+                result = self.build(fmt, spec, out)
                 final = self.under_limit(out)
+                asked, size = result.get('asked'), result.get('size')
+                if asked and size and size < asked:
+                    problems.append(f"Option {i}'s words were shrunk from {asked:g} to {size:g} px so they fit.")
                 made.append(dict(path=str(final), label=str(option.get('label') or f'Option {i}')[:60], format=fmt, words=words))
             except (ValueError, OSError, subprocess.SubprocessError) as e:
                 problems.append(f"Option {i} wasn't built: {str(e)[:200]}")
@@ -176,7 +202,11 @@ class VideoThumbnails:
                                  capture_output=True, text=True, encoding='utf-8', timeout=BUILD_TIMEOUT, cwd=tmp,
                                  creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if run.returncode != 0 or not out.is_file():
-            raise ValueError(((run.stderr or run.stdout).strip().splitlines() or ['the builder stopped'])[-1][:200])
+            raise ValueError(((run.stderr or run.stdout).strip().splitlines() or ['the builder stopped'])[-1][:300])
+        try:
+            return json.loads(run.stdout.strip().splitlines()[-1]).get('result') or {}
+        except (ValueError, IndexError, AttributeError):
+            return {}
 
     @staticmethod
     def under_limit(png):
