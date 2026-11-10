@@ -107,12 +107,12 @@ def parse_shot_list(md):
         elif re.match(r'\s*Stay on Animation (\d+)', shot):
             events.append((0, ('anim', int(re.match(r'\s*Stay on Animation (\d+)', shot).group(1)))))
         pending = []
-        for m in re.finditer(r'cut to the animation from "([^"]+)"|Slide your camera[^"]*from "([^"]+)"|Insert Animation (\d+)|back to Animation (\d+)|[Tt]alking head (?:for|from) "([^"]+)"|full-frame talking head from "([^"]+)"', shot):
+        for m in re.finditer(r'cut to the animation from "([^"]+)"|Slide your camera[^"]*from "([^"]+)"|Insert Animation (\d+)|[Bb]ack to Animation (\d+)|[Tt]alking head (?:for|from) "([^"]+)"|full-frame talking head from "([^"]+)"', shot):
             if m.group(1) or m.group(2):
                 pending.append(_find(text, m.group(1) or m.group(2)))
             elif m.group(3) or m.group(4):
                 n = int(m.group(3) or m.group(4))
-                presses = re.search(rf'(?:Insert|back to) Animation {n}.*?Press \d+ on "([^"]+)"', shot[m.start():])
+                presses = re.search(rf'(?:Insert|[Bb]ack to) Animation {n}.*?Press \d+ on "([^"]+)"', shot[m.start():])
                 if pending:
                     at = pending.pop(0)
                 elif not events and m.start() < 40:

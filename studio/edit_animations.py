@@ -84,7 +84,11 @@ def plan_shots(words, removals, pieces, parts, scenes, frame_ticks, sr=16000):
         end_t = tick(kept[nxt]) if nxt is not None else total
         base = starts[k] if starts[k] is not None else 0
         presses = []
+        others = [q for q in parts if q is not p and q['kind'] == 'animation' and q['n'] == p['n']]
         for pr in p.get('presses') or []:
+            # An animation that leaves for talking head and comes back has its presses split between appearances
+            if pr.get('found') is False and any(x['press'] == pr['press'] and x.get('found') for q in others for x in q.get('presses') or []):
+                continue
             i = locate(kept, pr['words'], base, stop=nxt)
             if i is None or (nxt is not None and i >= nxt):
                 problems.append(f"Animation {p['n']} press {pr['press']}: \"{pr['words']}\" is not in the approved script, so it was left out.")
