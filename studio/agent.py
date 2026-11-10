@@ -207,6 +207,9 @@ EDIT_PROPS = {
             'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
             'rerender': {'type': 'array', 'items': {'type': 'integer'},
                          'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
+            'go_ahead': {'type': 'boolean', 'description': 'True only when Josh tells you to go ahead with the edit of this video (gather the '
+                                                          'files, set up Premiere, transcribe and propose the cut). Josh OS runs it on this PC and '
+                                                          'you post back when it is ready for his review.'},
         },
     },
 }
@@ -325,6 +328,11 @@ EDIT_JOB_SCHEMA = {
             'reason': {'type': 'string'},
             'unsure': {'type': 'boolean', 'description': 'True when Josh should listen before this is cut.'}},
             'required': ['start_word', 'end_word', 'kind', 'reason']}},
+        'checks': {'type': 'array', 'maxItems': 200, 'items': {'type': 'object', 'properties': {
+            'start_word': {'type': 'string'}, 'end_word': {'type': 'string'},
+            'reason': {'type': 'string', 'description': 'What Josh should listen for, like "this may be a reworded retake of w00410 to w00431".'}},
+            'required': ['start_word', 'end_word', 'reason']},
+            'description': 'Moments you would keep but want Josh to hear before he approves.'},
         'pauses': {'type': 'array', 'items': {'type': 'object', 'properties': {
             'event_id': {'type': 'string'}, 'action': {'type': 'string', 'enum': ['keep', 'shorten']},
             'target_ms': {'type': 'number', 'description': 'For shorten: how long the pause should be, in ms.'},
@@ -336,9 +344,14 @@ EDIT_BRIEF = """Propose the clean cut for this recording. Josh will see the whol
 and he decides. You can read files but you do not run or change anything.
 
 Retakes. Josh restarts sentences when he stumbles. Remove the earlier, abandoned attempts and keep the last complete take,
-but check the earlier one adds no fact, qualifier or emphasis the kept one lacks. Repeated words can be deliberate (lists,
+but check the earlier one adds no fact, qualifier or emphasis the kept one lacks. A retake isn't always the same words.
+Often he starts a sentence, stops, and says it again slightly reworded, so compare meaning, not just wording, across the
+next few sentences. Repeated words can be deliberate (lists,
 emphasis, a callback, a new sentence that starts the same way), so do not remove a repeat just because it repeats. Give each
 removal as the first and last word id. Mark unsure when Josh should listen first.
+
+Checks. Put anything you would keep but are not sure about in checks: a possible reworded retake, a line that trails off,
+a word that reads like a stumble or a mistranscription. Josh hears each one with a few seconds either side.
 
 Pauses. Only the long pauses are marked. Keep a pause that does work (a thought boundary, a rhetorical question, set-up
 before a payoff, emphasis). Shorten one that is dead air, and say how long it should be. When unsure, keep it. Never shorten
@@ -1427,6 +1440,7 @@ class Agents:
             action = answer.get('edit') if isinstance(answer.get('edit'), dict) else {}
             if er is not None and edit_folder is not None:
                 saved += self.apply_edit(er, str(ctx['id']), action, before)
+                saved += self.start_go_ahead(str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
             elif er is not None and action.get('project_id'):
                 saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via)
             replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
@@ -1496,6 +1510,17 @@ class Agents:
                 done.append(dict(id=eid, title=changes.get('subject', ''), action='failed', kind='email', error=str(e).strip("'\"")[:200]))
         return done
 
+    def start_go_ahead(self, pid, name, action, via=''):
+        """Josh told Tariq to go ahead with the edit: the staged workflow runs as a job and Tariq posts back."""
+        flow = getattr(self, 'edit_flow', None)
+        if action.get('go_ahead') is not True or flow is None:
+            return []
+        try:
+            flow.go_ahead(pid, via=via)
+            return [dict(id=pid, title='the edit of ' + str(name), action='started', kind='edit')]
+        except (ValueError, KeyError) as e:
+            return [dict(id=pid, title='the edit of ' + str(name), action='failed', kind='edit', error=str(e)[:200])]
+
     def apply_edit(self, er, pid, action, before):
         """Set up the edit folders, and take the review pictures again when the deck changed or Tariq asked."""
         done = []
@@ -1522,6 +1547,7 @@ class Agents:
         except (KeyError, ValueError) as e:
             return [dict(id=pid, title='the edit', action='failed', kind='edit', error=str(e)[:200])]
         done = self.apply_edit(er, pid, {k: action[k] for k in ('setup', 'rerender') if k in action}, self._deck_state(er, pid))
+        done += self.start_go_ahead(pid, p['name'], action, via)
         change = str(action.get('deck_change') or '').strip()
         if change:
             key = ('deck', pid)

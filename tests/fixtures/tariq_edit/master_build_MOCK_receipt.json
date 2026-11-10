@@ -1,0 +1,65 @@
+{
+ "look": {
+  "presenter": [
+   "AE.ADBE Motion",
+   "AE.ADBE Ultra Key"
+  ],
+  "shadow": [
+   "AE.ADBE Motion",
+   "AE.ADBE Ultra Key",
+   "AE.ADBE Drop Shadow"
+  ],
+  "background": "E:\\Videos\\DaJoshiCut\\tests\\office-bg.png"
+ },
+ "build": {
+  "project": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-master-mock-_anwcim_\\video\\video\\Tariq\\Mock master build - Tariq.prproj",
+  "master": "GREEN_MASTER",
+  "state": "built",
+  "problems": [],
+  "settings_failed": [],
+  "settings": 25,
+  "tracks": 3,
+  "note": "Masks are not copied. Adobe's plugin API cannot make them."
+ },
+ "again": "exists",
+ "master": [
+  {
+   "kind": "v",
+   "track": 2,
+   "start": 0,
+   "end": 630,
+   "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+   "fx": [
+    "AE.ADBE Opacity Opacity=100",
+    "AE.ADBE Motion Position={\"x\":1770,\"y\":1141},Scale=115",
+    "AE.ADBE Ultra Key Transparency=45,Highlight=52.04545,Shadow=50.22727,Tolerance=65.45454,Pedestal=100,Choke=7.72727,Soften=0"
+   ]
+  },
+  {
+   "kind": "v",
+   "track": 1,
+   "start": 0,
+   "end": 630,
+   "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+   "fx": [
+    "AE.ADBE Opacity Opacity=100",
+    "AE.ADBE Motion Position={\"x\":826,\"y\":1376},Scale=100.89",
+    "AE.ADBE Ultra Key Transparency=45,Highlight=20,Shadow=0,Tolerance=0,Pedestal=0,Choke=0,Soften=0",
+    "AE.ADBE Drop Shadow Opacity=52.7,Direction=135,Distance=5,Softness=121.1111,Shadow Only=true"
+   ]
+  },
+  {
+   "kind": "v",
+   "track": 0,
+   "start": 0,
+   "end": 630,
+   "path": "E:\\Videos\\DaJoshiCut\\tests\\office-bg.png",
+   "fx": [
+    "AE.ADBE Opacity Opacity=100",
+    "AE.ADBE Motion Position=[0.5,0.5],Scale=100"
+   ]
+  }
+ ],
+ "panel_errors": [],
+ "scope": "MOCK: real helper bridge and panel code against the Premiere stub. Not native proof."
+}

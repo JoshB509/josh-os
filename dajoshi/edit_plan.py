@@ -218,7 +218,7 @@ def restart_candidates(words, sr, window_s=30, min_match=2):
 
 # ---------------------------------------------------------------- decisions to removals
 
-def apply_editorial(events, words, removals=(), pauses=(), sounds=()):
+def apply_editorial(events, words, removals=(), pauses=(), sounds=(), checks=()):
     """Fold the editorial pass (Tariq) into the proposal. Inputs are already validated id references."""
     ids = {w['id']: i for i, w in enumerate(words)}
     out = [dict(e) for e in events]
@@ -233,6 +233,17 @@ def apply_editorial(events, words, removals=(), pauses=(), sounds=()):
                         text=' '.join(w['text'] for w in span), reason=str(r.get('reason', ''))[:400], source='editorial',
                         uncertainty=dict(label='editorial', editorial='needs_review' if r.get('unsure') else 'default'),
                         event_id=f"tr-{span[0]['id']}-{span[-1]['id']}", schema_version=SCHEMA_VERSION))
+    for c in checks:
+        # Tariq would keep this but wants Josh to listen: a possible reworded retake, a stumble, anything odd
+        a, b = ids[c['start_word']], ids[c['end_word']]
+        if b < a:
+            a, b = b, a
+        span = words[a:b + 1]
+        out.append(dict(kind='take_group', start=span[0]['start'], end=span[-1]['end'], word_ids=[w['id'] for w in span],
+                        label='[check]', proposed_action='keep', review=True, text=' '.join(w['text'] for w in span),
+                        reason=str(c.get('reason', ''))[:400], source='editorial', check=True,
+                        uncertainty=dict(label='editorial', editorial='needs_review'),
+                        event_id=f"tc-{span[0]['id']}-{span[-1]['id']}", schema_version=SCHEMA_VERSION))
     for p in pauses:
         e = index[p['event_id']]
         e['proposed_action'] = p['action']
@@ -245,11 +256,15 @@ def apply_editorial(events, words, removals=(), pauses=(), sounds=()):
         e['proposed_action'] = s['action']
         e['reason'] = str(s.get('reason', ''))[:400] or e['reason']
         e['source'] = 'editorial'
-    removed = [(e['start'], e['end']) for e in out if e.get('source') == 'editorial' and e['kind'] == 'take_group']
+    removed = [(e['start'], e['end']) for e in out if e.get('source') == 'editorial' and e['kind'] == 'take_group' and not e.get('check')]
+    checked = [(e['start'], e['end']) for e in out if e.get('check')]
     for e in out:
         if e['kind'] == 'take_group' and e.get('source') != 'editorial':
             covered = any(a <= e['start'] and e['end'] <= b for a, b in removed)
             e['review'] = False
+            if any(a < e['end'] and e['start'] < b for a, b in checked):
+                e['reason'] = 'Tariq flagged this for you to hear. ' + e['reason']
+                continue
             e['reason'] = ('Covered by a retake Tariq removed.' if covered else 'Tariq read this repeat and kept it.') + ' ' + e['reason']
     out.sort(key=lambda e: (e['start'], e['end'], e['kind']))
     return out

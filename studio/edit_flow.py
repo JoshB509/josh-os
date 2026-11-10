@@ -336,8 +336,9 @@ class EditFlow:
                     if not isinstance(t, (int, float)) or not 150 <= t < pauses[d['event_id']]['measurements']['duration_ms']:
                         continue
                 pause_d.append(d)
-        events = ep.apply_editorial(events, words, removals, pause_d)
-        return events, dict(ran=True, reply=str(reply)[:3000], removals=len(removals), pauses=len(pause_d),
+        checks = [c for c in (answer or {}).get('checks') or [] if c.get('start_word') in ids and c.get('end_word') in ids]
+        events = ep.apply_editorial(events, words, removals, pause_d, checks=checks)
+        return events, dict(ran=True, reply=str(reply)[:3000], removals=len(removals), pauses=len(pause_d), checks=len(checks),
                             rejected=len((answer or {}).get('removals') or []) - len(removals))
 
     # ------------------------------------------------------------ the view Josh reviews
@@ -422,7 +423,7 @@ class EditFlow:
         pl['revision'] += 1
         return self.view(pid, self._put(pid, 'edit_proposal', pl, parent=prop['id'])['id'])
 
-    def approve_script(self, pid, proposal_id, expected_digest, note=''):
+    def approve_script(self, pid, proposal_id, expected_digest, note='', auto=False):
         prop = self.get(pid, proposal_id)
         if prop['kind'] != 'edit_proposal' or prop['digest'] != expected_digest:
             raise Conflict('This revision changed. Review the current one before approving.')
@@ -435,8 +436,11 @@ class EditFlow:
         v = self.view(pid, proposal_id)
         if v['errors']:
             raise ValueError('Fix these first: ' + ' '.join(v['errors']))
-        return self._approve(prop, dict(note=str(note)[:1000], by='josh', removals=v['summary']['removals'],
-                                        meaning='Josh approved this exact script revision. Tariq may build it in Premiere.'))
+        a = self._approve(prop, dict(note=str(note)[:1000], by='josh', removals=v['summary']['removals'],
+                                     meaning='Josh approved this exact script revision. Tariq may build it in Premiere.'))
+        if auto:
+            threading.Thread(target=self._after_script, args=(pid, prop), daemon=True).start()
+        return a
 
     # ------------------------------------------------------------ previews
 
@@ -541,7 +545,7 @@ class EditFlow:
     def bridge_call(self, cmd, args, timeout=1800):
         """Ask the Josh Cut Pro panel in Premiere, through the helper's local bridge. Fixed command names only."""
         if cmd not in ('tq_probe', 'tq_build_cut', 'tq_master_read', 'tq_master_set', 'tq_export_frames', 'tq_save', 'tq_assemble', 'tq_export',
-                       'tq_make_master', 'tq_import', 'tq_open_project', 'tq_close_project', 'tq_verify_project', 'tq_place_layers'):
+                       'tq_make_master', 'tq_import', 'tq_open_project', 'tq_close_project', 'tq_verify_project', 'tq_place_layers', 'tq_ops'):
             raise ValueError('Unknown Premiere command.')
         import urllib.request
         import time as _t
@@ -577,7 +581,7 @@ class EditFlow:
 
     # ------------------------------------------------------------ stage 5: animations and final
 
-    def visuals(self, pid, cut_id, notes=None, storyboard_digest=None, approve=False):
+    def visuals(self, pid, cut_id, notes=None, storyboard_digest=None, approve=False, auto=False):
         cut = self.get(pid, cut_id)
         if cut['kind'] != 'edit_cut' or cut['payload'].get('state') != 'verified':
             raise Conflict('Animations follow a verified Premiere cut.')
@@ -593,6 +597,8 @@ class EditFlow:
             if not payload['storyboard_digest']:
                 raise ValueError('Review the storyboard before approving it.')
             self._approve(v, dict(meaning='Josh approved this storyboard for this cut. Tariq may assemble and render it locally.'))
+            if auto:
+                self.final(pid, v['id'])  # Josh's approval is the go-ahead to compile and export
         return v
 
     def final(self, pid, visuals_id):
@@ -633,8 +639,11 @@ class EditFlow:
         job.mkdir(parents=True, exist_ok=True)
         say = lambda m: write_atomic(job / 'progress.json', dict(state='running', message=m, at=now()))
         req = self._put(pid, 'edit_final', dict(state='running', visuals=v['id'], cut=cut['id'], output=str(output)), parent=v['id'])
+        title = self.store.get(pid).get('name') or 'this video'
         try:
             say('Checking Premiere')
+            from . import edit_master as em
+            em.open_project(self, pid)  # Tariq's own project, when he built one
             check = self.bridge_call('tq_probe', dict(master=plan['master']))
             frame = check.get('frame') or [1920, 1080]
             say('Copying the approved cut to ' + name)
@@ -651,8 +660,13 @@ class EditFlow:
             self.bridge_call('tq_save', {})
         except Exception as e:  # noqa: BLE001
             write_atomic(job / 'progress.json', dict(state='failed', message=str(e)[:500], at=now()))
+            self._tell(pid, f'I stopped putting {title} together: {str(e)[:300]}')
             return self._put(pid, 'edit_final', dict(state='blocked', error=str(e)[:500], request=req['id']), parent=v['id'])
         problems = verify_export(output, plan['map'])
+        windows = verify_windows(output, layers['result'], self.ffmpeg, job / 'windows') if layers['result']['layers'] else dict(problems=[])
+        problems += windows['problems']
+        self._tell(pid, (f'{title} is exported to {output}. I checked its length, picture, sound and that you show in every PiP window.'
+                         if not problems else f'{title} exported to {output}, but these checks failed: ' + ' '.join(problems)))
         write_atomic(job / 'progress.json', dict(state='done', message='; '.join(problems) or 'Exported and checked', at=now()))
         return self._put(pid, 'edit_final', dict(state='verified' if not problems else 'failed', result=res, output=str(output), problems=problems,
                                                   animations=dict(placed=placed, left_out=layers['problems'], presses=len(layers['shots'])),
@@ -687,6 +701,104 @@ class EditFlow:
         res = self.bridge_call('tq_make_master', dict(source=str(source_sequence), reference=reference or None, add_shadow=bool(add_shadow)))
         self._put(pid, 'edit_master', dict(result=res, source=str(source_sequence), reference=reference, add_shadow=bool(add_shadow)))
         return res
+
+    # ------------------------------------------------------------ "Tariq, go ahead with the edit"
+
+    def _tell(self, pid, text, via=''):
+        """Tariq tells Josh where the edit is, on his desk (and wherever Josh asked from)."""
+        log = self.folder(pid) / 'go-ahead.jsonl'
+        with open(log, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(dict(at=now(), text=text)) + '\n')
+        if self.agents is not None:
+            try:
+                self.agents.post('tariq', text, via=via)
+            except Exception:  # noqa: BLE001 - the log still has it
+                pass
+
+    def go_ahead(self, pid, via=''):
+        """Josh said go ahead. Tariq gathers the files, builds his Premiere project and GREEN_MASTER, transcribes and
+        proposes the cut, then hands it to Josh to review. Approving the script and the storyboard carry it on."""
+        self.store.get(pid)
+        with self.lock:
+            t = self.jobs.get(('go', pid))
+            if t and t.is_alive():
+                raise Conflict('Tariq is already on this edit.')
+            t = threading.Thread(target=self._go, args=(pid, via), daemon=True)
+            self.jobs[('go', pid)] = t
+            t.start()
+        return dict(state='started')
+
+    def _go(self, pid, via):
+        from . import edit_master as em
+        import time as _t
+        title = self.store.get(pid).get('name') or 'this video'
+        try:
+            src = self.latest(pid, 'edit_sources')
+            if not src or self.sources_ok(src):
+                found = self.suggest(pid)
+                if found['ambiguous']:
+                    self._tell(pid, f"I need you to pick the files for {title}. In {found['folder'] or 'the video folder'} I found "
+                                    f"{len(found['videos'])} camera files and {len(found['audio'])} audio files. Choose the camera and the good mic "
+                                    'on the clean cut screen, then tell me to go ahead again.', via)
+                    return
+                src = self.register(pid, found['videos'][0], found['audio'][0])
+            files = src['payload']['files']
+            premiere = None
+            try:
+                if not (self.data / 'look.json').is_file():
+                    em.read_look(self)
+                premiere = em.build_master(self, pid, files['camera']['path'], files['mic']['path'])
+                self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
+            except Exception as e:  # noqa: BLE001 - the review can go ahead without Premiere
+                premiere = dict(state='blocked', error=str(e)[:500])
+                self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
+            prop = self.latest(pid, 'edit_proposal')
+            if not prop or prop['payload'].get('sources_id') != src['id']:
+                self.analyse(pid, src['id'], editorial=True)
+                _t.sleep(1)
+                while (self.progress(pid) or {}).get('state') == 'running':
+                    _t.sleep(2)
+                p = self.progress(pid) or {}
+                if p.get('state') != 'complete':
+                    self._tell(pid, f"I stopped on {title}. {p.get('message') or 'The transcript did not finish.'}", via)
+                    return
+                prop = self.latest(pid, 'edit_proposal')
+            v = self.view(pid, prop['id'])
+            s = v.get('summary') or {}
+            check = s.get('cards', 0)
+            if premiere.get('state') in ('built', 'exists'):
+                where = f"Your timeline is set up in {Path(premiere['project']).name}, with you keyed on V3, the shadow on V2 and the background on V1."
+                if premiere.get('problems'):
+                    where += ' Check these in Premiere: ' + ' '.join(premiere['problems'])
+            else:
+                where = 'I could not set up Premiere: ' + str(premiere.get('error') or ' '.join(premiere.get('problems') or []))
+            self._tell(pid, f"{title} is ready for you to review. {where} I have marked {s.get('removals', 0)} cuts in red and "
+                            f"{check} moments I want you to listen to. Approve the script when you are happy and I will build the cut.", via)
+        except Exception as e:  # noqa: BLE001
+            self._tell(pid, f'I stopped on {title}: {str(e)[:300]}', via)
+
+    def _after_script(self, pid, prop, via=''):
+        """Josh approved the script: build the cut in Tariq's project, then hand him the slides to review."""
+        from . import edit_master as em
+        title = self.store.get(pid).get('name') or 'this video'
+        try:
+            if not em.open_project(self, pid):
+                self._tell(pid, f"I can't build {title} yet, because my Premiere project for it isn't made. Tell me to go ahead with the edit first.", via)
+                return
+            check = self.bridge_call('tq_probe', dict(master=em.MASTER))
+            if not check.get('frame_ticks'):
+                raise ValueError(' '.join(check.get('notes') or ['GREEN_MASTER is missing.']))
+            cut = self.build_cut(pid, prop['id'], prop['digest'], int(check['frame_ticks']))
+            state = cut['payload'].get('state')
+            if state != 'verified':
+                self._tell(pid, f"The cut for {title} did not build cleanly: {cut['payload'].get('error') or ' '.join(cut['payload'].get('problems') or [])}", via)
+                return
+            self.bridge_call('tq_save', {})
+            self.visuals(pid, cut['id'])
+            self._tell(pid, f"The cut for {title} is built as {cut['payload']['plan']['sequence_name']}. The animations are next. "
+                            'Review the slides, and when you approve the storyboard I will put it all together and export it.', via)
+        except Exception as e:  # noqa: BLE001
+            self._tell(pid, f'I stopped building {title}: {str(e)[:300]}', via)
 
     # ------------------------------------------------------------ status
 
@@ -838,9 +950,15 @@ def _proof(flow, plan, out, param='Choke', delta=4.0):
 
     def frames(tag):
         # Premiere sometimes drops one (seen on the first frame after a build), so ask again for a set with a gap
+        import time as _t
+        names = [f'{tag}-{i:03d}.png' for i in range(len(times))]
+        there = lambda: all((out / n).exists() or (out / (n + '.png')).exists() for n in names)
         for _ in range(3):
             r = flow.bridge_call('tq_export_frames', dict(sequence=plan['sequence_name'], times=times, dir=str(out), prefix=tag))
-            if all(_frame_file(out, f'{tag}-{i:03d}.png').exists() for i in range(len(times))):
+            t0 = _t.time()
+            while _t.time() - t0 < 30 and not there():
+                _t.sleep(0.5)
+            if there():
                 break
         return r
     frames('before')
@@ -863,8 +981,12 @@ def _frame_file(folder, name):
     """Premiere adds the format's extension itself, so before-000.png arrives as before-000.png.png."""
     import time as _t
     # Premiere writes the frame after the call returns, so wait until it is there, readable and no longer growing
-    last = -1
+    last, missing = -1, 0
     for _ in range(120):
+        if not any(c.exists() for c in (folder / name, folder / (name + '.png'))):
+            missing += 1
+            if missing > 20:  # ten seconds and nothing at all: Premiere did not write it
+                break
         for cand in (folder / name, folder / (name + '.png')):
             try:
                 size = cand.stat().st_size

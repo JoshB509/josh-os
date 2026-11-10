@@ -29,6 +29,19 @@ Built 10 November 2026 from the handover at `C:\Users\Anigma PC\Desktop\Tariq-Ed
    - exports, saves, closes, reopens and checks the sequences, the nest and the media links
    It closes the copy at the end and writes `receipt.json` in the test folder.
 
+## "Tariq, go ahead with the edit"
+
+Josh tells Tariq to go ahead, in chat (Tariq fills `edit.go_ahead`) or with the `go` action. Then it runs as one job:
+
+1. **Files.** Tariq takes the camera and mic from the video's `Recorded\Input`. If there is more than one of either, he asks Josh to pick and stops.
+2. **Premiere.** Josh OS starts the Josh Cut Pro helper and Premiere if they aren't running (never while OBS is open). The first time, Tariq reads Josh's look from a copy of the Data Storytelling reference project, which has every setting on the background, the shadow copy and the keyed presenter, including the key colour. It's saved in `Data\edit_flow\look.json`. He makes his own project in the video's `video\Tariq` folder and builds GREEN_MASTER from the raw files, with the background on V1, the shadow copy on V2 and Josh keyed on V3, all with Josh's settings, and no sound. Masks can't be made through Adobe's plugin API, so they aren't copied. Running it again leaves an existing master alone.
+3. **Proposal.** Transcription, the pauses and sounds, and Tariq's pass for retakes. He now also looks for reworded retakes, and lists anything he'd keep but isn't sure about as a check. Each check is a card with the audio either side.
+4. **Review.** Tariq tells Josh it's ready, with the number of cuts and checks.
+5. **Approving the script** builds the cut in Tariq's project and tells Josh the slides are next.
+6. **Approving the storyboard** compiles, exports and checks the file, then Tariq says where it is.
+
+The Premiere work goes through `tq_ops`, a short fixed list of single Premiere actions (place, copy, move, trim, add an effect, change a setting, read back). The panel only runs them in a project inside a `Tariq` or `native-test` folder, so Josh's own projects can't be reached. That lets Josh OS change how Tariq builds a timeline without a new panel install.
+
 ## The files
 
 - **`dajoshi/edit_plan.py`** is the planner. It works in mic samples, and every setting in `CONFIG` is marked `calibrated: False`.

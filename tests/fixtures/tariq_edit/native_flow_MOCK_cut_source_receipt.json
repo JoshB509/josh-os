@@ -1,14 +1,21 @@
 {
  "original": "C:\\Users\\Anigma PC\\Desktop\\Tariq-Editing-Handover-2026-11-10\\reference-projects\\Exec questions.prproj",
  "original_sha256": "3f23d2e6ad89fb73d505c632ec26d7ca6fdf8dc6398794df1083c647aa60f6cc",
- "copy": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
- "started": "2026-11-10T13:28:17.200670+00:00",
+ "copy": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
+ "started": "2026-11-10T14:49:43.258186+00:00",
  "steps": [
+  {
+   "step": "Get Premiere ready",
+   "ok": true,
+   "result": {
+    "started": []
+   }
+  },
   {
    "step": "Open the test copy",
    "ok": true,
    "result": {
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
     "name": "Stub project"
    }
   },
@@ -37,7 +44,7 @@
    "step": "Check the master",
    "ok": true,
    "result": {
-    "when": "2026-11-10T13:28:17.301Z",
+    "when": "2026-11-10T14:49:43.353Z",
     "premiere": "26.0-stub",
     "ok": true,
     "notes": [],
@@ -49,7 +56,7 @@
      "overwrite": true
     },
     "key_effects": [],
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
     "frame_ticks": "8467191533",
     "frame": [
      1920,
@@ -223,7 +230,7 @@
      }
     ],
     "shadow_unchanged": true,
-    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\proof",
+    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\proof",
     "passed": false
    }
   },
@@ -257,7 +264,7 @@
      }
     ],
     "shadow_unchanged": true,
-    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\proof",
+    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\proof",
     "passed": false
    }
   },
@@ -270,7 +277,7 @@
       {
        "track": 4,
        "kind": "animation",
-       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
+       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press01-f29ef3884c14.mov",
        "start_f": 270,
        "in_f": 0,
        "out_f": 120,
@@ -296,12 +303,18 @@
         "top": 0.0,
         "bottom": 0.0
        },
+       "hole": [
+        1328,
+        208,
+        506,
+        662
+       ],
        "name": "Picture for animation 1"
       },
       {
        "track": 4,
        "kind": "animation",
-       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov",
+       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press02-72b146df54e1.mov",
        "start_f": 390,
        "in_f": 0,
        "out_f": 816,
@@ -327,6 +340,12 @@
         "top": 0.0,
         "bottom": 0.0
        },
+       "hole": [
+        1328,
+        208,
+        506,
+        662
+       ],
        "name": "Picture for animation 1"
       }
      ],
@@ -368,7 +387,7 @@
    "ok": true,
    "result": {
     "sequence": "FINAL_ASSEMBLY_r01",
-    "output": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\FINAL_ASSEMBLY_r01_test.mp4",
+    "output": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\FINAL_ASSEMBLY_r01_test.mp4",
     "started": true,
     "ame_installed": true
    }
@@ -381,11 +400,22 @@
    ]
   },
   {
+   "step": "Josh shows in every camera window",
+   "ok": false,
+   "result": {
+    "checked": [],
+    "problems": [
+     "No frame at 11.0s to check.",
+     "No frame at 26.6s to check."
+    ]
+   }
+  },
+  {
    "step": "Save the test copy",
    "ok": true,
    "result": {
     "saved": true,
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj"
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj"
    }
   },
   {
@@ -399,7 +429,7 @@
    "step": "Reopen the test copy",
    "ok": true,
    "result": {
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
     "name": "Stub project"
    }
   },
@@ -407,7 +437,7 @@
    "step": "Check it after reopening",
    "ok": true,
    "result": {
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
     "sequences": [
      "Sequence 01",
      "Keyed edit",
@@ -419,8 +449,8 @@
     "media": [
      "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
      "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
-     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
-     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov"
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press01-f29ef3884c14.mov",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press02-72b146df54e1.mov"
     ],
     "cut_pieces": 6,
     "cut_is_master_nests": true,
@@ -496,7 +526,7 @@
    "step": "Sequences, nest and media links after reopening",
    "ok": true,
    "result": {
-    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj",
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj",
     "sequences": [
      "Sequence 01",
      "Keyed edit",
@@ -508,8 +538,8 @@
     "media": [
      "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
      "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
-     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
-     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov"
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press01-f29ef3884c14.mov",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\video-folder\\video\\tariq-animations\\anim01-press02-72b146df54e1.mov"
     ],
     "cut_pieces": 6,
     "cut_is_master_nests": true,
@@ -591,22 +621,22 @@
  ],
  "original_unchanged": true,
  "passed": false,
- "finished": "2026-11-10T13:28:35.588096+00:00",
+ "finished": "2026-11-10T14:56:04.164789+00:00",
  "limits": "Native Premiere on a copy of one project. Frame comparisons prove the master change reached three pieces, not key quality across the whole video. No listening pass.",
  "panel_errors": [],
  "ops_tail": [
   "insert V5",
-  "overwrite v5 anim01-press01-e104bf671b02.mov",
+  "overwrite v5 anim01-press01-f29ef3884c14.mov",
   "key Scale 30.648148148148145",
   "key Position [object Object]",
-  "overwrite v5 anim01-press02-a3f3c730b387.mov",
+  "overwrite v5 anim01-press02-72b146df54e1.mov",
   "key Scale 30.648148148148145",
   "key Position [object Object]",
   "key Scale 30.648148148148145",
   "key Position [object Object]",
-  "export FINAL_ASSEMBLY_r01 C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\FINAL_ASSEMBLY_r01_test.mp4",
+  "export FINAL_ASSEMBLY_r01 C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\FINAL_ASSEMBLY_r01_test.mp4",
   "save",
-  "open C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-idw03ber\\data\\edit_flow\\20ff34f4-021f-4439-a2bc-b93fe3d29261\\native-test\\20261110T132817\\Exec questions - Tariq test copy.prproj"
+  "open C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-4lfu8h87\\data\\edit_flow\\931b102f-e6a6-4893-9e4d-7028169aa277\\native-test\\20261110T144943\\Exec questions - Tariq test copy.prproj"
  ],
  "scope": "MOCK: Josh OS + real helper bridge + real panel code against the Premiere stub. Not native proof."
 }

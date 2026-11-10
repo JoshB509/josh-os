@@ -60,7 +60,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review)
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review);self.agents.edit_flow=self.edit_flow
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -91,7 +91,8 @@ class Server(ThreadingHTTPServer):
         if action=='analyse':return f.analyse(pid,d['sources_id'],bool(d.get('editorial',True)))
         if action=='cancel':return f.cancel(pid)
         if action=='revise':return f.revise(pid,d['proposal_id'],d['digest'],d.get('changes') or [],d.get('words') or [],d.get('note',''))
-        if action=='approve':return f.approve_script(pid,d['proposal_id'],d['digest'],d.get('note',''))
+        if action=='approve':return f.approve_script(pid,d['proposal_id'],d['digest'],d.get('note',''),auto=True)
+        if action=='go':return f.go_ahead(pid)
         if action=='preview':return f.preview(pid,d['proposal_id'],d['event_id'],float(d.get('context_s',2)))
         if action=='premiere':return f.bridge_call('tq_probe',dict(master=d.get('master') or 'GREEN_MASTER'))
         if action=='build':
@@ -105,7 +106,7 @@ class Server(ThreadingHTTPServer):
         if action=='native-test':
             from .edit_flow import native_test
             return native_test(f,pid,d['project'],d['source'],d.get('reference'),bool(d.get('add_shadow')))
-        if action=='visuals':return f.visuals(pid,d['cut_id'],d.get('notes'),d.get('storyboard_digest'),bool(d.get('approve')))
+        if action=='visuals':return f.visuals(pid,d['cut_id'],d.get('notes'),d.get('storyboard_digest'),bool(d.get('approve')),auto=True)
         if action=='final':return f.final(pid,d['visuals_id'])
         raise KeyError('Unknown editing action')
 
