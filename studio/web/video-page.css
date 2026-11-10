@@ -82,3 +82,5 @@
 .vp-phase-msg.failed,.vp-phase-msg.interrupted{color:#a9372d;font-weight:600}
 .vp-epane{display:flex;flex-direction:column;gap:var(--sp-4)}
 .vp-notes-card textarea{width:100%;min-height:140px;margin-top:var(--sp-2);padding:var(--sp-3);border-radius:var(--r-md);font:inherit;line-height:1.5;resize:vertical}
+.vp-fun{margin:-4px 0 var(--sp-2)!important;font-size:var(--fs-caption);font-style:italic;color:var(--muted)!important;transition:opacity .3s ease}
+.vp-fun.out{opacity:0}

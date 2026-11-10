@@ -514,6 +514,8 @@ def personality(root, agent):
     return '\n\n'.join(picked)
 
 
+DECK_PROGRESS = '.tariq-progress.json'  # Tariq writes his stage here while he makes a deck
+
 class AgentError(RuntimeError):
     pass
 
@@ -1603,9 +1605,12 @@ class Agents:
         mark = (lambda *x, **k: flow._setup_step(pid, *x, phase='animate', **k)) if flow else (lambda *x, **k: None)
         if flow:
             flow._setup_new(pid, 'animate')
-            mark('deck', 'running', 'Working on: ' + change[:200])
+            mark('read', 'running', 'Working on: ' + change[:200])
+        stop = threading.Event()
         try:
             folder = er.project_folder(pid)
+            if flow:
+                threading.Thread(target=self._deck_progress, args=(Path(folder) / DECK_PROGRESS, mark, stop), daemon=True).start()
             learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
             parts = [self.focus(dict(kind='edit', id=pid), [], None), '', 'Josh asked: ' + change]
@@ -1617,23 +1622,57 @@ class Agents:
                     parts += ['', f'=== Skill: {name} (follow it for anything you make or change in the deck) ===', text]
             before = self._deck_state(er, pid)
             system = self.desk_system_prompt(agent, learnings) + '\n\nYou are doing one deck change Josh asked for in chat. Do it fully, then answer once.'
+            system += ('\n\nJosh watches your progress on the Edit page. As you move between stages, overwrite ' + DECK_PROGRESS + ' in the '
+                       'video folder with one line of JSON, for example {"stage": "plan"} or {"stage": "build", "n": 3, "of": 9, "what": "the chessboard"}. '
+                       'Stages in order: read (reading the script and notes), plan (deciding the shots), build (once per animation as you start it, '
+                       'with its number, the total and a few words on what it shows), shots (writing the shot list), check (checking the deck). '
+                       'Keep "what" short and plain, like "the four tips tracker" or "the conversation with the VP".')
             reply, _ = self.run(system, '\n'.join(parts), DESK_SCHEMA, list(dirs), tools='Read,Grep,Glob,Edit,Write',
                                 allow=scoped('Read,Grep,Glob,Edit,Write', folder), cwd=folder, timeout=1800, full=True)
+            stop.set()
             saved = self.apply_edit(er, pid, {}, before)
             text = reply or 'Done.'
             if flow:
-                mark('deck', 'done', 'The slides and shot list are ready to review')
+                mark('check', 'done', 'The slides and shot list are ready to review')
                 flow._setup_finish(pid, 'done', 'The slides and shot list are ready to review.', 'animate')
         except Exception as e:  # noqa: BLE001 - the failure goes back to Josh in the chat
+            stop.set()
             saved, text = [], f"I couldn't change the deck: {str(e)[:300]}"
             if flow:
-                flow._phase_fail(pid, 'animate', 'deck', str(e)[:300])
+                flow._phase_fail(pid, 'animate', 'read', str(e)[:300])
+        try:
+            (Path(er.project_folder(pid)) / DECK_PROGRESS).unlink(missing_ok=True)
+        except Exception:  # noqa: BLE001
+            pass
         self.post(agent_id, text, saved=saved, via=via)
         if via == 'discord' and getattr(self, 'notify', None):
             try:
                 self.notify(agent_id, text, [])
             except Exception:  # noqa: BLE001
                 pass
+
+    @staticmethod
+    def _deck_progress(path, mark, stop):
+        """Turn the progress line Tariq writes as he works into steps on the Edit page."""
+        last = None
+        labels = dict(read='Reading the script and your notes', plan='Deciding which animation goes where', shots='Writing the shot list',
+                      check='Checking the deck against the house style')
+        while not stop.wait(2):
+            try:
+                d = json.loads(path.read_text(encoding='utf-8').strip() or '{}')
+            except (OSError, ValueError):
+                continue
+            if not isinstance(d, dict) or d == last or d.get('stage') not in ('read', 'plan', 'build', 'shots', 'check'):
+                continue
+            last = d
+            if d['stage'] == 'build':
+                n, of = d.get('n'), d.get('of')
+                what = str(d.get('what') or '').strip()[:80]
+                ok = isinstance(n, int) and isinstance(of, int) and 0 < n <= of
+                msg = (f'Animation {n} of {of}' if ok else 'Building an animation') + (f', {what}' if what else '')
+                mark('build', 'running', msg, fraction=(n - 1) / of if ok else None)
+            else:
+                mark(d['stage'], 'running', labels[d['stage']])
 
     def keep_lessons(self, agent, lessons):
         """Save the rules a team member worked out from Josh's edits or answers to the shared lessons log."""

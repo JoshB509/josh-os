@@ -731,7 +731,8 @@ class EditFlow:
     # After the script is approved, after Josh asks for slides, and after the storyboard is approved.
     BUILD = (('open', 'Opening my Premiere project'), ('build', 'Building the cut from your approved script'),
              ('check', 'Checking every piece and the mic sync'), ('save', 'Saving the project'))
-    ANIMATE = (('deck', 'Making the slides and shot list'),)
+    ANIMATE = (('read', 'Reading the script and your notes'), ('plan', 'Deciding the shots'), ('build', 'Building the animations'),
+               ('shots', 'Writing the shot list'), ('check', 'Checking the deck'))
     FINAL = (('open', 'Opening my Premiere project'), ('copy', 'Copying the approved cut'), ('render', 'Rendering the animations'),
              ('place', 'Placing the animations on V4 and V5'), ('export', 'Exporting the video'), ('save', 'Saving the project'),
              ('check', 'Checking the length, picture, sound and PiP windows'))

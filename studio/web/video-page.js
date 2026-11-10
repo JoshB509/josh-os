@@ -101,12 +101,20 @@ function vpEditSetup(p,d){
     su.state==='running'?'':`<button class="subtle" data-vp-go ${vpEditBusy?'disabled':''}>Start again</button>`,
     su.state==='done'?'<div class="vp-actions"><button class="primary" data-vp-edit-tab="script">Check the script</button></div>':'');
 }
+// While Tariq works, a small line under the heading changes every few seconds, like a loading screen.
+const VP_FUN=['Adding a little magic','Making it worth a million views','Polishing the gold','Giving every card its moment','Keeping the reveals on the beat',
+  'Checking the fonts are on brand','Leaving room for your face','Lining up each press with your words','Making sure nothing pulls focus from you',
+  'Choosing the boldest word on each slide','Nudging things a pixel to the left','Making the executives look impressed','Getting the timing just right',
+  'Tidying the edges','Saving the best reveal for last'];
+function vpFunLine(){return VP_FUN[Math.floor(Math.random()*VP_FUN.length)]}
+setInterval(()=>{document.querySelectorAll('[data-vp-fun]').forEach(el=>{el.classList.add('out');setTimeout(()=>{el.textContent=vpFunLine();el.classList.remove('out')},300)})},5000);
 // One run of Tariq's steps: each waits greyed out, fills while he works on it and ticks green when done.
 function vpPhase(p,su,heads,action,foot){
   const icon={waiting:'',running:'',done:'✓',problems:'!',failed:'✕',skipped:'–'};
   const img=n=>`/api/projects/${encodeURIComponent(p.id)}/edit-flow/setup/${encodeURIComponent(n)}`;
   return `<div class="vp-card vp-setup">
     <div class="vp-setup-head"><h3>${esc(heads[su.state]||heads.running)}</h3>${action||''}</div>
+    ${su.state==='running'?`<p class="vp-fun" data-vp-fun>${esc(vpFunLine())}</p>`:''}
     ${su.message&&su.state!=='running'?`<p class="vp-phase-msg ${esc(su.state)}">${esc(su.message)}</p>`:''}
     <ol class="vp-steps">${su.steps.map(st=>`<li class="vp-step ${esc(st.state)}${st.fraction!=null&&st.state==='running'?' measured':''}">
       <span class="vp-step-mark" aria-hidden="true">${icon[st.state]||''}</span>
