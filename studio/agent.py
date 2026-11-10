@@ -207,9 +207,12 @@ EDIT_PROPS = {
             'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
             'rerender': {'type': 'array', 'items': {'type': 'integer'},
                          'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
-            'go_ahead': {'type': 'boolean', 'description': 'True only when Josh tells you to go ahead with the edit of this video (gather the '
-                                                          'files, set up Premiere, transcribe and propose the cut). Josh OS runs it on this PC and '
-                                                          'you post back when it is ready for his review.'},
+            'go_ahead': {'type': 'boolean', 'description': 'True when Josh wants you to start editing this video, however he puts it (for '
+                                                          'example "go ahead", "start the edit", "can you get this one cut", "crack on with it"). '
+                                                          'Judge what he means, not the exact words. It runs the stages in order: gather the files, set '
+                                                          'up Premiere, transcribe and propose the cut. Josh OS runs it on this PC and you post back when '
+                                                          'it is ready for his review. Leave it out when he is only asking about the edit or which video '
+                                                          'he means is unclear (ask him instead).'},
         },
     },
 }

@@ -742,7 +742,7 @@ class EditFlow:
                 if found['ambiguous']:
                     self._tell(pid, f"I need you to pick the files for {title}. In {found['folder'] or 'the video folder'} I found "
                                     f"{len(found['videos'])} camera files and {len(found['audio'])} audio files. Choose the camera and the good mic "
-                                    'on the clean cut screen, then tell me to go ahead again.', via)
+                                    'on the clean cut screen, then ask me to start the edit again.', via)
                     return
                 src = self.register(pid, found['videos'][0], found['audio'][0])
             files = src['payload']['files']
@@ -786,7 +786,7 @@ class EditFlow:
         title = self.store.get(pid).get('name') or 'this video'
         try:
             if not em.open_project(self, pid):
-                self._tell(pid, f"I can't build {title} yet, because my Premiere project for it isn't made. Tell me to go ahead with the edit first.", via)
+                self._tell(pid, f"I can't build {title} yet, because my Premiere project for it isn't made. Ask me to start the edit first.", via)
                 return
             check = self.bridge_call('tq_probe', dict(master=em.MASTER))
             if not check.get('frame_ticks'):

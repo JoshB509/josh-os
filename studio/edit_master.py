@@ -140,6 +140,55 @@ def mask_fill(camera, out, color, mask=None, feather=0.012):
     return dict(path=str(out), mask=mask or MASK)
 
 
+def josh_x(camera, mask=None, samples=6):
+    """Where Josh sits across the recording, 0 to 1: the middle of what isn't green inside his mask, between head
+    height and mid chest, over a few small frames. His hands and the desk are left out so they don't pull it."""
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(str(camera))
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    w, h = 480, 270
+    poly = np.zeros((h, w), np.uint8)
+    cv2.fillPoly(poly, [np.array([[x * (w - 1), y * (h - 1)] for x, y in (mask or MASK)], np.int32)], 1)
+    poly[:int(0.12 * h)] = 0
+    poly[int(0.55 * h):] = 0
+    xs = []
+    for i in range(samples):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * (i + 0.5) / samples))
+        ok, f = cap.read()
+        if not ok:
+            continue
+        f = cv2.resize(f, (w, h), interpolation=cv2.INTER_AREA).astype(np.int16)
+        green = (f[..., 1] - f[..., 2] > 35) & (f[..., 1] - f[..., 0] > 35) & (f[..., 1] > 70)
+        cols = np.nonzero((~green) & (poly > 0))[1]
+        if cols.size > 0.01 * w * h:
+            xs.append(float(np.median(cols)) / (w - 1))
+    cap.release()
+    return float(np.median(xs)) if xs else None
+
+
+def centred(look, x):
+    """Josh's look with his Position moved so he sits in the middle of the frame. The shadow moves by the same amount."""
+    look = json.loads(json.dumps(look))
+    def motion(effects):
+        for e in effects or []:
+            if e['match'] == 'AE.ADBE Motion':
+                return e
+    pm = motion(look.get('presenter'))
+    if x is None or not pm:
+        return look, None
+    pos = next(p for p in pm['params'] if p.get('name') == 'Position')
+    scale = next((p['value'] for p in pm['params'] if p.get('name') == 'Scale'), 100) / 100.0
+    old = (pos['value'].get('value') if isinstance(pos['value'], dict) else pos['value'])[:]
+    dx = (0.5 - (x - 0.5) * scale) - old[0]
+    for e in (pm, motion(look.get('shadow'))):
+        if e:
+            p = next(p for p in e['params'] if p.get('name') == 'Position')
+            v = p['value'].get('value') if isinstance(p['value'], dict) else p['value']
+            p['value'] = {'value': [v[0] + dx, v[1]]}
+    return look, round(dx, 4)
+
+
 def copy_steps(seq, track, have, want):
     """Steps that give the clip on a track the effects and settings in want. have is what the clip has now."""
     steps, count = [], {}
@@ -230,6 +279,7 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
         raise MasterError('GREEN_MASTER did not get the background, shadow and presenter on V1 to V3. Premiere reported tracks '
                           + ', '.join('V%d' % (t + 1) for t in sorted(first)) + '.')
     say('Keying you and copying your look')
+    look, moved = centred(look, josh_x(camera, look.get('mask')))
     steps = copy_steps(MASTER, 2, first[2]['effects'], look['presenter'])
     steps += copy_steps(MASTER, 1, first[1]['effects'], look.get('shadow') or look['presenter'])
     steps += copy_steps(MASTER, 0, first[0]['effects'], look.get('background'))
@@ -252,6 +302,6 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
     if bg_end < int(cam['end']) - int(final['frame_ticks']):
         problems.append('The background stops before the recording ends.')
     return dict(project=str(path), master=MASTER, state='built' if not problems else 'problems', problems=problems,
-                nest=FILL, mask=fill['mask'],
+                nest=FILL, mask=fill['mask'], centred_by=moved,
                 settings_failed=[dict(step=s['n'], error=s.get('error')) for s in failed][:40], settings=len(steps) - 2,
                 tracks=final['video_tracks'], note='Your mask is drawn from fixed coordinates (look.json can change them) and painted key green in ' + FILL + '.')
