@@ -834,7 +834,7 @@ class EditFlow:
         f = None
         for _ in range(3):  # Premiere sometimes drops a frame, so ask again
             self.bridge_call('tq_export_frames', dict(sequence='GREEN_MASTER', times=[str(at)], dir=str(d), prefix='master', width=1280, height=720))
-            f = _frame_file(d, 'master-000.png')
+            f = _frame_file(d, 'master-000.png', patience=90)
             if f:
                 break
         img = cv2.imread(str(f)) if f else None
@@ -1187,7 +1187,7 @@ def _proof(flow, plan, out, param='Choke', delta=4.0):
                 passed=all(r['exported'] and r['changed'] for r in rows) and shadow_before == shadow_after)
 
 
-def _frame_file(folder, name):
+def _frame_file(folder, name, patience=20):
     """Premiere adds the format's extension itself, so before-000.png arrives as before-000.png.png."""
     import time as _t
     # Premiere writes the frame after the call returns, so wait until it is there, readable and no longer growing
@@ -1195,7 +1195,7 @@ def _frame_file(folder, name):
     for _ in range(120):
         if not any(c.exists() for c in (folder / name, folder / (name + '.png'))):
             missing += 1
-            if missing > 20:  # ten seconds and nothing at all: Premiere did not write it
+            if missing > patience:  # half-second checks with nothing at all: Premiere did not write it
                 break
         for cand in (folder / name, folder / (name + '.png')):
             try:

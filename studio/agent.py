@@ -1444,6 +1444,7 @@ class Agents:
             if er is not None and edit_folder is not None:
                 saved += self.apply_edit(er, str(ctx['id']), action, before)
                 saved += self.start_go_ahead(str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
+                saved += self.start_deck_job(agent_id, str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
             elif er is not None and action.get('project_id'):
                 saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via)
             replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
@@ -1551,18 +1552,22 @@ class Agents:
             return [dict(id=pid, title='the edit', action='failed', kind='edit', error=str(e)[:200])]
         done = self.apply_edit(er, pid, {k: action[k] for k in ('setup', 'rerender') if k in action}, self._deck_state(er, pid))
         done += self.start_go_ahead(pid, p['name'], action, via)
+        return done + self.start_deck_job(agent_id, pid, p['name'], action, via)
+
+    def start_deck_job(self, agent_id, pid, name, action, via=''):
+        """Josh asked for the slides or shot list to be made or changed: it runs as a job and Tariq posts back."""
         change = str(action.get('deck_change') or '').strip()
-        if change:
-            key = ('deck', pid)
-            t = self.jobs.get(key) if hasattr(self, 'jobs') else None
-            if t and t.is_alive():
-                return done + [dict(id=pid, title=p['name'], action='failed', kind='edit', error='A deck change for this video is already running.')]
-            self.jobs = getattr(self, 'jobs', {})
-            t = threading.Thread(target=self._deck_job, args=(agent_id, pid, change[:3000], via), daemon=True)
-            self.jobs[key] = t
-            t.start()
-            done.append(dict(id=pid, title='the deck for ' + p['name'], action='started', kind='edit'))
-        return done
+        if not change:
+            return []
+        key = ('deck', pid)
+        t = self.jobs.get(key) if hasattr(self, 'jobs') else None
+        if t and t.is_alive():
+            return [dict(id=pid, title=name, action='failed', kind='edit', error='A deck change for this video is already running.')]
+        self.jobs = getattr(self, 'jobs', {})
+        t = threading.Thread(target=self._deck_job, args=(agent_id, pid, change[:3000], via), daemon=True)
+        self.jobs[key] = t
+        t.start()
+        return [dict(id=pid, title='the deck for ' + name, action='started', kind='edit')]
 
     def _deck_state(self, er, pid):
         slides = er.deck_files(pid)[0]
