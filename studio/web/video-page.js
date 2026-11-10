@@ -67,7 +67,8 @@ function vpEdit(p){
   return `<div class="vp-card"><h3>${vpLocks(p).edit?'The edit is with Tariq':'Your edit'}</h3>
     ${s.edit?`<p>Josh OS found your Premiere project <b>${esc(s.edit.name)}</b>, saved ${esc(new Date(s.edit.saved).toLocaleString(undefined,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}.</p>`
       :`<p>Do the cuts, sound and green screen, then save your Premiere project in this video's <b>video</b> folder. It shows here when it's there.</p>${s.folder?`<p class="hint">${esc(s.folder)}\\video</p>`:''}`}
-    ${vpLocks(p).edit?`<p>Tariq makes the animations from here. You review them in Animations.</p>`:''}</div>`;
+    ${vpLocks(p).edit?`<p>Tariq makes the animations from here. You review them in Animations.</p>`:''}
+    <div class="vp-actions"><button class="subtle" data-ef-open="${esc(p.id)}">Tariq's clean cut</button></div></div>`;
 }
 function vpAnimations(p){
   const s=vpStatus[p.id]||{};

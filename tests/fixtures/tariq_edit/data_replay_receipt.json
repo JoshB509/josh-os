@@ -1,0 +1,80 @@
+{
+ "purpose": "Reproduction of the read-only Data replay in handover doc 10, now with a saved receipt.",
+ "inputs": {
+  "source_mono.npy": "42fd95b46dbbcd3d53050dde0a9db0c8cc0d6f03ac855307f165d1ac583ad239",
+  "retained_pauses.json": "adc67b4518435506e3b48c653d140597d0eaefe7be7aad87bd4cca55e460de7a",
+  "nonverbal_candidates.json": "b649be17c99c7c057cda2c21d80f52e7a07ddfd50857fc77c0c323905ee990e8",
+  "final_clips.json": "4c3320debaf29476db83026c1fecc75b5954f3bf62ad8cc31a801922c5c612a1",
+  "cleancut.py": "222a698893d97344a0b0aa2300cfd2971ea9fbe896b9205d2dea88d8bb88db79"
+ },
+ "current_tool": {
+  "call": "db_profile(x, 48000); floor, speech, auto = levels(db); acoustic_keeps(db, auto, speech, settings)",
+  "settings": {
+   "max_pause": 0.45,
+   "pad_before": 0.08,
+   "pad_after": 0.1,
+   "cut_sounds": true
+  },
+  "floor_dbfs": -78.71,
+  "speech_dbfs": -21.61,
+  "auto_threshold_dbfs": -65.0,
+  "sounds_dropped": 19,
+  "retained_pauses_shortened": 9,
+  "retained_pauses_total": 210,
+  "seconds_lost_from_retained_pauses": 3.55,
+  "worst": [
+   {
+    "start": 309.35,
+    "duration": 0.81,
+    "left": 0.24,
+    "cut": 0.57
+   },
+   {
+    "start": 937.8100000000001,
+    "duration": 0.78,
+    "left": 0.24,
+    "cut": 0.54
+   },
+   {
+    "start": 427.36,
+    "duration": 0.64,
+    "left": 0.25,
+    "cut": 0.39
+   },
+   {
+    "start": 428.62,
+    "duration": 0.63,
+    "left": 0.24,
+    "cut": 0.39
+   },
+   {
+    "start": 814.25,
+    "duration": 0.62,
+    "left": 0.24,
+    "cut": 0.38
+   }
+  ],
+  "kept_candidates_survived": "7/7",
+  "removed_candidates_caught": "3/6"
+ },
+ "doc10_reported": {
+  "retained_pauses_shortened": "9/210",
+  "seconds_lost": 3.55,
+  "kept_survived": "7/7",
+  "removed_caught": "3/6"
+ },
+ "tariq_planner_defaults": {
+  "words": "premiere_source_words.json (study evidence, not new ASR)",
+  "audio": "source_mono.npy averaged to 16 kHz",
+  "planner_sha256": "6cd51d1b18924de223b8b9032a9a78585e7bc3593d81af942c979c9e7dd8a209",
+  "retained_pauses_shortened": 0,
+  "retained_pauses_total": 210,
+  "seconds_lost_from_retained_pauses": 0,
+  "worst": [],
+  "kept_candidates_survived": "7/7",
+  "removed_candidates_caught": "4/6",
+  "review_cards": 104,
+  "removed_s": 20.413
+ },
+ "limits": "48 kHz cached PCM and 10 ms bins for the current tool, as in doc 10. No listening, no Claude pass, no native edit. Candidates are not verified coughs. Room-tone inserts in the reference are not cuts."
+}

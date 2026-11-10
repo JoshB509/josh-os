@@ -313,6 +313,38 @@ If Josh asks for a font that isn't in this list, say it isn't available and pick
 Pick words that name the outcome and add to the title rather than repeat it. The other formats in the training (boardroom,
 whiteboard, before and after, close face) can't be built from chat yet, so say so if Josh asks for one.
 Your reply is posted together with the finished images, so describe the options as made, not as on the way."""
+# Tariq's editorial pass on a recording (see edit_flow.py). Josh OS validates every id before using it.
+EDIT_JOB_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'reply': {'type': 'string', 'description': 'For Josh, a few sentences on what you removed and what you kept on purpose.'},
+        'removals': {'type': 'array', 'maxItems': 400, 'items': {'type': 'object', 'properties': {
+            'start_word': {'type': 'string', 'description': 'Id of the first word to remove, like w00012.'},
+            'end_word': {'type': 'string', 'description': 'Id of the last word to remove.'},
+            'kind': {'type': 'string', 'enum': ['retake', 'abandoned_start', 'false_start', 'other']},
+            'reason': {'type': 'string'},
+            'unsure': {'type': 'boolean', 'description': 'True when Josh should listen before this is cut.'}},
+            'required': ['start_word', 'end_word', 'kind', 'reason']}},
+        'pauses': {'type': 'array', 'items': {'type': 'object', 'properties': {
+            'event_id': {'type': 'string'}, 'action': {'type': 'string', 'enum': ['keep', 'shorten']},
+            'target_ms': {'type': 'number', 'description': 'For shorten: how long the pause should be, in ms.'},
+            'reason': {'type': 'string'}}, 'required': ['event_id', 'action', 'reason']}},
+    },
+    'required': ['reply', 'removals', 'pauses'],
+}
+EDIT_BRIEF = """Propose the clean cut for this recording. Josh will see the whole transcript with your removals struck through,
+and he decides. You can read files but you do not run or change anything.
+
+Retakes. Josh restarts sentences when he stumbles. Remove the earlier, abandoned attempts and keep the last complete take,
+but check the earlier one adds no fact, qualifier or emphasis the kept one lacks. Repeated words can be deliberate (lists,
+emphasis, a callback, a new sentence that starts the same way), so do not remove a repeat just because it repeats. Give each
+removal as the first and last word id. Mark unsure when Josh should listen first.
+
+Pauses. Only the long pauses are marked. Keep a pause that does work (a thought boundary, a rhetorical question, set-up
+before a payoff, emphasis). Shorten one that is dead air, and say how long it should be. When unsure, keep it. Never shorten
+a pause to remove time for its own sake.
+
+Do not cut sounds, coughs or breaths. Josh OS measures those separately and Josh reviews them."""
 # Anouk keeps the customer success tracker from chat.
 PEOPLE_PROPS = {
     'people': {
@@ -993,6 +1025,20 @@ class Agents:
         system = self.desk_system_prompt(agent, learnings) + '\n\nYou are making one round of thumbnails that Josh asked for in chat.'
         return self.run(system, '\n'.join(parts), THUMB_JOB_SCHEMA, list(dirs) + [str(folder), str(TOOLS), str(POSES)],
                         tools=ALLOWED_TOOLS, timeout=1200, full=True)
+
+    def edit_proposal_job(self, project, transcript, candidates):
+        """Tariq reads a recording's transcript and marks retakes and long pauses. Read-only tools and a fixed answer
+        shape: Josh OS checks every word id and pause id, then folds the decisions into a reviewable proposal."""
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == 'tariq'), None)
+        if not agent:
+            raise AgentError('Tariq is not on the team.')
+        learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', 'tariq')][:80]
+        parts = [EDIT_BRIEF, '', f"The video: {project['name']}", '',
+                 'Places where wording restarts (candidates only, repeats can be deliberate):',
+                 json.dumps(candidates[:200], ensure_ascii=False), '', 'The transcript. Each word has its id in brackets, long pauses '
+                 'are marked with their id and length:', transcript[:400000]]
+        system = self.desk_system_prompt(agent, learnings) + '\n\nYou are proposing one clean cut that Josh will review word by word.'
+        return self.run(system, '\n'.join(parts), EDIT_JOB_SCHEMA, [], tools=ALLOWED_TOOLS, timeout=1800, full=True)
 
     def post(self, agent_id, text, images=(), saved=(), via='', files=()):
         """A message from a team member that arrives on its own, like the result of a job."""

@@ -28,6 +28,7 @@ from .feedback import Feedback
 from .edit_review import EditReview,STANDIN
 from .video_pieces import VideoPieces
 from .video_thumbnails import VideoThumbnails
+from .edit_flow import EditFlow
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
 
@@ -59,7 +60,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review)
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -83,6 +84,27 @@ class Server(ThreadingHTTPServer):
                 try:self.emails.kit.note(last_error=str(e)[:300])
                 except Exception:pass
             time.sleep(600)
+    def edit_flow_action(self,pid,action,d):
+        """Tariq's editing workflow. Every action names the exact revision it acts on."""
+        f=self.edit_flow
+        if action=='sources':return f.register(pid,d['camera'],d['mic'],d.get('note',''))
+        if action=='analyse':return f.analyse(pid,d['sources_id'],bool(d.get('editorial',True)))
+        if action=='cancel':return f.cancel(pid)
+        if action=='revise':return f.revise(pid,d['proposal_id'],d['digest'],d.get('changes') or [],d.get('words') or [],d.get('note',''))
+        if action=='approve':return f.approve_script(pid,d['proposal_id'],d['digest'],d.get('note',''))
+        if action=='preview':return f.preview(pid,d['proposal_id'],d['event_id'],float(d.get('context_s',2)))
+        if action=='premiere':return f.bridge_call('tq_probe',dict(master=d.get('master') or 'GREEN_MASTER'))
+        if action=='build':
+            check=f.bridge_call('tq_probe',dict(master=d.get('master') or 'GREEN_MASTER'))
+            if not check.get('ok'):raise ValueError('Premiere is not ready for the cut: '+' '.join(check.get('notes') or ['see the check']))
+            return f.build_cut(pid,d['proposal_id'],d['digest'],int(check['frame_ticks']),d.get('master'))
+        if action=='proof':
+            from .edit_flow import native_proof
+            return native_proof(f,pid,d.get('param') or 'Choke',float(d.get('delta',4)))
+        if action=='visuals':return f.visuals(pid,d['cut_id'],d.get('notes'),d.get('storyboard_digest'),bool(d.get('approve')))
+        if action=='final':return f.final(pid,d['visuals_id'])
+        raise KeyError('Unknown editing action')
+
     @property
     def url(self):return 'http://127.0.0.1:%d/?token=%s'%(self.server_port,self.token)
 
@@ -178,6 +200,10 @@ class Handler(BaseHTTPRequestHandler):
                     file,mime=s.inspo.image(parts[2],int(parts[4]))
                     return self.send(file.read_bytes(),mime=mime,cache='private, max-age=3600')
                 if path=='/api/edit-review/decks':return self.send(s.edit_review.decks())
+                if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-flow':
+                    v=s.edit_flow.view(parts[2]);v['suggest']=s.edit_flow.suggest(parts[2]);v['sources']=s.edit_flow.latest(parts[2],'edit_sources');v['cut_id']=(s.edit_flow.latest(parts[2],'edit_cut') or {}).get('id');v['visuals_id']=(s.edit_flow.latest(parts[2],'edit_visuals') or {}).get('id');return self.send(v)
+                if len(parts)==6 and parts[:2]==['api','projects'] and parts[3:5]==['edit-flow','audio']:
+                    return self.send(s.edit_flow.preview_file(parts[2],parts[5]).read_bytes(),mime='audio/wav',cache='private, max-age=3600')
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='pieces':return self.send(s.pieces.status(parts[2]))
                 if len(parts)==5 and parts[:2]==['api','projects'] and parts[3:5]==['recording','takes']:return self.send(s.pieces.takes(parts[2]))
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-review':return self.send(s.edit_review.review(parts[2]))
@@ -215,7 +241,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/edit-review.js','/edit-review.css','/video-page.js','/video-page.css','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/success.js','/success.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/edit-review.js','/edit-review.css','/edit-flow.js','/edit-flow.css','/video-page.js','/video-page.css','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/success.js','/success.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -347,6 +373,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts)==4 and parts[:2]==['api','carousels'] and parts[3]=='design' and method=='POST':return self.send(s.carousels.make_design(parts[2]))
             if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-review' and method=='POST':
                 return self.send(s.edit_review.render(parts[2],[int(n) for n in data.get('only') or []] or None))
+            if len(parts)==5 and parts[:2]==['api','projects'] and parts[3]=='edit-flow' and method=='POST':
+                return self.send(s.edit_flow_action(parts[2],parts[4],data))
             if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='edit-setup' and method=='POST':return self.send(s.edit_review.setup(parts[2]))
             if len(parts)==5 and parts[:2]==['api','projects'] and parts[3:5]==['recording','start'] and method=='POST':return self.send(s.pieces.start(parts[2]))
             if len(parts)==5 and parts[:2]==['api','projects'] and parts[3:5]==['recording','done'] and method=='POST':return self.send(s.pieces.recorded(parts[2],data.get('path','')))

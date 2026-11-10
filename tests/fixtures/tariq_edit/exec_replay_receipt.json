@@ -1,0 +1,224 @@
+{
+ "fixture": "Executive Questions, enhanced Wireless PRO mic, faster-whisper medium.en (study asr_original.json, not corrected)",
+ "mic_sha256": "f227708cc96ca9bf08e0810390f5a64461d0bb786cb7864af5e7c779cc77b7ff",
+ "planner_sha256": "6cd51d1b18924de223b8b9032a9a78585e7bc3593d81af942c979c9e7dd8a209",
+ "config": {
+  "calibrated": false,
+  "note": "Development settings from two measured fixtures. Not a validated policy; every decision stays visible and reversible.",
+  "bin_ms": 10,
+  "activity_dbfs": -50.0,
+  "word_guard_ms": 20,
+  "pad_in_ms": 100,
+  "pad_out_ms": 150,
+  "head_keep_ms": 100,
+  "tail_keep_ms": 300,
+  "pause_min_ms": 300,
+  "pause_review_ms": 700,
+  "sound_min_ms": 80,
+  "sound_max_ms": 1200,
+  "sound_isolation_ms": 150,
+  "word_edge_max_ms": 200,
+  "faint_below_p95_db": 25.0,
+  "sound_margin_ms": 30
+ },
+ "analysis": {
+  "sample_rate": 16000,
+  "decode": "ffmpeg mono 16 kHz f32",
+  "speech_p95_dbfs": -20.49
+ },
+ "events": {
+  "('pause', '[start]', 'shorten')": 1,
+  "('pause', '[pause', 'keep')": 68,
+  "('take_group', '[possible retake]', 'keep')": 29,
+  "('other_sound', '[unclassified sound]', 'keep')": 3,
+  "('other_sound', '[possible cough]', 'remove')": 5,
+  "('pause', '[end]', 'shorten')": 1
+ },
+ "review_cards": 50,
+ "defaults": {
+  "label": "No editorial pass: outer trims and possible coughs only",
+  "removals": 7,
+  "removed_s": 21.836,
+  "retained_pauses_touched": 0,
+  "retained_pauses_total": 82,
+  "removed_where_editor_kept_s": 0.179,
+  "reference_cut_coverage": [
+   0.0,
+   0.0,
+   0.0,
+   0.016,
+   0.028,
+   0.11,
+   0.0,
+   0.068,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "nonverbal": [
+   {
+    "id": 1,
+    "reference": "removed",
+    "removed_here": false
+   },
+   {
+    "id": 2,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 3,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 4,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 5,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 6,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 7,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 8,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 9,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 10,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 11,
+    "reference": "removed",
+    "removed_here": false
+   },
+   {
+    "id": 12,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 13,
+    "reference": "removed",
+    "removed_here": false
+   }
+  ]
+ },
+ "defaults_issues": 0,
+ "reference_words": {
+  "label": "Editor reference removals given as word selections",
+  "removals": 14,
+  "removed_s": 142.396,
+  "retained_pauses_touched": 0,
+  "retained_pauses_total": 82,
+  "removed_where_editor_kept_s": 1.912,
+  "reference_cut_coverage": [
+   1.0,
+   0.965,
+   1.0,
+   0.99,
+   1.0,
+   0.939,
+   0.0,
+   1.0,
+   0.951,
+   0.9,
+   0.966,
+   0.951,
+   0.0,
+   0.984
+  ],
+  "nonverbal": [
+   {
+    "id": 1,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 2,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 3,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 4,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 5,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 6,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 7,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 8,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 9,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 10,
+    "reference": "removed",
+    "removed_here": true
+   },
+   {
+    "id": 11,
+    "reference": "removed",
+    "removed_here": false
+   },
+   {
+    "id": 12,
+    "reference": "kept",
+    "removed_here": false
+   },
+   {
+    "id": 13,
+    "reference": "removed",
+    "removed_here": true
+   }
+  ]
+ },
+ "reference_words_issues": [],
+ "head_tail_reference": null,
+ "limits": "Geometric comparison only. No listening pass. Nonverbal candidates are unverified. ASR is uncorrected."
+}

@@ -1,0 +1,143 @@
+{
+ "camera": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+ "mic": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+ "data": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-e2e-x4vslzej",
+ "steps": [
+  {
+   "step": "sources",
+   "id": "7989a099-247e-49db-ba4a-d2810e48e61f",
+   "fps": "30",
+   "mic_rate": 48000
+  },
+  {
+   "step": "analyse",
+   "state": "complete",
+   "message": "The proposed cut is ready for review",
+   "seconds": 5
+  },
+  {
+   "step": "view",
+   "summary": {
+    "source_s": 553.65,
+    "kept_s": 531.37,
+    "removed_s": 22.28,
+    "removals": 7,
+    "cards": 52
+   },
+   "sync": {
+    "verified": true,
+    "offset": 3.702875000000006
+   },
+   "asr": {
+    "model": "a29b04bd15381511a9af671baec01072039215e3",
+    "model_dir": "C:\\Users\\Anigma PC\\Documents\\Codex\\2026-10-13\\ok-x20\\work\\models\\models--Systran--faster-whisper-medium.en\\snapshots\\a29b04bd15381511a9af671baec01072039215e3",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam": 3,
+    "vad": true,
+    "lang": "en",
+    "words": 1509
+   },
+   "errors": [],
+   "cards": 52
+  },
+  {
+   "step": "stale_approval",
+   "refused": true
+  },
+  {
+   "step": "revise",
+   "revision": 2,
+   "words_removed": true,
+   "pause": {
+    "type": "event",
+    "id": "pa-485120-797440",
+    "kind": "pause",
+    "label": "[pause 19.5s]",
+    "start": 485120,
+    "end": 797440,
+    "action": "shorten",
+    "review": true,
+    "duration_ms": 19520,
+    "removed_ms": 19150,
+    "state": "removed"
+   },
+   "removed_s": 42.62
+  },
+  {
+   "step": "old_revision_locked",
+   "locked": true
+  },
+  {
+   "step": "restore",
+   "revision": 3,
+   "words_back": true
+  },
+  {
+   "step": "preview",
+   "card": "[possible retake]",
+   "original": "3b4cf14e31da8f5aab2f03e9-original.wav",
+   "proposed": "3b4cf14e31da8f5aab2f03e9-proposed.wav",
+   "bytes": 395564,
+   "cached": true
+  },
+  {
+   "step": "plan_before_approval",
+   "refused": true
+  },
+  {
+   "step": "cut_plan",
+   "pieces": 7,
+   "seconds": 512.233,
+   "contiguous": true,
+   "max_rounding_ms": 16.2,
+   "mic_minus_camera_s": 3.702875
+  },
+  {
+   "step": "build_without_premiere",
+   "state": "blocked",
+   "error": "Josh Cut Pro is not running, so Premiere can't be reached. Start Josh Cut Pro and open Premiere with its panel."
+  },
+  {
+   "step": "status",
+   "stages": [
+    {
+     "key": "sources",
+     "label": "Sources and sync",
+     "state": "ready",
+     "reason": "Chosen. Sync is checked during the proposal."
+    },
+    {
+     "key": "proposal",
+     "label": "Proposed cut",
+     "state": "approved",
+     "reason": "Revision 3 is approved."
+    },
+    {
+     "key": "script",
+     "label": "Script approved",
+     "state": "approved",
+     "reason": "Approved."
+    },
+    {
+     "key": "cut",
+     "label": "Premiere cut",
+     "state": "blocked",
+     "reason": "Josh Cut Pro is not running, so Premiere can't be reached. Start Josh Cut Pro and open Premiere with its panel."
+    },
+    {
+     "key": "visuals",
+     "label": "Animations",
+     "state": "waiting",
+     "reason": "Add notes and review the storyboard after the cut."
+    },
+    {
+     "key": "final",
+     "label": "Final video",
+     "state": "waiting",
+     "reason": "Rendered locally after both approvals."
+    }
+   ]
+  }
+ ]
+}

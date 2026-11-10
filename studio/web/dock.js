@@ -1,7 +1,7 @@
 'use strict';
 // The dock: the right team member follows Josh to every page, knows what he has open,
 // and can change it. One conversation per team member, shared with their Team page.
-const DOCK_AGENT={success:'anouk','edit-review':'tariq',courses:'saskia',board:'sam',youtube:'sam',carousels:'sam',calendar:'sam',today:'sam',editing:'tariq',email:'laia'};
+const DOCK_AGENT={success:'anouk','edit-review':'tariq','edit-flow':'tariq',courses:'saskia',board:'sam',youtube:'sam',carousels:'sam',calendar:'sam',today:'sam',editing:'tariq',email:'laia'};
 let dockOpen=(()=>{try{return localStorage.getItem('dock-open')==='1'}catch{return false}})(),dockStarted=0,dockTick=null,dockError=null;
 
 function dockAgentId(){return current?(typeof tab!=='undefined'&&tab==='edit'?'tariq':'sam'):(DOCK_AGENT[view]||'sam')}

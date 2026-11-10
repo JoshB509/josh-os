@@ -1,0 +1,186 @@
+{
+ "removed_s": 139.88,
+ "cuts": 18,
+ "reference_cut_coverage": [
+  0.99,
+  0.98,
+  0.88,
+  0.99,
+  0.95,
+  0.88,
+  0.0,
+  0.91,
+  0.94,
+  0.99,
+  0.97,
+  0.98,
+  0.0,
+  0.97
+ ],
+ "removed_where_editor_kept_s": 0.58,
+ "editorial_removals": [
+  [
+   "It makes them look unprepared, and from then on, executives doubt everything els",
+   "Abandoned first take of 'It makes them look unprepared...', redone in full from w00047. Left the ahem for the sounds pas"
+  ],
+  [
+   "And if you've been there and you struggle, and if you've been there and you stru",
+   "Three abandoned starts of 'and if you've been there'. The kept take from w00124 has both points (one and two)."
+  ],
+  [
+   "You've been,",
+   "'You've been,' trails off and he moves on to 'and you're being considerate'."
+  ],
+  [
+   "Anyway, you're on slide three, and the CEO asks, hey, could you tell me what the",
+   "Four failed runs at the slide three setup. Kept the last one, which says turnover and matches the rest of the example."
+  ],
+  [
+   "So first,",
+   "'So first,' restarted straight away as 'so the first thing'."
+  ],
+  [
+   "And then the CEO goes, oh, brilliant, you're promoted. Well,",
+   "The promoted joke was redone straight after, and the kept take carries on into the payoff."
+  ],
+  [
+   "Instead of handing over a number, they asked for,",
+   "'Instead of handing over a number, they asked for' was redone cleanly right after."
+  ],
+  [
+   "Because what happens to so many smart professionals,",
+   "'Because what happens to so many smart professionals' was cut off and then repeated in full."
+  ],
+  [
+   "They're not sat there thinking, gosh, I really, some,",
+   "'They're not sat there thinking, gosh, I really, some,' collapses, and the next line redoes it cleanly."
+  ],
+  [
+   "And the number they asked for is just the first route they could think of to ask",
+   "The second version, 'the thing they asked for', is cleaner and sets up the callback in the next sentence."
+  ],
+  [
+   "But even if you have the number and you say, but even if you have the number, sa",
+   "Two abandoned starts of 'but even if you have the number'. Kept the complete one from w01441."
+  ]
+ ],
+ "pauses": [
+  [
+   "pa-485120-797440",
+   "shorten",
+   300,
+   "Dead air between takes."
+  ],
+  [
+   "pa-1027200-1042880",
+   "shorten",
+   200,
+   "Inside a removed retake."
+  ],
+  [
+   "pa-1080320-1212800",
+   "shorten",
+   200,
+   "Dead air between takes."
+  ],
+  [
+   "pa-1278400-1292800",
+   "shorten",
+   200,
+   "Inside a removed retake."
+  ],
+  [
+   "pa-1300800-1322240",
+   "shorten",
+   400,
+   "Reset before the kept take. Only a short gap needed after 'it.'"
+  ],
+  [
+   "pa-1934720-1953600",
+   "shorten",
+   400,
+   "Hesitation after the abandoned 'You've been'."
+  ],
+  [
+   "pa-3308480-3319680",
+   "shorten",
+   200,
+   "Inside a removed retake."
+  ],
+  [
+   "pa-3433600-3496480",
+   "shorten",
+   200,
+   "Dead air between takes."
+  ],
+  [
+   "pa-3570080-3610080",
+   "shorten",
+   200,
+   "Dead air between takes."
+  ],
+  [
+   "pa-3640480-3670240",
+   "shorten",
+   200,
+   "Dead air between takes."
+  ],
+  [
+   "pa-3697760-3783360",
+   "shorten",
+   300,
+   "Dead air before the kept take."
+  ],
+  [
+   "pa-3932800-4135360",
+   "shorten",
+   1000,
+   "12.7s is dead air, but a one second beat after the question sets up the 'uh-oh'."
+  ],
+  [
+   "pa-4869760-4895360",
+   "keep",
+   null,
+   "Section boundary before the first step."
+  ],
+  [
+   "pa-6006080-6018880",
+   "keep",
+   null,
+   "Short beat before the promotion joke."
+  ],
+  [
+   "pa-6538880-6550400",
+   "keep",
+   null,
+   "Follows a rhetorical question once the retake is cut."
+  ],
+  [
+   "pa-7161280-7181120",
+   "keep",
+   null,
+   "Thought boundary before the reframe."
+  ],
+  [
+   "pa-7748160-7770560",
+   "keep",
+   null,
+   "Section boundary before 'here's why'."
+  ],
+  [
+   "pa-8406080-8420480",
+   "shorten",
+   200,
+   "Inside a removed retake."
+  ]
+ ],
+ "cards": 34,
+ "editorial": {
+  "ran": true,
+  "reply": "Mostly straightforward retakes. I kept the last full take every time, and none of the earlier attempts had anything the kept one was missing. The two slow spots were the intro \"if you've been there\" (four tries) and the slide three setup (five tries). The dead air around both is cut down hard, including the 12.7s gap before \"uh-oh\". I left that one a full second so the beat still works. I kept \"when you don't know the answer, and when you don't know the answer\" because it reads as deliberate. One thing to check is that the kept take says COO, but later you say \"the CEO goes, brilliant, you're promoted\". That's either a slip or two different people. Also, \"you're being considerate\" at the start might have meant \"conscientious\".",
+  "removals": 11,
+  "pauses": 18,
+  "rejected": 0
+ },
+ "limits": "One real Tariq run on uncorrected local ASR. Geometric comparison with one editor reference, no listening."
+}

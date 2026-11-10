@@ -128,6 +128,10 @@ The phone link contains a key, which is stored in `Data/phone-access.json` and s
 - `specs/` and `writing_passes/` hold the editing and writing rules, and `tests/` holds the tests.
 - `Inputs/`, `examples/` and `reference_sources/` are small sample and reference inputs.
 
+## Tariq's clean cut
+
+On a video's Edit piece, "Tariq's clean cut" proposes a cut from the camera and good mic, and shows the whole transcript with what is cut and kept, plus clips of anything uncertain. Josh approves one revision, then Tariq builds it in Premiere as a new sequence made of pieces of `GREEN_MASTER`, so a key change there reaches every piece. Transcription, sync, measurement and previews run on this PC. Tariq's one model call reads the transcript with read-only tools. What is built, what was tested and what still needs Premiere is in `docs/tariq-edit-workflow.md`.
+
 ## What the team's jobs can touch
 
 Every chat with a team member (their Team page, the dock, the chat beside a script, and Discord) goes through the same code in `studio/agent.py`, so a request reaches the same actions wherever Josh asks. Ordinary chat is read-only (Read, Grep, Glob). Work that changes files runs as a job with limits Josh OS enforces:
