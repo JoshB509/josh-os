@@ -102,6 +102,7 @@ class Bridge:
         self.config = load_config(self.data_root)
         self.status = dict(enabled=bool(self.config), bots={}, error='')
         self.loop = None
+        self.channels = {}  # the channel Josh last wrote to each team member in, for results that come later
 
     # Work that doesn't need Discord, so it can be tested on its own ------------------------
     def save_attachment(self, agent_id, name, content_type, data):
@@ -133,6 +134,23 @@ class Bridge:
         body = reply.get('text') or ''
         note = saved_line(reply.get('saved'))
         return split(body + ('\n' + note if note else '')), list(reply.get('files') or [])
+
+    def notify(self, agent_id, text, files=()):
+        """Send a later result (like finished thumbnails) to the channel Josh last used with this team member.
+        Only that channel, which already passed the owner check, and only files that exist and fit Discord's limit."""
+        import discord
+        channel = self.channels.get(agent_id)
+        if not channel or not self.loop:
+            return False
+        send = [str(f) for f in files if Path(f).is_file() and Path(f).stat().st_size <= MAX_FILE_BYTES][:10]
+
+        async def go():
+            parts = split(text) or ['']
+            for i, part in enumerate(parts):
+                last = i == len(parts) - 1
+                await channel.send(part or None, files=[discord.File(f) for f in send] if last and send else None)
+        asyncio.run_coroutine_threadsafe(go(), self.loop)
+        return True
 
     # Discord -----------------------------------------------------------------------------
     def start(self):
@@ -179,6 +197,7 @@ class Bridge:
             if not allowed(self.config, agent_id, msg.author.id, is_dm, getattr(msg.channel, 'name', ''),
                            msg.channel.id, mentioned):
                 return
+            self.channels[agent_id] = msg.channel
             text = clean(msg.content, client.user.id if client.user else None)
             attachments = []
             for a in msg.attachments[:10]:

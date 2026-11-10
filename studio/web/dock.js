@@ -74,6 +74,7 @@ async function dockSend(message,images=null){
   try{
     const r=await api('/api/agents/chat',{agent_id:id,message,images,context:ctx&&{kind:ctx.kind,id:ctx.id,name:ctx.name,part:ctx.part}});
     roomThread[id]=r.messages;
+    if(typeof roomWatchJobs==='function')roomWatchJobs(id,r.reply?.saved);
     if(r.reply?.saved?.length)await dockRefresh(r.reply.saved);
   }catch(e){roomThread[id]=(roomThread[id]||[]).filter(m=>m.id!=='pending');dockError={error:e.message,message,images}}
   finally{clearInterval(dockTick);roomBusy=null;dockRender()}

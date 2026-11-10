@@ -35,4 +35,4 @@
 @media (max-width:1100px){.vp-pieces{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:600px){.vp-pieces{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #workspace:has(.vp-top) #project-folder-hint{display:none}
-.vp-head.bare{justify-content:flex-end;margin-bottom:calc(-1 * var(--sp-6));position:relative;z-index:1}
+.vp-head.bare{justify-content:flex-end;margin-bottom:var(--sp-2)}

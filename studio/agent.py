@@ -201,6 +201,9 @@ EDIT_PROPS = {
         'type': 'object',
         'description': 'Actions on the open video\'s edit. Leave out when nothing needs doing.',
         'properties': {
+            'project_id': {'type': 'string', 'description': 'The video, when Josh is not on its animation review. Id from the snapshot.'},
+            'deck_change': {'type': 'string', 'description': 'When Josh asks from chat (not the review page) for the slides or shot list to be '
+                                                            'made or changed: exactly what to do. Josh OS runs it as a job on that video and posts back.'},
             'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
             'rerender': {'type': 'array', 'items': {'type': 'integer'},
                          'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
@@ -226,6 +229,70 @@ PROJECT_PROPS = {
                     'description': 'When Josh has selected a passage of the open script, the rewritten passage ready to drop in. '
                                    'Null otherwise.'},
 }
+def edit_rule(folder):
+    """Claude Code permission rule that allows Write and Edit only inside one folder (tested on this PC: a bare
+    "Write" or "Edit" allows writing anywhere, while Edit(//e/<path>/**) allows that folder and refuses the rest)."""
+    f = Path(folder).resolve()
+    rest = f.as_posix().split(':', 1)[1].strip('/')
+    return f"Edit(//{f.drive[0].lower()}/{rest}/**)"
+
+
+def scoped(tools, folder):
+    """The allow list for a run that may write: the read tools as they are, file edits only inside folder."""
+    names = [t for t in tools.split(',') if t]
+    keep = [t for t in names if t not in ('Write', 'Edit')]
+    return ','.join(keep + ([edit_rule(folder)] if any(t in ('Write', 'Edit') for t in names) else []))
+
+
+# Sam makes YouTube thumbnails as a job Josh OS runs after the reply (see video_thumbnails.py).
+CAN_THUMB = {'sam'}
+THUMB_PROPS = {
+    'thumbnails': {
+        'type': 'array',
+        'description': 'Start a thumbnail job for a video. It runs on this PC after your reply and posts the images back here.',
+        'items': {'type': 'object', 'properties': {
+            'project_id': {'type': 'string', 'description': 'Id of the video from the snapshot, or the one Josh has open.'},
+            'note': {'type': 'string', 'description': 'What Josh asked for: words, formats, poses, how many, anything to copy.'}},
+            'required': ['project_id']},
+    },
+}
+# What a thumbnail job sends back: up to three options, each a format and its settings. Josh OS checks and builds them.
+THUMB_JOB_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'reply': {'type': 'string', 'description': 'For Josh, in a few sentences: the options and why, in your own voice.'},
+        'options': {'type': 'array', 'maxItems': 3, 'items': {'type': 'object', 'properties': {
+            'label': {'type': 'string', 'description': 'A short name, like A Make Them Explain.'},
+            'format': {'type': 'string', 'enum': ['middle', 'close']},
+            'pose': {'type': 'string', 'description': 'The cutout file name without .png, like seated-13-palm-present-neutral.'},
+            'words': {'type': 'string', 'description': 'middle only. The one line of words.'},
+            'lines': {'type': 'array', 'items': {'type': 'string'}, 'description': 'close only. One or two lines of words.'},
+            'size': {'type': 'number', 'description': 'close only. Font size in 1280-wide units, about 142.'},
+            'face_cx': {'type': 'number'}, 'face_cy': {'type': 'number'}, 'face_w': {'type': 'number'},
+            'head_top': {'type': 'number'}, 'body_bottom': {'type': 'number'}, 'desk_top': {'type': 'number'},
+            'baseline': {'type': 'number'}, 'bar_left': {'type': 'number'}, 'bar_right': {'type': 'number'},
+            'shade_start': {'type': 'number'}},
+            'required': ['label', 'format', 'pose']}},
+    },
+    'required': ['reply', 'options'],
+}
+THUMB_BRIEF = """Make a round of YouTube thumbnail options for this video, following 05_thumbnails.md. You can read files but you
+do not run anything or save anything yourself. Answer with up to three options in "options". Josh OS checks each one and
+builds it with Josh's approved scripts (oneline.py for "middle", close_unit.py for "close"), in the house text treatment.
+
+The two formats you can use:
+- "middle": Josh seated at the desk, one line of words across the bottom (the current A/B winner). Settings and defaults:
+  pose (a Seated cutout, seated-13-palm-present-neutral is the approved one), face_cx 960, head_top 22, body_bottom 1100,
+  desk_top 1008, words (two to four words), baseline 975, bar_left 130, bar_right 1790 (never past 1790, the badge corner),
+  shade_start 400. Leave a number out to use its default.
+- "close": Josh close on the left, one or two lines of words on the right. pose (finger up, chin or side point work, like
+  seated-06-side-point-neutral), face_cx 483, face_cy 350, face_w 432, lines (one or two, short), size about 142, shade_start 325.
+  The line positions are fixed by the format.
+Read the approved specs in the tools folder (spec_make-them-explain_desk-bottom_v01.json, spec_close_never-go-blank_v03.json)
+and the thumb-notes files the training names. Look at the pose previews in the Pose Catalogue before you pick a pose.
+Pick words that name the outcome and add to the title rather than repeat it. The other formats in the training (boardroom,
+whiteboard, before and after, close face) can't be built from chat yet, so say so if Josh asks for one.
+Your reply is posted together with the finished images, so describe the options as made, not as on the way."""
 # Anouk keeps the customer success tracker from chat.
 PEOPLE_PROPS = {
     'people': {
@@ -264,7 +331,7 @@ MAX_SEND_BYTES = 25 * 1024 * 1024
 LEARN_PROPS = {
     'edits_noted': {'type': 'array', 'items': {'type': 'string'},
                     'description': "Ids of Josh's edits you asked about or explained in this reply."},
-    'lessons': {'type': 'array', 'description': 'Rules you now know for next time, from his edits or his answers.',
+    'learned': {'type': 'array', 'description': 'Rules you now know for next time, from his edits or his answers.',
                 'items': {'type': 'object', 'properties': {'lesson': {'type': 'string'}, 'evidence': {'type': 'string'},
                                                            'workflow': {'type': 'string'}}, 'required': ['lesson']}},
 }
@@ -619,6 +686,12 @@ class Agents:
                '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
               if agent['id'] in LINKLR else []),
             *(self.carousel_rules() if 'carousels' in (agent.get('workflows') or []) else []),
+            *(self.thumbnail_rules() if agent['id'] in CAN_THUMB and getattr(self, 'video_thumbs', None) is not None else []),
+            *(["- You can work on any video's animation deck from any chat, including Discord. When Josh asks for the slides or",
+               "  shot list to be made or changed and he is not on that video's animation review, put the video's id in \"edit\"",
+               "  as project_id with exactly what to do in deck_change. Josh OS runs it as a job in that video's folder and posts",
+               '  back here when it is done, so tell him it is under way. Use setup or rerender with project_id for those alone.']
+              if 'editing' in (agent.get('workflows') or []) and getattr(self, 'edit_review', None) is not None else []),
             *(['- Each video has a Results tab in Josh OS. When you read a video\'s numbers, thumbnail test or retention graph (from',
                '  YouTube Studio, Linklr or the screenshots Josh adds), save them with the "videos" list in your answer, and open',
                '  any screenshot path from the snapshot with Read before you describe it. Send the full list of test rounds when you',
@@ -686,9 +759,9 @@ class Agents:
             '  Put the ids of edits you covered in edits_noted.',
             '- Most of Josh\'s feedback comes in chat. When he asks you to change your work ("make the hook punchier",',
             '  "cut that line", "less salesy"), make the change, then work out the preference behind it. If it would apply to',
-            '  future work, save it in lessons as a rule. If you can\'t tell whether it was a one-off, ask in one short line, like',
+            '  future work, save it in learned as a rule. If you can\'t tell whether it was a one-off, ask in one short line, like',
             '  "Want me to do that every time, or just here?" or "Was that to keep it shorter?". Save the rule once he answers.',
-            '- When a rule is clear, from an edit or from what Josh tells you, save it in lessons as one short instruction you can',
+            '- When a rule is clear, from an edit or from what Josh tells you, save it in learned as one short instruction you can',
             '  follow next time, with the edit or his words as evidence. Tell him you have noted it. Do not save the same lesson twice.',
             '- Write at a grade 12 reading level. No em dashes. Never use the words quiet, quietly, land, landed, honest or honestly.',
             '  No "it isn\'t X, it\'s Y" framing, no colons that split a sentence, no fragment lists, and don\'t say why something matters.',
@@ -708,6 +781,13 @@ class Agents:
         if training:
             lines += ['', 'Your training follows. It is Josh\'s own process and it overrides general habits.', training]
         return '\n'.join(lines)
+
+    def thumbnail_rules(self):
+        return ['- You make the YouTube thumbnails. When Josh asks for thumbnails (new ones, changes, other words or poses), put',
+                '  the video in "thumbnails" with what he asked in "note". Josh OS starts the job after your reply and posts the',
+                '  images back here, usually within a few minutes, so tell him they are on the way. Do not describe options you',
+                '  have not made. The middle shot and close portrait formats can be built from chat. Boardroom, whiteboard, before',
+                '  and after and close face can not yet, so say so if he asks for one.']
 
     def carousel_rules(self):
         from .carousels import TAG_OPTIONS, TAG_TEXT, TAG_FLAGS, RESULT_NUMBERS, STAGES
@@ -867,6 +947,40 @@ class Agents:
                 done.append(dict(id=lid, title=title, action='failed', kind='lesson', error=str(e).strip("'\"")[:200]))
         return done
 
+    def thumbnail_job(self, project, note, folder):
+        """Sam picks up to three thumbnail options for a video. Read-only tools: Josh OS builds what he sends back."""
+        from .video_thumbnails import POSES, TOOLS
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == 'sam'), None)
+        if not agent:
+            raise AgentError('Sam is not on the team.')
+        learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', 'sam')][:80]
+        _, dirs = self.training('sam')
+        title = next((t.get('text') for t in project.get('titles') or [] if t.get('id') == project.get('chosen_title')), '') or project['name']
+        facts = dict(id=project['id'], name=project['name'], title=title, stage=project['stage'],
+                     title_ideas=[t.get('text') for t in project.get('titles') or []][:12], notes=(project.get('notes') or '')[:3000],
+                     script=(project.get('script') or '')[:8000], folder=str(folder))
+        parts = [THUMB_BRIEF, '', f'Your training files are in {self.training_dir()}. The tools folder is {TOOLS}. '
+                 f'The Pose Catalogue is {POSES}. This video\'s folder is {folder}, and its thumbnails folder shows earlier rounds.',
+                 '', 'The video:', json.dumps(facts, ensure_ascii=False, indent=1)]
+        if note.strip():
+            parts += ['', "Josh's note: " + note.strip()]
+        system = self.desk_system_prompt(agent, learnings) + '\n\nYou are making one round of thumbnails that Josh asked for in chat.'
+        return self.run(system, '\n'.join(parts), THUMB_JOB_SCHEMA, list(dirs) + [str(folder), str(TOOLS), str(POSES)],
+                        tools=ALLOWED_TOOLS, timeout=1200, full=True)
+
+    def post(self, agent_id, text, images=(), saved=(), via='', files=()):
+        """A message from a team member that arrives on its own, like the result of a job."""
+        m = dict(id=str(uuid.uuid4()), role='agent', text=text, at=now())
+        if images:
+            m['images'] = list(images)
+        if saved:
+            m['saved'] = list(saved)
+        if files:
+            m['files'] = [str(f) for f in files]
+        if via:
+            m['via'] = via
+        return self._append(DESK, agent_id, m)
+
     def course_job(self, lesson, task, note, content_dir):
         """One piece of lesson work for Saskia, with the tools and time it needs. Josh OS checks what comes back."""
         agent = next((a for a in self.team.all()['agents'] if a['id'] == 'saskia'), None)
@@ -893,11 +1007,13 @@ class Agents:
             'You are doing one piece of lesson work that Josh started from the Lessons page in Josh OS. Do the work fully, then',
             'answer once. Josh OS saves what you send back and checks any file you name, so name the real path of every file you',
             'save, and only save files inside the course folder. Never touch recordings, and never move or delete Josh\'s files.'])
+        # File edits are held to the course folder. Bash (guide and thumbnail jobs) is not path-limited; see the README.
         return self.run(system, '\n'.join(parts), LESSON_JOB_SCHEMA, list(dirs) + [str(course_dir), str(Path(content_dir).parent.parent / '08_Strategy')],
+                        allow=scoped(JOB_TOOLS[task], course_dir),
                         tools=JOB_TOOLS[task], timeout=JOB_TIMEOUT[task], full=True)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None, allow=None):
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -907,7 +1023,7 @@ class Agents:
             wrapper = claude.lower().endswith(('.cmd', '.bat'))
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
-                   '--tools', tools or ALLOWED_TOOLS, '--allowedTools', ','.join([tools or ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
+                   '--tools', tools or ALLOWED_TOOLS, '--allowedTools', ','.join([allow or tools or ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
             if chrome:
                 cmd.append('--chrome')
             for d in dirs:
@@ -1149,7 +1265,7 @@ class Agents:
                           'Write to him first. Keep it short and natural. For the changes where the reason is clear, say in a line '
                           'what you will do from now on. For the ones you cannot work out, ask about one or two, like "Why did '
                           'you change X to Y? Was it to ...?". Do not ask about typo fixes. Put every edit id you covered in '
-                          'edits_noted, and save any rule that is already clear in lessons.']
+                          'edits_noted, and save any rule that is already clear in learned.']
             else:
                 parts += ['', f"Josh: {message or '(no text, just the images below)'}"]
                 if images:
@@ -1169,6 +1285,9 @@ class Agents:
             schema['properties'].update(PROJECT_PROPS)
             if via:
                 schema['properties'].update(SEND_FILES_PROPS)
+            thumbs = getattr(self, 'video_thumbs', None) if agent_id in CAN_THUMB else None
+            if thumbs is not None:
+                schema['properties'].update(THUMB_PROPS)
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
             if mails is not None:
                 schema['properties'].update(EMAIL_PROPS)
@@ -1186,8 +1305,9 @@ class Agents:
             ctx = data.get('context') or {}
             er = getattr(self, 'edit_review', None) if 'editing' in (agent.get('workflows') or []) else None
             edit_folder, before, run_tools = None, None, None
-            if er is not None and ctx.get('kind') in ('edit', 'project') and ctx.get('id'):
+            if er is not None:
                 schema['properties'].update(EDIT_PROPS)
+            if er is not None and ctx.get('kind') in ('edit', 'project') and ctx.get('id'):
                 try:
                     edit_folder = er.project_folder(str(ctx['id']))
                 except KeyError:
@@ -1207,7 +1327,8 @@ class Agents:
             reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
                                      schema, dirs, chrome=agent_id in CHROME and not proactive and live,
                                      extra_tools=outside, full=True,
-                                     tools=run_tools, cwd=edit_folder if run_tools else None)
+                                     tools=run_tools, cwd=edit_folder if run_tools else None,
+                                     allow=scoped(run_tools, edit_folder) if run_tools else None)
             answer = answer if isinstance(answer, dict) else {}
             todo = answer.get('carousels')
             saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
@@ -1224,15 +1345,26 @@ class Agents:
                 saved += self.apply_lessons(courses, answer['lessons'])
             if isinstance(answer.get('projects'), list):
                 saved += self.apply_projects(answer['projects'])
+            if thumbs is not None and isinstance(answer.get('thumbnails'), list):
+                for t in answer['thumbnails'][:3]:
+                    try:
+                        saved.append(thumbs.start(str((t or {}).get('project_id') or ''), str((t or {}).get('note') or message)[:2000], via))
+                    except (ValueError, KeyError) as e:
+                        saved.append(dict(id=str((t or {}).get('project_id') or ''), title='thumbnails', action='failed', kind='thumbnail',
+                                          error=str(e).strip("'\"")[:200]))
+            action = answer.get('edit') if isinstance(answer.get('edit'), dict) else {}
             if er is not None and edit_folder is not None:
-                saved += self.apply_edit(er, str(ctx['id']), answer.get('edit') if isinstance(answer.get('edit'), dict) else {}, before)
+                saved += self.apply_edit(er, str(ctx['id']), action, before)
+            elif er is not None and action.get('project_id'):
+                saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via)
             replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
             if mails is not None and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):
                 known = {e['id'] for e in edits}
                 feedback.mark([i for i in answer['edits_noted'] if i in known])
-            learned = self.keep_lessons(agent, answer.get('lessons'))
+            # Rules learned come in "learned". Course lessons use "lessons", so only fall back to it for agents without courses.
+            learned = self.keep_lessons(agent, answer.get('learned') if answer.get('learned') else (None if courses is not None else answer.get('lessons')))
         finally:
             lock.release()
         theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
@@ -1309,6 +1441,59 @@ class Agents:
         except (ValueError, KeyError, OSError) as e:
             done.append(dict(id=pid, title='the edit review', action='failed', kind='edit', error=str(e)[:200]))
         return done
+
+    def apply_edit_elsewhere(self, er, agent_id, pid, action, via):
+        """Edit actions asked for in a chat that isn't the animation review: folders and pictures now, deck changes as a job."""
+        try:
+            p = self.store.get(pid)
+            er.project_folder(pid)
+        except (KeyError, ValueError) as e:
+            return [dict(id=pid, title='the edit', action='failed', kind='edit', error=str(e)[:200])]
+        done = self.apply_edit(er, pid, {k: action[k] for k in ('setup', 'rerender') if k in action}, self._deck_state(er, pid))
+        change = str(action.get('deck_change') or '').strip()
+        if change:
+            key = ('deck', pid)
+            t = self.jobs.get(key) if hasattr(self, 'jobs') else None
+            if t and t.is_alive():
+                return done + [dict(id=pid, title=p['name'], action='failed', kind='edit', error='A deck change for this video is already running.')]
+            self.jobs = getattr(self, 'jobs', {})
+            t = threading.Thread(target=self._deck_job, args=(agent_id, pid, change[:3000], via), daemon=True)
+            self.jobs[key] = t
+            t.start()
+            done.append(dict(id=pid, title='the deck for ' + p['name'], action='started', kind='edit'))
+        return done
+
+    def _deck_state(self, er, pid):
+        slides = er.deck_files(pid)[0]
+        return (slides, slides.read_text(encoding='utf-8')) if slides else None
+
+    def _deck_job(self, agent_id, pid, change, via):
+        """The editor makes or changes a video's slides and shot list. File edits only inside that video's folder."""
+        er = self.edit_review
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
+        try:
+            folder = er.project_folder(pid)
+            learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
+            _, dirs = self.training(agent_id)
+            parts = [self.focus(dict(kind='edit', id=pid), [], None), '', 'Josh asked, from chat: ' + change]
+            for name in SKILLS.get(agent_id, []):
+                text = self.skill_text(name)
+                if text:
+                    parts += ['', f'=== Skill: {name} (follow it for anything you make or change in the deck) ===', text]
+            before = self._deck_state(er, pid)
+            system = self.desk_system_prompt(agent, learnings) + '\n\nYou are doing one deck change Josh asked for in chat. Do it fully, then answer once.'
+            reply, _ = self.run(system, '\n'.join(parts), DESK_SCHEMA, list(dirs), tools='Read,Grep,Glob,Edit,Write',
+                                allow=scoped('Read,Grep,Glob,Edit,Write', folder), cwd=folder, timeout=1800, full=True)
+            saved = self.apply_edit(er, pid, {}, before)
+            text = reply or 'Done.'
+        except Exception as e:  # noqa: BLE001 - the failure goes back to Josh in the chat
+            saved, text = [], f"I couldn't change the deck: {str(e)[:300]}"
+        self.post(agent_id, text, saved=saved, via=via)
+        if via == 'discord' and getattr(self, 'notify', None):
+            try:
+                self.notify(agent_id, text, [])
+            except Exception:  # noqa: BLE001
+                pass
 
     def keep_lessons(self, agent, lessons):
         """Save the rules a team member worked out from Josh's edits or answers to the shared lessons log."""

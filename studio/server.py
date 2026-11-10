@@ -27,6 +27,7 @@ from .inspo import Inspo
 from .feedback import Feedback
 from .edit_review import EditReview,STANDIN
 from .video_pieces import VideoPieces
+from .video_thumbnails import VideoThumbnails
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
 
@@ -58,12 +59,12 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review)
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
         self.agents.admin=self.admin
-        self.discord=DiscordBridge(self).start()
+        self.discord=DiscordBridge(self).start();self.video_thumbs.notify=self.discord.notify;self.agents.notify=self.discord.notify
         threading.Thread(target=self.admin.loop,daemon=True).start()
         threading.Thread(target=self.kit_loop,daemon=True).start()
         self.token=self.phone.key or secrets.token_urlsafe(32);self.demo=demo;self.picker_lock=threading.Lock()

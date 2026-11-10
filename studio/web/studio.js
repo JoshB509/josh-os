@@ -76,7 +76,7 @@ async function samSend(message){
   const images=chatTake('sam');
   const body={agent_id:'sam',project_id:current.id,message,selection:samSel,images};
   samThread=[...samThread,{id:'pending',role:'josh',text:message,selection:samSel,images}];samBusy=true;samRender();
-  try{const r=await api('/api/agents/ask',body);samThread=r.messages;if(typeof roomThread!=='undefined')roomThread.sam=r.messages;
+  try{const r=await api('/api/agents/ask',body);samThread=r.messages;if(typeof roomThread!=='undefined')roomThread.sam=r.messages;if(typeof roomWatchJobs==='function')roomWatchJobs('sam',r.reply?.saved);
     if(r.reply?.saved?.length&&typeof dockRefresh==='function')await dockRefresh(r.reply.saved)}
   catch(e){samThread=samThread.filter(m=>m.id!=='pending');chatAttach.sam=images;toast(e.message,true)}
   finally{samBusy=false;samRender()}

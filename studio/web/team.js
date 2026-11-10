@@ -167,7 +167,7 @@ function roomFormat(text){
   }).join('');
 }
 function roomTime(at){if(!at)return '';const d=new Date(at);if(isNaN(d))return '';return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
-function roomSavedItem(x){if(x.kind==='lesson'){if(x.action==='failed')return `<span class="room-saved-item bad">Couldn't change ${esc(x.title||'that lesson')}. ${esc(x.error||'')}</span>`;const what={added:'Added',updated:'Updated',moved:`Moved to ${x.stage||'a new stage'}:`,started:`Started ${({prepare:'preparing',draft:'drafting',slides:'the slides for',guide:'the guide for',thumbnail:'the thumbnail for'})[x.task]||'work on'}`}[x.action]||'Updated';return `<button class="room-saved-item" data-lesson-go="${esc(x.id)}">${esc(what)} ${esc(x.title)} <i>›</i></button>`}if(x.kind==='project')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't change ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:brief:${esc(x.id)}">Updated ${esc(x.title)} <i>›</i></button>`;if(x.kind==='video')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save the results for ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:results:${esc(x.id)}">Saved the results for ${esc(x.title)} <i>›</i></button>${x.note?`<span class="room-saved-item bad">${esc(x.note)}</span>`:''}`;if(x.kind==='edit')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't update ${esc(x.title)}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-er-open="${esc(x.id)}">Updated ${esc(x.title)} <i>›</i></button>`;if(x.kind==='library')return `<span class="room-saved-item">${x.action==='added'?'Saved to the library':x.action==='already saved'?'Already in the library':'Couldn’t save'}: ${esc(x.title)}${x.error?'. '+esc(x.error):''}</span>`;return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
+function roomSavedItem(x){if(x.kind==='thumbnail'){if(x.action==='failed')return `<span class="room-saved-item bad">Couldn't start the thumbnails. ${esc(x.error||'')}</span>`;return `<button class="room-saved-item" data-desk-act="project:${esc(x.id)}">${x.action==='started'?'Making thumbnails for':`Made ${x.count||''} thumbnail${x.count===1?'':'s'} for`} ${esc(x.title)} <i>›</i></button>`}if(x.kind==='lesson'){if(x.action==='failed')return `<span class="room-saved-item bad">Couldn't change ${esc(x.title||'that lesson')}. ${esc(x.error||'')}</span>`;const what={added:'Added',updated:'Updated',moved:`Moved to ${x.stage||'a new stage'}:`,started:`Started ${({prepare:'preparing',draft:'drafting',slides:'the slides for',guide:'the guide for',thumbnail:'the thumbnail for'})[x.task]||'work on'}`}[x.action]||'Updated';return `<button class="room-saved-item" data-lesson-go="${esc(x.id)}">${esc(what)} ${esc(x.title)} <i>›</i></button>`}if(x.kind==='project')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't change ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:brief:${esc(x.id)}">Updated ${esc(x.title)} <i>›</i></button>`;if(x.kind==='video')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save the results for ${esc(x.title||'that video')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-desk-act="project-tab:results:${esc(x.id)}">Saved the results for ${esc(x.title)} <i>›</i></button>${x.note?`<span class="room-saved-item bad">${esc(x.note)}</span>`:''}`;if(x.kind==='edit')return x.action==='failed'?`<span class="room-saved-item bad">Couldn't update ${esc(x.title)}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" data-er-open="${esc(x.id)}">${x.action==='started'?'Changing':'Updated'} ${esc(x.title)} <i>›</i></button>`;if(x.kind==='library')return `<span class="room-saved-item">${x.action==='added'?'Saved to the library':x.action==='already saved'?'Already in the library':'Couldn’t save'}: ${esc(x.title)}${x.error?'. '+esc(x.error):''}</span>`;return x.action==='failed'?`<span class="room-saved-item bad">Couldn't save ${esc(x.title||'a carousel')}. ${esc(x.error||'')}</span>`:`<button class="room-saved-item" ${x.kind==='inspo'?`data-inspo-open="${esc(x.id)}"`:x.kind==='email'?`data-email-go="${esc(x.id)}"`:`data-desk-act="carousel:${esc(x.id)}"`}>${x.action==='added'?'Added':x.action==='designed'?'Made the design for':'Updated'} ${x.kind==='inspo'?'creator post ':x.kind==='email'?'email ':''}${esc(x.title)} <i>›</i></button>`}
 function roomSaved(list){
   const items=list.map(roomSavedItem).join('');
   if(list.length<=3)return `<div class="room-saved">${items}</div>`;
@@ -239,7 +239,7 @@ async function roomSend(message,retryId=null,images=null){
   roomThread[id]=[...list,{id:'pending',role:'josh',text:message,images,at:new Date().toISOString()}];
   roomBusy=id;roomStarted=Date.now();roomRender();
   clearInterval(roomTick);roomTick=setInterval(()=>{const c=$('#room-clock');if(c)c.textContent=roomElapsed()},1000);
-  try{const r=await api('/api/agents/chat',{agent_id:id,message,images});roomThread[id]=r.messages;if(r.reply?.saved?.length){carousels=null;deskCarousels=null;if(typeof inspo!=='undefined')inspo=null;if(typeof dockRefresh==='function')dockRefresh(r.reply.saved);deskData().then(roomWorkRender).catch(()=>{})}}
+  try{const r=await api('/api/agents/chat',{agent_id:id,message,images});roomThread[id]=r.messages;roomWatchJobs(id,r.reply?.saved);if(r.reply?.saved?.length){carousels=null;deskCarousels=null;if(typeof inspo!=='undefined')inspo=null;if(typeof dockRefresh==='function')dockRefresh(r.reply.saved);deskData().then(roomWorkRender).catch(()=>{})}}
   catch(e){roomThread[id]=(roomThread[id]||[]).map(m=>m.id==='pending'?{...m,id:'failed-'+Date.now(),failed:e.message}:m)}
   finally{clearInterval(roomTick);roomBusy=null;if(teamOpen===id)roomRender()}
 }
@@ -296,3 +296,22 @@ document.addEventListener('keydown',e=>{if(e.target.id==='room-input'&&e.key==='
 document.addEventListener('input',e=>{if(e.target.id==='room-input')roomGrow(e.target)});
 document.addEventListener('keydown',e=>{const c=e.target.closest?.('[data-team-open]');if(c&&e.key==='Enter'){teamOpen=c.dataset.teamOpen;render()}});
 const teamBaseRender=render;render=function(){if(!current&&view==='team')return renderTeam();return teamBaseRender()};
+
+// A job a team member started from chat (like thumbnails) posts its result later. Check for it while it runs.
+const roomWatching={},roomWatchStart={};
+function roomWatchJobs(agentId,saved){
+  if(!(saved||[]).some(x=>(x.kind==='thumbnail'||x.kind==='edit')&&x.action==='started')||roomWatching[agentId])return;
+  const since=(roomThread[agentId]||[]).length,until=Date.now()+40*60*1000;roomWatchStart[agentId]=new Date(Date.now()+5000).toISOString();
+  roomWatching[agentId]=setInterval(async()=>{
+    try{
+      const t=await api(`/api/agents/thread?project=desk&agent=${encodeURIComponent(agentId)}`);
+      if(t.length>since&&t.at(-1).role==='agent'&&t.at(-1).at>(roomWatchStart[agentId]||'')||Date.now()>until){
+        clearInterval(roomWatching[agentId]);delete roomWatching[agentId];roomThread[agentId]=t;
+        if(teamOpen===agentId)roomRender();if(typeof dockRender==='function')dockRender();
+        if(agentId==='sam'&&typeof samThread!=='undefined'){samThread=t;if(typeof samRender==='function')samRender()}
+        if(t.at(-1).role==='agent')toast(`${teamAgent(agentId)?.name||'Your team'} has finished`);
+        if(current&&typeof refresh==='function')refresh().catch(()=>{});
+      }
+    }catch{}
+  },15000);
+}

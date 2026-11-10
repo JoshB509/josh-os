@@ -127,3 +127,11 @@ The phone link contains a key, which is stored in `Data/phone-access.json` and s
 - `ui/` holds the C# launchers.
 - `specs/` and `writing_passes/` hold the editing and writing rules, and `tests/` holds the tests.
 - `Inputs/`, `examples/` and `reference_sources/` are small sample and reference inputs.
+
+## What the team's jobs can touch
+
+Every chat with a team member (their Team page, the dock, the chat beside a script, and Discord) goes through the same code in `studio/agent.py`, so a request reaches the same actions wherever Josh asks. Ordinary chat is read-only (Read, Grep, Glob). Work that changes files runs as a job with limits Josh OS enforces:
+
+- **Sam's thumbnails** (`studio/video_thumbnails.py`, `studio/thumbnail_build.py`). Sam only picks options with read-only tools. Josh OS checks every value (format middle or close, a pose by name from the Pose Catalogue, numbers within set ranges, plain words), names the output itself inside the video's `thumbnails` folder, and runs the one fixed builder with an argument list, never a shell. The builder imports only `oneline.py` or `close_unit.py` from `E:\CareerOS\12_YouTube\_thumbnail-system\tools`, reads the template backgrounds, the pose cutout and the Josh Thumbnail V2 font, and refuses any output that isn't a new PNG in a video's thumbnails folder.
+- **Tariq's deck changes**, from the animation review or any chat. Write and Edit are allowed only inside that video's folder, using Claude Code's `Edit(//e/<folder>/**)` rule. A bare Write or Edit would allow writing anywhere, which was tested.
+- **Saskia's lesson jobs.** Write and Edit are held to the course's folder the same way. Her guide and thumbnail jobs still have Bash, which is not path-limited.
