@@ -1572,6 +1572,11 @@ class Agents:
         """The editor makes or changes a video's slides and shot list. File edits only inside that video's folder."""
         er = self.edit_review
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
+        flow = getattr(self, 'edit_flow', None)
+        mark = (lambda *x, **k: flow._setup_step(pid, *x, phase='animate', **k)) if flow else (lambda *x, **k: None)
+        if flow:
+            flow._setup_new(pid, 'animate')
+            mark('deck', 'running', 'Working on: ' + change[:200])
         try:
             folder = er.project_folder(pid)
             learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
@@ -1587,8 +1592,13 @@ class Agents:
                                 allow=scoped('Read,Grep,Glob,Edit,Write', folder), cwd=folder, timeout=1800, full=True)
             saved = self.apply_edit(er, pid, {}, before)
             text = reply or 'Done.'
+            if flow:
+                mark('deck', 'done', 'The slides and shot list are ready to review')
+                flow._setup_finish(pid, 'done', 'The slides and shot list are ready to review.', 'animate')
         except Exception as e:  # noqa: BLE001 - the failure goes back to Josh in the chat
             saved, text = [], f"I couldn't change the deck: {str(e)[:300]}"
+            if flow:
+                flow._phase_fail(pid, 'animate', 'deck', str(e)[:300])
         self.post(agent_id, text, saved=saved, via=via)
         if via == 'discord' and getattr(self, 'notify', None):
             try:

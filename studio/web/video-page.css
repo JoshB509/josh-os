@@ -76,3 +76,8 @@
 @keyframes vp-stripe{to{background-position:28px 0}}
 @keyframes vp-pulse{50%{box-shadow:inset 0 0 0 2px #ffd54d,0 0 0 4px rgba(245,194,27,.25)}}
 @media (prefers-reduced-motion:reduce){.vp-step.running .vp-bar i,.vp-step.running .vp-step-mark{animation:none}}
+.vp-step.measured .vp-bar i{background:#f5c21b;animation:none}
+.vp-step.skipped .vp-step-mark{background:var(--hover);color:var(--muted);box-shadow:none}
+.vp-step.skipped .vp-step-top b{color:var(--muted)}
+.vp-phase-msg.failed,.vp-phase-msg.interrupted{color:#a9372d;font-weight:600}
+.vp-epane{display:flex;flex-direction:column;gap:var(--sp-4)}

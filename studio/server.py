@@ -93,6 +93,7 @@ class Server(ThreadingHTTPServer):
         if action=='revise':return f.revise(pid,d['proposal_id'],d['digest'],d.get('changes') or [],d.get('words') or [],d.get('note',''))
         if action=='approve':return f.approve_script(pid,d['proposal_id'],d['digest'],d.get('note',''),auto=True)
         if action=='go':return f.go_ahead(pid)
+        if action=='build_again':return f.build_again(pid)
         if action=='preview':return f.preview(pid,d['proposal_id'],d['event_id'],float(d.get('context_s',2)))
         if action=='premiere':return f.bridge_call('tq_probe',dict(master=d.get('master') or 'GREEN_MASTER'))
         if action=='build':

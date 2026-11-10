@@ -23,7 +23,7 @@ async function efLoad(){
 // Tariq is working on something that will change what this page shows, so it keeps checking.
 function efWorking(){
   if(!efData)return false;const st=Object.fromEntries((efData.status||[]).map(x=>[x.key,x.state]));
-  if(efData.progress?.state==='running'||efData.setup?.state==='running')return true;
+  if(efData.progress?.state==='running'||Object.values(efData.phases||{}).some(x=>x?.state==='running'))return true;
   if(efData.proposal?.approved&&['waiting','requested','running'].includes(st.cut))return true;
   if(st.visuals==='approved'&&['waiting','requested','running'].includes(st.final))return true;
   return false;
@@ -121,6 +121,7 @@ function efNext(){
     </section>`;
   }
   const cut=st.cut,vis=st.visuals,fin=st.final;
+  if(efEmbedded()&&efData.phases?.build)return '';
   if(efEmbedded())return `<section class="ef-card ef-approve">
     <p>You approved revision ${p.revision}. ${cut?.state==='verified'?'Tariq has built the cut in Premiere, so the animations are next.':cut?.state==='blocked'||cut?.state==='failed'?esc(cut.reason):'Tariq is building it in Premiere now.'}</p>
     ${cut?.state==='verified'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':''}</section>`;

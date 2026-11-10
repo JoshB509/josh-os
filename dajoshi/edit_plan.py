@@ -431,8 +431,15 @@ def output_map(keeps, sr, mic_minus_camera_s, frame_ticks, inserts=()):
     bad = [p for p in pieces if p['kind'] == 'source' and p['camera_in'] < 0]
     if bad:
         raise ValueError('A kept piece starts before the camera recording. The mic covers time the camera does not.')
+    # Premiere starts a clip on a whole frame of the sequence, so the mic's in point would be floored. Round the
+    # mic-to-camera offset once to the nearest whole frame instead: every piece then slips by the same amount,
+    # at most half a frame, and Premiere places it exactly where the plan says.
+    whole = int(round(offset / frame_ticks)) * frame_ticks
+    for p in pieces:
+        if p['kind'] == 'source':
+            p['mic_in'], p['mic_out'] = p['camera_in'] + whole, p['camera_out'] + whole
     return dict(pieces=pieces, duration_ticks=out, frame_ticks=frame_ticks, ticks_per_second=tps,
-                mic_minus_camera_ticks=offset, max_rounding_ticks=max(displaced or [0]),
+                mic_minus_camera_ticks=offset, mic_slip_ticks=offset - whole, max_rounding_ticks=max(displaced or [0]),
                 rounding='Each piece edge rounded once to the nearest camera frame. Cuts under one frame merge, pieces under half a frame drop.')
 
 

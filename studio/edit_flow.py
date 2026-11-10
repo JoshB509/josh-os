@@ -18,6 +18,8 @@ through the Josh Cut Pro panel bridge on this PC. Nothing is uploaded or publish
 """
 import hashlib
 import json
+import re
+import os
 import subprocess
 import sys
 import threading
@@ -352,7 +354,7 @@ class EditFlow:
     def view(self, pid, proposal_id=None):
         prop = self.get(pid, proposal_id) if proposal_id else self.latest(pid, 'edit_proposal')
         if not prop:
-            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid))
+            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid))
         pl = prop['payload']
         rem, issues = self.computed(prop)
         total = pl['measurements']['samples']
@@ -367,7 +369,7 @@ class EditFlow:
             sync=pl['sync'], editorial=pl['editorial'], asr=pl['asr'], notes=pl['notes'],
             summary=dict(source_s=round(total / SR, 2), kept_s=round(kept / SR, 2), removed_s=round((total - kept) / SR, 2),
                          removals=len(rem), cards=len(ep.queue(pl['events'], pl['decisions'], issues))),
-            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid))
+            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid))
 
     def revise(self, pid, proposal_id, expected_digest, changes=(), words=(), note=''):
         """Josh's (or Tariq's) changes make a new revision. The old one is never edited."""
@@ -640,7 +642,15 @@ class EditFlow:
         output = out_dir / f'{name}_v{n:02d}.mp4'
         job = self.folder(pid) / 'final' / f'{name}_v{n:02d}'
         job.mkdir(parents=True, exist_ok=True)
-        say = lambda m: write_atomic(job / 'progress.json', dict(state='running', message=m, at=now()))
+        F = 'final'
+        self._setup_new(pid, F)
+
+        def say(m):
+            write_atomic(job / 'progress.json', dict(state='running', message=m, at=now()))
+            r = re.match(r'Rendering animation \d+, press \d+ \((\d+) of (\d+)\)', m)
+            key = 'render' if r or m.startswith('Rendering animation') else 'export' if m.startswith('Rendering the video') else \
+                'place' if m.startswith('Placing') else 'copy' if m.startswith('Copying') else 'save' if m.startswith('Saving') else 'open'
+            self._setup_step(pid, key, 'running', m, phase=F, fraction=(int(r.group(1)) - 1) / int(r.group(2)) if r else None)
         req = self._put(pid, 'edit_final', dict(state='running', visuals=v['id'], cut=cut['id'], output=str(output)), parent=v['id'])
         title = self.store.get(pid).get('name') or 'this video'
         try:
@@ -652,6 +662,7 @@ class EditFlow:
             say('Copying the approved cut to ' + name)
             self.bridge_call('tq_assemble', dict(cut=plan['sequence_name'], sequence=name))
             layers = self.animation_layers(pid, cut, frame, job, say)
+            self._setup_step(pid, 'render', 'done', f"{len(layers['shots'])} animation presses ready", phase=F, fraction=1)
             if layers['result']['layers']:
                 say('Placing the animations on ' + name)
                 placed = self.bridge_call('tq_place_layers', dict(sequence=name, result=layers['result'], nest=plan['master']), timeout=6 * 3600)
@@ -663,11 +674,15 @@ class EditFlow:
             self.bridge_call('tq_save', {})
         except Exception as e:  # noqa: BLE001
             write_atomic(job / 'progress.json', dict(state='failed', message=str(e)[:500], at=now()))
+            self._phase_fail(pid, F, 'open', str(e)[:300])
             self._tell(pid, f'I stopped putting {title} together: {str(e)[:300]}')
             return self._put(pid, 'edit_final', dict(state='blocked', error=str(e)[:500], request=req['id']), parent=v['id'])
+        self._setup_step(pid, 'check', 'running', 'Checking the exported file', phase=F)
         problems = verify_export(output, plan['map'])
         windows = verify_windows(output, layers['result'], self.ffmpeg, job / 'windows') if layers['result']['layers'] else dict(problems=[])
         problems += windows['problems']
+        self._setup_step(pid, 'check', 'problems' if problems else 'done', ' '.join(problems) or 'Length, picture, sound and every PiP window are right', phase=F)
+        self._setup_finish(pid, 'done' if not problems else 'failed', f'Exported to {output}' if not problems else 'The export has problems: ' + ' '.join(problems), F)
         self._tell(pid, (f'{title} is exported to {output}. I checked its length, picture, sound and that you show in every PiP window.'
                          if not problems else f'{title} exported to {output}, but these checks failed: ' + ' '.join(problems)))
         write_atomic(job / 'progress.json', dict(state='done', message='; '.join(problems) or 'Exported and checked', at=now()))
@@ -713,25 +728,35 @@ class EditFlow:
              ('look', 'Keying you and copying your look'), ('picture', 'Checking the picture'), ('sync', 'Lining up the mic with the camera'),
              ('transcribe', 'Transcribing what you said'), ('cut', 'Finding silences, repeats and retakes'))
     ANALYSE_STEP = dict(hash='sync', decode='sync', sync='sync', transcribe='transcribe', measure='cut', editorial='cut')
+    # After the script is approved, after Josh asks for slides, and after the storyboard is approved.
+    BUILD = (('open', 'Opening my Premiere project'), ('build', 'Building the cut from your approved script'),
+             ('check', 'Checking every piece and the mic sync'), ('save', 'Saving the project'))
+    ANIMATE = (('deck', 'Making the slides and shot list'),)
+    FINAL = (('open', 'Opening my Premiere project'), ('copy', 'Copying the approved cut'), ('render', 'Rendering the animations'),
+             ('place', 'Placing the animations on V4 and V5'), ('export', 'Exporting the video'), ('save', 'Saving the project'),
+             ('check', 'Checking the length, picture, sound and PiP windows'))
+    PHASES = dict(setup='SETUP', build='BUILD', animate='ANIMATE', final='FINAL')
 
     def _setup_dir(self, pid):
         d = self.folder(pid) / 'setup'
         d.mkdir(exist_ok=True)
         return d
 
-    def setup(self, pid):
-        f = self._setup_dir(pid) / 'setup.json'
+    def setup(self, pid, phase='setup'):
+        f = self._setup_dir(pid) / f'{phase}.json'
         try:
             s = json.loads(f.read_text(encoding='utf-8'))
         except (OSError, ValueError):
             return None
-        t = self.jobs.get(('go', pid))
-        if s.get('state') == 'running' and not (t and t.is_alive()):
+        if s.get('state') == 'running' and s.get('proc') != os.getpid():
             s['state'] = 'interrupted'
             for st in s['steps']:
                 if st['state'] == 'running':
-                    st['state'], st['message'] = 'failed', 'This stopped when Josh OS closed. Ask me to start the edit again.'
+                    st['state'], st['message'] = 'failed', 'This stopped when Josh OS closed. Ask me to start it again.'
         return s
+
+    def phases(self, pid):
+        return {k: self.setup(pid, k) for k in self.PHASES}
 
     def setup_image(self, pid, name):
         f = self._setup_dir(pid) / Path(name).name
@@ -739,20 +764,22 @@ class EditFlow:
             raise FileNotFoundError(name)
         return f
 
-    def _setup_write(self, pid, s):
-        write_atomic(self._setup_dir(pid) / 'setup.json', s)
+    def _setup_write(self, pid, s, phase='setup'):
+        s['proc'] = os.getpid()
+        write_atomic(self._setup_dir(pid) / f'{phase}.json', s)
 
-    def _setup_blank(self):
-        return dict(state='running', started=now(), steps=[dict(key=k, label=l, state='waiting', message='', images=[]) for k, l in self.SETUP])
+    def _setup_blank(self, phase='setup'):
+        return dict(state='running', started=now(), steps=[dict(key=k, label=l, state='waiting', message='', images=[])
+                                                            for k, l in getattr(self, self.PHASES[phase])])
 
-    def _setup_new(self, pid):
-        self._setup_write(pid, self._setup_blank())
+    def _setup_new(self, pid, phase='setup'):
+        self._setup_write(pid, self._setup_blank(phase), phase)
 
-    def _setup_step(self, pid, key, state='running', message=None, images=None):
+    def _setup_step(self, pid, key, state='running', message=None, images=None, phase='setup', fraction=None):
         """Mark a step. Starting a step finishes the ones still running before it."""
         import shutil
         with self.lock:
-            s = self.setup(pid) or self._setup_blank()
+            s = self.setup(pid, phase) or self._setup_blank(phase)
             keys = [st['key'] for st in s['steps']]
             for st in s['steps']:
                 if st['key'] == key:
@@ -760,31 +787,39 @@ class EditFlow:
                         st['state'] = state
                     if message:
                         st['message'] = message
+                    if fraction is not None:
+                        st['fraction'] = max(0.0, min(1.0, float(fraction)))
                     st['at'] = now()
                     for img in images or []:
                         if img and Path(img).is_file():
-                            name = f"{key}-{len(st['images']) + 1}{Path(img).suffix.lower()}"
+                            name = f"{phase}-{key}-{len(st['images']) + 1}{Path(img).suffix.lower()}"
                             shutil.copy2(img, self._setup_dir(pid) / name)
                             st['images'].append(name)
                     break
                 if state == 'running' and st['state'] == 'running' and keys.index(st['key']) < keys.index(key):
                     st['state'] = 'done'
-            self._setup_write(pid, s)
+            self._setup_write(pid, s, phase)
 
-    def _setup_running(self, pid, default):
-        s = self.setup(pid) or {}
+    def _setup_running(self, pid, default, phase='setup'):
+        s = self.setup(pid, phase) or {}
         return next((st['key'] for st in s.get('steps', []) if st['state'] == 'running'), default)
 
-    def _setup_finish(self, pid, state, message=''):
+    def _setup_finish(self, pid, state, message='', phase='setup'):
         with self.lock:
-            s = self.setup(pid)
+            s = self.setup(pid, phase)
             if not s:
                 return
             s['state'], s['message'], s['finished'] = state, message, now()
             for st in s['steps']:
                 if st['state'] == 'running':
                     st['state'] = 'done' if state == 'done' else 'failed'
-            self._setup_write(pid, s)
+                elif st['state'] == 'waiting' and state == 'done':
+                    st['state'] = 'skipped'
+            self._setup_write(pid, s, phase)
+
+    def _phase_fail(self, pid, phase, default, message):
+        self._setup_step(pid, self._setup_running(pid, default, phase), 'failed', message, phase=phase)
+        self._setup_finish(pid, 'failed', message, phase)
 
     def _setup_picture(self, pid, camera):
         """A frame of GREEN_MASTER from Premiere, and the same frame with a red line down the middle."""
@@ -796,8 +831,12 @@ class EditFlow:
         d = self._setup_dir(pid)
         for old in d.glob('master-*'):
             old.unlink()
-        self.bridge_call('tq_export_frames', dict(sequence='GREEN_MASTER', times=[str(at)], dir=str(d), prefix='master', width=1280, height=720))
-        f = _frame_file(d, 'master-000.png')
+        f = None
+        for _ in range(3):  # Premiere sometimes drops a frame, so ask again
+            self.bridge_call('tq_export_frames', dict(sequence='GREEN_MASTER', times=[str(at)], dir=str(d), prefix='master', width=1280, height=720))
+            f = _frame_file(d, 'master-000.png')
+            if f:
+                break
         img = cv2.imread(str(f)) if f else None
         if img is None:
             raise ValueError('Premiere did not export a frame of GREEN_MASTER.')
@@ -920,27 +959,55 @@ class EditFlow:
             self._setup_finish(pid, 'failed', str(e)[:300])
             self._tell(pid, f'I stopped on {title}: {str(e)[:300]}', via)
 
+    def build_again(self, pid):
+        """Josh asks for the approved script to be built again after a failed build. It runs as a job."""
+        prop = self.latest(pid, 'edit_proposal')
+        if not prop or not self.approved(prop):
+            raise Conflict('Approve the script first.')
+        with self.lock:
+            t = self.jobs.get(('build', pid))
+            if t and t.is_alive():
+                raise Conflict('Tariq is already building the cut.')
+            t = threading.Thread(target=self._after_script, args=(pid, prop), daemon=True)
+            self.jobs[('build', pid)] = t
+            t.start()
+        return dict(state='started')
+
     def _after_script(self, pid, prop, via=''):
         """Josh approved the script: build the cut in Tariq's project, then hand him the slides to review."""
         from . import edit_master as em
         title = self.store.get(pid).get('name') or 'this video'
+        B = 'build'
+        self._setup_new(pid, B)
         try:
+            self._setup_step(pid, 'open', 'running', 'Opening Premiere and my project for this video', phase=B)
             if not em.open_project(self, pid):
+                msg = "My Premiere project for this video isn't made yet. Start the edit first."
+                self._phase_fail(pid, B, 'open', msg)
                 self._tell(pid, f"I can't build {title} yet, because my Premiere project for it isn't made. Ask me to start the edit first.", via)
                 return
             check = self.bridge_call('tq_probe', dict(master=em.MASTER))
             if not check.get('frame_ticks'):
                 raise ValueError(' '.join(check.get('notes') or ['GREEN_MASTER is missing.']))
+            self._setup_step(pid, 'build', 'running', f"Building CLEAN_CUT_r{prop['payload']['revision']:02d} from revision {prop['payload']['revision']}", phase=B)
             cut = self.build_cut(pid, prop['id'], prop['digest'], int(check['frame_ticks']))
+            self._setup_step(pid, 'check', 'running', 'Reading the new sequence back from Premiere', phase=B)
             state = cut['payload'].get('state')
             if state != 'verified':
-                self._tell(pid, f"The cut for {title} did not build cleanly: {cut['payload'].get('error') or ' '.join(cut['payload'].get('problems') or [])}", via)
+                msg = cut['payload'].get('error') or ' '.join(cut['payload'].get('problems') or []) or 'The cut did not build.'
+                self._phase_fail(pid, B, 'check', msg)
+                self._tell(pid, f"The cut for {title} did not build cleanly: {msg}", via)
                 return
+            slip = abs(int(cut['payload']['plan']['map'].get('mic_slip_ticks') or 0)) / 254016000000 * 1000
+            self._setup_step(pid, 'check', 'done', f"Every piece is where it should be. The mic is within {slip:.0f} ms of the picture.", phase=B)
+            self._setup_step(pid, 'save', 'running', phase=B)
             self.bridge_call('tq_save', {})
+            self._setup_finish(pid, 'done', f"{cut['payload']['plan']['sequence_name']} is built. The animations are next.", B)
             self.visuals(pid, cut['id'])
             self._tell(pid, f"The cut for {title} is built as {cut['payload']['plan']['sequence_name']}. The animations are next. "
                             'Review the slides, and when you approve the storyboard I will put it all together and export it.', via)
         except Exception as e:  # noqa: BLE001
+            self._phase_fail(pid, B, 'open', str(e)[:300])
             self._tell(pid, f'I stopped building {title}: {str(e)[:300]}', via)
 
     # ------------------------------------------------------------ status
