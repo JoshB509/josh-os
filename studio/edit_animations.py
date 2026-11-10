@@ -102,7 +102,9 @@ def plan_shots(words, removals, pieces, parts, scenes, frame_ticks, sr=16000):
             if beat > sc['end']:
                 problems.append(f"Animation {p['n']} press {n} is past the last press in its slides.")
                 continue
-            shots.append(dict(animation=p['n'], press=n, type=sc['type'], beat=beat, previous=beat - 1 if j else None,
+            # An animation that comes back after a cut to talking head picks up where it left off: its first press
+            # this time builds on the presses already shown, not on a blank scene.
+            shots.append(dict(animation=p['n'], press=n, type=sc['type'], beat=beat, previous=beat - 1 if j or n > 1 else None,
                               start_f=a, end_f=b, alpha=sc['type'] in ALPHA_TYPES))
     return shots, problems
 
