@@ -13,7 +13,7 @@ Built 10 November 2026 from the handover at `C:\Users\Anigma PC\Desktop\Tariq-Ed
 7. **Animations and final.** Josh's notes are kept with the cut. Approving the storyboard ties it to the current cut and to the slides as they were, and a new cut or new slides make it stale. The final step runs as a job:
    - It copies the cut to `FINAL_ASSEMBLY_rNN`.
    - It finds each press of Tariq's approved deck in the approved transcript and maps it through the cut's own map.
-   - It renders each press on this PC, at the sequence's size. PiP and half and half come out as ProRes with alpha, into `video	ariq-animations`.
+   - It renders each press on this PC, at the sequence's size. PiP and half and half come out as ProRes with alpha, into `video\tariq-animations`.
    - The panel places them on V5, with copies of the GREEN_MASTER pieces on V4 under PiP and half and half shots. If that copy fails, it stops rather than placing the raw camera file.
    - Then it exports with Premiere's own encoder into `video\exports` as a new file, saves, and checks the file's length, picture and sound.
 8. **Setting up the master.** "Set up Premiere" on the review screen copies Josh's keyed, uncut sequence to `GREEN_MASTER`, never changing his:
