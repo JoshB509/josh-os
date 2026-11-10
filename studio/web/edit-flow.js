@@ -115,6 +115,16 @@ function efNext(){
   const cut=st.cut,vis=st.visuals,fin=st.final;
   return `<section class="ef-card ef-approve">
     <p>Revision ${p.revision} is approved. ${esc(cut?.reason||'')}</p>
+    <details class="ef-setup"><summary>Set up Premiere</summary>
+      <p>Tariq copies your keyed, uncut sequence to GREEN_MASTER. Your sequence stays as it is. Masks can't be made from here, so they come from your sequence.</p>
+      <label>Your keyed sequence<input id="ef-src-seq" placeholder="The sequence name in Premiere"></label>
+      <label>Start the key from<select id="ef-ref"><option value="">Your own settings</option><option value="data">Data Storytelling's values</option><option value="exec">Executive Questions' values</option></select></label>
+      <label class="ef-check"><input type="checkbox" id="ef-shadow"> Add a soft shadow copy if there isn't one</label>
+      <div class="ef-row"><button class="subtle" data-ef-master>Make GREEN_MASTER</button></div>
+      <label>Test on a copy of this Premiere project<input id="ef-prproj" placeholder="Full path to the .prproj"></label>
+      <div class="ef-row"><button class="subtle" data-ef-native>Run the Premiere test on a copy</button></div>
+      <p class="hint">The test copies the project file first and only ever changes the copy.</p>
+    </details>
     <div class="ef-row">
       <button class="subtle" data-ef-premiere>Check Premiere</button>
       <button class="${['verified'].includes(cut?.state)?'subtle':'primary'}" data-ef-build ${efBusy?'disabled':''}>Build the cut in Premiere</button>
@@ -206,6 +216,10 @@ document.addEventListener('click',async e=>{
   if(e.target.closest('[data-ef-listen]')){efListen();return}
   if(e.target.closest('[data-ef-approve]')){const p=efData.proposal;
     if(await efPost('approve',{proposal_id:p.id,digest:p.digest},true)){toast('Script approved');await efLoad()}return}
+  if(e.target.closest('[data-ef-master]')){const src=$('#ef-src-seq').value.trim();if(!src){toast('Type the name of your keyed sequence',true);return}
+    const r=await efPost('master',{source:src,reference:$('#ef-ref').value||null,add_shadow:$('#ef-shadow').checked},true);if(r)toast(r.notes?.length?r.notes.join(' '):'GREEN_MASTER is ready');renderEditFlow();return}
+  if(e.target.closest('[data-ef-native]')){const src=$('#ef-src-seq').value.trim(),pr=$('#ef-prproj').value.trim().replace(/^"|"$/g,'');if(!src||!pr){toast('Type your keyed sequence and the project path',true);return}
+    const r=await efPost('native-test',{project:pr,source:src,reference:$('#ef-ref').value||null,add_shadow:$('#ef-shadow').checked},true);if(r)toast('The Premiere test is running on a copy in '+r.folder);renderEditFlow();return}
   if(e.target.closest('[data-ef-premiere]')){const r=await efPost('premiere',{},true);if(r)toast(r.ok?'Premiere is ready':'Premiere check: '+(r.notes||[]).join(' '),!r.ok);renderEditFlow();return}
   if(e.target.closest('[data-ef-proof]')){const r=await efPost('proof',{},true);if(r)toast(r.passed?'The key change reached every piece, and the shadow kept its own key':'The proof did not pass. The receipt is in '+r.folder,!r.passed);renderEditFlow();return}
   if(e.target.closest('[data-ef-build]')){const p=efData.proposal;const r=await efPost('build',{proposal_id:p.id,digest:p.digest},true);

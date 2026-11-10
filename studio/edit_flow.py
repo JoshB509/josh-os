@@ -64,7 +64,15 @@ def write_atomic(path, value):
     path = Path(path)
     tmp = path.with_suffix(path.suffix + '.tmp')
     tmp.write_text(json.dumps(value, indent=1), encoding='utf-8')
-    tmp.replace(path)
+    import time
+    for attempt in range(40):  # Windows refuses the swap while a reader (the screen polling progress) has the file open
+        try:
+            tmp.replace(path)
+            return
+        except PermissionError:
+            if attempt == 39:
+                raise
+            time.sleep(0.05)
 
 
 class EditFlow:
@@ -532,7 +540,8 @@ class EditFlow:
 
     def bridge_call(self, cmd, args, timeout=1800):
         """Ask the Josh Cut Pro panel in Premiere, through the helper's local bridge. Fixed command names only."""
-        if cmd not in ('tq_probe', 'tq_build_cut', 'tq_master_read', 'tq_master_set', 'tq_export_frames', 'tq_save', 'tq_assemble', 'tq_export'):
+        if cmd not in ('tq_probe', 'tq_build_cut', 'tq_master_read', 'tq_master_set', 'tq_export_frames', 'tq_save', 'tq_assemble', 'tq_export',
+                       'tq_make_master', 'tq_import', 'tq_open_project', 'tq_close_project', 'tq_verify_project', 'tq_place_layers'):
             raise ValueError('Unknown Premiere command.')
         import urllib.request
         try:
@@ -575,33 +584,97 @@ class EditFlow:
         return v
 
     def final(self, pid, visuals_id):
+        """Assemble, render and place Tariq's approved animations, export locally and check the file. Runs as a job."""
         v = self.get(pid, visuals_id)
         if not self.approved(v):
             raise Conflict('Approve the storyboard for the current cut first.')
         cut = self.get(pid, v['parent'])
         if (self.latest(pid, 'edit_cut') or {}).get('id') != cut['id'] or v['payload']['map_digest'] != cut['payload']['plan']['map_digest']:
             raise Conflict('The cut changed after the storyboard was approved, so its timing is stale.')
-        plan = cut['payload']['plan']
-        name = f"FINAL_ASSEMBLY_r{plan['revision']:02d}"
+        if self.edit_review is not None:
+            er = self.edit_review.review(pid)
+            if v['payload'].get('storyboard_digest') != f"{er.get('slides')}|{er.get('rendered')}":
+                raise Conflict('The slides changed after the storyboard was approved. Review and approve it again.')
         try:
             base = Path(self.folders.path(pid))
         except Exception:  # noqa: BLE001
             raise ValueError('This video has no folder, so there is nowhere to save the render.') from None
+        with self.lock:
+            t = self.jobs.get(('final', pid))
+            if t and t.is_alive():
+                raise Conflict('The final render is already running.')
+            t = threading.Thread(target=self._final, args=(pid, v, cut, base), daemon=True)
+            self.jobs[('final', pid)] = t
+            t.start()
+        return dict(state='started')
+
+    def _final(self, pid, v, cut, base):
+        plan = cut['payload']['plan']
+        name = f"FINAL_ASSEMBLY_r{plan['revision']:02d}"
         out_dir = base / 'video' / 'exports'
         out_dir.mkdir(parents=True, exist_ok=True)
         n = 1
         while (out_dir / f'{name}_v{n:02d}.mp4').exists():
             n += 1  # never overwrite an earlier render
         output = out_dir / f'{name}_v{n:02d}.mp4'
-        req = self._put(pid, 'edit_final', dict(state='requested', visuals=visuals_id, cut=cut['id'], output=str(output)), parent=visuals_id)
+        job = self.folder(pid) / 'final' / f'{name}_v{n:02d}'
+        job.mkdir(parents=True, exist_ok=True)
+        say = lambda m: write_atomic(job / 'progress.json', dict(state='running', message=m, at=now()))
+        req = self._put(pid, 'edit_final', dict(state='running', visuals=v['id'], cut=cut['id'], output=str(output)), parent=v['id'])
         try:
+            say('Checking Premiere')
+            check = self.bridge_call('tq_probe', dict(master=plan['master']))
+            frame = check.get('frame') or [1920, 1080]
+            say('Copying the approved cut to ' + name)
             self.bridge_call('tq_assemble', dict(cut=plan['sequence_name'], sequence=name))
+            layers = self.animation_layers(pid, cut, frame, job, say)
+            if layers['result']['layers']:
+                say('Placing the animations on ' + name)
+                placed = self.bridge_call('tq_place_layers', dict(sequence=name, result=layers['result'], nest=plan['master']), timeout=6 * 3600)
+            else:
+                placed = dict(note='No animations to place.')
+            say('Rendering the video on this PC')
             res = self.bridge_call('tq_export', dict(sequence=name, output=str(output)), timeout=6 * 3600)
+            say('Saving the project')
+            self.bridge_call('tq_save', {})
         except Exception as e:  # noqa: BLE001
-            return self._put(pid, 'edit_final', dict(state='blocked', error=str(e)[:500], request=req['id']), parent=visuals_id)
+            write_atomic(job / 'progress.json', dict(state='failed', message=str(e)[:500], at=now()))
+            return self._put(pid, 'edit_final', dict(state='blocked', error=str(e)[:500], request=req['id']), parent=v['id'])
         problems = verify_export(output, plan['map'])
+        write_atomic(job / 'progress.json', dict(state='done', message='; '.join(problems) or 'Exported and checked', at=now()))
         return self._put(pid, 'edit_final', dict(state='verified' if not problems else 'failed', result=res, output=str(output), problems=problems,
-                                                  request=req['id']), parent=visuals_id)
+                                                  animations=dict(placed=placed, left_out=layers['problems'], presses=len(layers['shots'])),
+                                                  request=req['id']), parent=v['id'])
+
+    def animation_layers(self, pid, cut, frame, job, say=print, render_limit=None):
+        """Tariq's approved deck as rendered layers for this cut: presses found in the approved transcript, mapped through the cut."""
+        from . import edit_animations as ea
+        from .edit_review import parse_scenes, parse_shot_list
+        plan = cut['payload']['plan']
+        prop = self.get(pid, cut['parent'])
+        slides, shots_md = self.edit_review.deck_files(pid)
+        if not slides or not shots_md:
+            return dict(result=dict(layers=[], fps_num=1, fps_den=1), shots=[], problems=['There are no slides or shot list for this video.'])
+        rem, _ = self.computed(prop)
+        scenes = {x['n']: x for x in parse_scenes(slides.read_text(encoding='utf-8'))}
+        parts = parse_shot_list(shots_md.read_text(encoding='utf-8'))
+        shots, problems = ea.plan_shots(prop['payload']['words'], rem, plan['map']['pieces'], parts, scenes, plan['map']['frame_ticks'], SR)
+        if render_limit is not None:
+            shots = shots[:render_limit]
+        scale = max(1, round(frame[0] / 1920.0, 3))
+        out = Path(self.folders.path(pid)) / 'video' / 'tariq-animations'
+        ea.render_shots(shots, slides, out, plan['map']['frame_ticks'], scale, self.ffmpeg, job, log=say)
+        cam = self.get(pid, prop['payload']['sources_id'])['payload']
+        size = (cam['headers']['camera']['width'], cam['headers']['camera']['height'])
+        return dict(result=ea.layer_result(shots, plan['map']['frame_ticks'], cam['files']['camera']['path'], size, frame), shots=shots, problems=problems)
+
+    def make_master(self, pid, source_sequence, reference=None, add_shadow=False):
+        """GREEN_MASTER from a sequence Josh keyed himself. His sequence is copied, never changed."""
+        if reference not in (None, '', 'data', 'exec'):
+            raise ValueError('Reference key must be data or exec.')
+        res = self.bridge_call('tq_make_master', dict(source=str(source_sequence), reference=reference or None, add_shadow=bool(add_shadow)))
+        self._put(pid, 'edit_master', dict(result=res, source=str(source_sequence), reference=reference, add_shadow=bool(add_shadow)))
+        return res
 
     # ------------------------------------------------------------ status
 
@@ -695,18 +768,25 @@ def _png_hash(path):
 
 
 def native_proof(flow, pid, param='Choke', delta=4.0):
-    """Premiere proof for one verified cut: change one presenter Ultra Key value in GREEN_MASTER, export real frames
-    from three distant cut pieces before and after, check every one changed and the shadow key did not, then put the
-    value back and check the frames match the originals again. Writes a receipt. Needs Premiere open with the panel."""
+    """Premiere proof for the latest verified cut. See _proof. Writes a receipt."""
     cut = flow.latest(pid, 'edit_cut')
     if not cut or cut['payload'].get('state') != 'verified':
         raise Conflict('Build and verify a cut in Premiere first.')
-    plan = cut['payload']['plan']
+    out = flow.folder(pid) / 'proof' / str(uuid.uuid4())
+    r = _proof(flow, cut['payload']['plan'], out, param, delta)
+    r.update(at=now(), cut=cut['id'], limits='Byte comparison of exported PNGs at three pieces. It shows the master change reached each piece. '
+                                              'It does not judge key quality, motion or the full timeline.')
+    write_atomic(out / 'receipt.json', r)
+    return r
+
+
+def _proof(flow, plan, out, param='Choke', delta=4.0):
+    """Change one presenter Ultra Key value in the master, export real frames from three distant cut pieces before and
+    after, check every one changed and the shadow key did not, then put the value back and export again."""
+    out.mkdir(parents=True, exist_ok=True)
     src = [p for p in plan['map']['pieces'] if p['kind'] == 'source']
     pick = [src[0], src[len(src) // 2], src[-1]] if len(src) >= 3 else src
     times = [str((p['out_start'] + p['out_end']) // 2) for p in pick]
-    out = flow.folder(pid) / 'proof' / str(uuid.uuid4())
-    out.mkdir(parents=True)
     master = plan['master']
     before_keys = flow.bridge_call('tq_master_read', dict(master=master, camera_path=plan['camera_path']))
     pres = [e for e in before_keys['effects'] if e['role'] == 'presenter' and 'ultra' in e['effect'].lower()]
@@ -716,7 +796,9 @@ def native_proof(flow, pid, param='Choke', delta=4.0):
     if not isinstance(value, (int, float)):
         raise ValueError(f'Ultra Key has no number called {param}.')
     shadow_before = [e for e in before_keys['effects'] if e['role'] == 'shadow']
-    frames = lambda tag: flow.bridge_call('tq_export_frames', dict(sequence=plan['sequence_name'], times=times, dir=str(out), prefix=tag))
+
+    def frames(tag):
+        return flow.bridge_call('tq_export_frames', dict(sequence=plan['sequence_name'], times=times, dir=str(out), prefix=tag))
     frames('before')
     flow.bridge_call('tq_master_set', dict(master=master, camera_path=plan['camera_path'], param=param, value=float(value) + delta))
     frames('changed')
@@ -728,10 +810,92 @@ def native_proof(flow, pid, param='Choke', delta=4.0):
         h = {tag: _png_hash(out / f'{tag}-{i:03d}.png') for tag in ('before', 'changed', 'restored')}
         rows.append(dict(time_ticks=t, exported=all(h.values()), changed=h['before'] != h['changed'], restored=h['before'] == h['restored']))
     shadow_after = [e for e in after_keys['effects'] if e['role'] == 'shadow']
-    receipt = dict(at=now(), cut=cut['id'], sequence=plan['sequence_name'], master=master, param=param, original=value, test_value=float(value) + delta,
-                   pieces=rows, shadow_unchanged=shadow_before == shadow_after, folder=str(out),
-                   passed=all(r['exported'] and r['changed'] for r in rows) and shadow_before == shadow_after,
-                   limits='Byte comparison of exported PNGs at three pieces. It shows the master change reached each piece. '
-                          'It does not judge key quality, motion or the full timeline. Save and reopen the project to check that too.')
-    write_atomic(out / 'receipt.json', receipt)
-    return receipt
+    return dict(sequence=plan['sequence_name'], master=master, param=param, original=value, test_value=float(value) + delta, pieces=rows,
+                shadow_unchanged=shadow_before == shadow_after, folder=str(out),
+                passed=all(r['exported'] and r['changed'] for r in rows) and shadow_before == shadow_after)
+
+
+def _layers_summary(x):
+    return dict(layers=x['result'], presses=len(x['shots']), left_out=x['problems'])
+
+
+def native_test(flow, pid, project_path, source_sequence, reference=None, add_shadow=False, render_limit=3):
+    """The whole native route on a COPY of a Premiere project, as a background job with a receipt.
+
+    Copies the .prproj into Josh OS's own test folder (the original is only read), opens the copy alongside
+    whatever Josh has open, makes GREEN_MASTER from his keyed sequence, imports the good mic, builds the approved
+    cut, proves a key change reaches three pieces, assembles with a few of Tariq's animations, exports, saves,
+    closes, reopens and checks the sequences, the nest and the media links. Only the copy is ever changed."""
+    import shutil as _sh
+    src = Path(str(project_path).strip().strip('"'))
+    if src.suffix.lower() != '.prproj' or not src.is_file():
+        raise ValueError('Choose the Premiere project (.prproj) to copy.')
+    prop = flow.latest(pid, 'edit_proposal')
+    if not prop or not flow.approved(prop):
+        raise Conflict('Approve the script first. The test builds that exact revision.')
+    test = flow.folder(pid) / 'native-test' / now().replace(':', '').replace('-', '').replace('.', '')[:15]
+    test.mkdir(parents=True)
+    copy = test / (src.stem + ' - Tariq test copy.prproj')
+    before = sha256_file(src)
+    _sh.copy2(src, copy)
+
+    def run():
+        steps = []
+        receipt = dict(original=str(src), original_sha256=before, copy=str(copy), started=now(), steps=steps)
+
+        def step(name, fn):
+            write_atomic(test / 'progress.json', dict(state='running', message=name, at=now()))
+            try:
+                r = fn()
+                steps.append(dict(step=name, ok=True, result=r))
+                return r
+            except Exception as e:  # noqa: BLE001
+                steps.append(dict(step=name, ok=False, error=str(e)[:500]))
+                raise
+        try:
+            step('Open the test copy', lambda: flow.bridge_call('tq_open_project', dict(path=str(copy))))
+            step('Make GREEN_MASTER', lambda: flow.bridge_call('tq_make_master', dict(source=source_sequence, reference=reference, add_shadow=add_shadow)))
+            check = step('Check the master', lambda: flow.bridge_call('tq_probe', dict(master='GREEN_MASTER')))
+            if not check.get('ok'):
+                raise ValueError('The master is not ready: ' + ' '.join(check.get('notes') or []))
+            plan = flow.cut_plan(pid, prop['id'], prop['digest'], int(check['frame_ticks']))
+            step('Import the good mic', lambda: flow.bridge_call('tq_import', dict(paths=[plan['mic_path']])))
+            built = step('Build the cut', lambda: flow.bridge_call('tq_build_cut', dict(plan=plan, request_id='native-test'), timeout=6 * 3600))
+            problems = verify_readback(plan, built)
+            steps.append(dict(step='Read back the cut', ok=not problems, result=problems))
+            proof = step('Prove a key change reaches every piece', lambda: _proof(flow, plan, test / 'proof'))
+            steps.append(dict(step='Key change reached every piece, shadow untouched', ok=bool(proof.get('passed')), result=proof))
+            fake_cut = dict(payload=dict(plan=plan), parent=prop['id'])
+            layers = step('Render a few of Tariq\'s animations', lambda: _layers_summary(
+                flow.animation_layers(pid, fake_cut, check.get('frame') or [1920, 1080], test, render_limit=render_limit)))
+            final = f"FINAL_ASSEMBLY_r{plan['revision']:02d}"
+            step('Copy the cut to the assembly', lambda: flow.bridge_call('tq_assemble', dict(cut=plan['sequence_name'], sequence=final)))
+            if layers['layers']['layers']:
+                step('Place the animations', lambda: flow.bridge_call('tq_place_layers', dict(sequence=final, result=layers['layers'], nest='GREEN_MASTER'),
+                                                                      timeout=6 * 3600))
+            out = test / f'{final}_test.mp4'
+            step('Export on this PC', lambda: flow.bridge_call('tq_export', dict(sequence=final, output=str(out)), timeout=6 * 3600))
+            bad = verify_export(out, plan['map'])
+            steps.append(dict(step='Check the exported file', ok=not bad, result=bad))
+            step('Save the test copy', lambda: flow.bridge_call('tq_save', {}))
+            step('Close the test copy', lambda: flow.bridge_call('tq_close_project', dict(path=str(copy))))
+            step('Reopen the test copy', lambda: flow.bridge_call('tq_open_project', dict(path=str(copy))))
+            again = step('Check it after reopening', lambda: flow.bridge_call('tq_verify_project', dict(
+                expect=['GREEN_MASTER', plan['sequence_name'], final], cut=plan['sequence_name'], master='GREEN_MASTER')))
+            steps.append(dict(step='Sequences, nest and media links after reopening',
+                              ok=not again.get('missing') and not again.get('offline') and again.get('cut_is_master_nests') is True, result=again))
+            step('Close the test copy again', lambda: flow.bridge_call('tq_close_project', dict(path=str(copy))))
+        except Exception as e:  # noqa: BLE001
+            receipt['stopped'] = str(e)[:500]
+        receipt['original_unchanged'] = sha256_file(src) == before
+        receipt['passed'] = all(s['ok'] for s in steps) and 'stopped' not in receipt and receipt['original_unchanged']
+        receipt['finished'] = now()
+        receipt['limits'] = ('Native Premiere on a copy of one project. Frame comparisons prove the master change reached three pieces, '
+                             'not key quality across the whole video. No listening pass.')
+        write_atomic(test / 'receipt.json', receipt)
+        write_atomic(test / 'progress.json', dict(state='done', at=now(),
+                                                  message='Passed' if receipt['passed'] else 'Stopped: ' + receipt.get('stopped', 'a check failed')))
+        flow._put(pid, 'edit_native_test', receipt)
+
+    threading.Thread(target=run, daemon=True).start()
+    return dict(state='started', folder=str(test), copy=str(copy))

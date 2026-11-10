@@ -101,6 +101,10 @@ class Server(ThreadingHTTPServer):
         if action=='proof':
             from .edit_flow import native_proof
             return native_proof(f,pid,d.get('param') or 'Choke',float(d.get('delta',4)))
+        if action=='master':return f.make_master(pid,d['source'],d.get('reference'),bool(d.get('add_shadow')))
+        if action=='native-test':
+            from .edit_flow import native_test
+            return native_test(f,pid,d['project'],d['source'],d.get('reference'),bool(d.get('add_shadow')))
         if action=='visuals':return f.visuals(pid,d['cut_id'],d.get('notes'),d.get('storyboard_digest'),bool(d.get('approve')))
         if action=='final':return f.final(pid,d['visuals_id'])
         raise KeyError('Unknown editing action')

@@ -125,6 +125,35 @@ class OutputMapTests(unittest.TestCase):
             ep.output_map([[0, SR * 3]], SR, 2.0, self.F)
 
 
+class AnimationHandoffTests(unittest.TestCase):
+    def test_presses_are_found_loosely_and_in_order(self):
+        from studio import edit_animations as ea
+        text = "so here's the thing anyway you're on slide three and the CEO asks you a question you can't answer then what"
+        w = ep.words_from_segments([dict(words=[dict(start=i * .4, end=i * .4 + .3, word=' ' + t) for i, t in enumerate(text.split())])], SR)
+        self.assertEqual(ea.locate(w, 'you on slide three'), 5)       # script says "you", transcript says "you're"
+        self.assertIsNone(ea.locate(w, 'completely different words here'))
+        self.assertIsNone(ea.locate(w, 'slide three', start=10))       # never searches backwards
+        m = ep.output_map([[0, len(w) * int(.4 * SR) + SR]], SR, 0, ep.TICKS_PER_SECOND // 30)
+        parts = [dict(kind='talk', script="so here's the thing"),
+                 dict(kind='animation', n=1, script="anyway you're on slide three and the CEO asks you a question",
+                      presses=[dict(press=1, words='you on slide three'), dict(press=2, words='the CEO asks')]),
+                 dict(kind='talk', script="you can't answer then what")]
+        shots, problems = ea.plan_shots(w, [], m['pieces'], parts, {1: dict(start=4, end=5, type='pip')}, ep.TICKS_PER_SECOND // 30, SR)
+        self.assertEqual([(s['press'], s['beat'], s['previous'], s['alpha']) for s in shots], [(1, 4, None, True), (2, 5, 4, True)])
+        self.assertTrue(shots[0]['end_f'] == shots[1]['start_f'] and shots[1]['end_f'] > shots[1]['start_f'])
+        self.assertEqual(problems, [])
+
+    def test_a_press_in_cut_material_is_left_out_and_reported(self):
+        from studio import edit_animations as ea
+        w = ep.words_from_segments([dict(words=[dict(start=i * .4, end=i * .4 + .3, word=' ' + t) for i, t in enumerate('one two three four five six'.split())])], SR)
+        removals = [[w[2]['start'] - 10, w[3]['end'] + 10]]
+        m = ep.output_map(ep.keeps_from(removals, int(3 * SR)), SR, 0, ep.TICKS_PER_SECOND // 30)
+        parts = [dict(kind='animation', n=1, script='one two three four five six', presses=[dict(press=1, words='one two'), dict(press=2, words='three four')])]
+        shots, problems = ea.plan_shots(w, removals, m['pieces'], parts, {1: dict(start=0, end=1, type='full')}, ep.TICKS_PER_SECOND // 30, SR)
+        self.assertEqual([s['press'] for s in shots], [1])
+        self.assertTrue(any('press 2' in p for p in problems))
+
+
 @unittest.skipUnless(CAM.is_file() and MIC.is_file(), 'sample media missing')
 class FlowRuleTests(unittest.TestCase):
     def setUp(self):

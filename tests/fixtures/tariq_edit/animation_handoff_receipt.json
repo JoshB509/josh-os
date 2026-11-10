@@ -1,0 +1,56 @@
+{
+ "deck": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\2026-11_answering-exec-questions_slides_v02.html",
+ "shot_list": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\2026-11_answering-exec-questions_shot-list_v02.md",
+ "animations": 18,
+ "presses_in_shot_list": 58,
+ "presses_placed": 55,
+ "problems": [
+  "Animation 7 press 2: \"who is this guy?\" is not in the approved script, so it was left out.",
+  "Animation 7 press 3: \"He doesn't know what he's talking about\" is not in the approved script, so it was left out.",
+  "Animation 7 press 1: \"it's about 20%\" is not in the approved script, so it was left out."
+ ],
+ "in_order_no_overlap": true,
+ "types": {
+  "pip": 40,
+  "half": 3,
+  "full": 12
+ },
+ "cut_seconds": 409.0,
+ "last_shot_end_s": 409.0,
+ "renders": [
+  {
+   "animation": 1,
+   "press": 1,
+   "type": "pip",
+   "file": "anim01-press01-81c40090ed5a.mov",
+   "alpha": true,
+   "seconds": 8.0,
+   "size": [
+    1920,
+    1080
+   ],
+   "fps": "1000021/33334"
+  },
+  {
+   "animation": 3,
+   "press": 1,
+   "type": "full",
+   "file": "anim03-press01-7617edeea74d.mp4",
+   "alpha": false,
+   "seconds": 8.0,
+   "size": [
+    1920,
+    1080
+   ],
+   "fps": "1000021/33334"
+  }
+ ],
+ "layers": {
+  "animation": 55,
+  "camera_copy": 43,
+  "fps": [
+   254016000000,
+   8467191533
+  ]
+ }
+}

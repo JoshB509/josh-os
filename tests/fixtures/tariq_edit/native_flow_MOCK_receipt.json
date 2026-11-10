@@ -1,0 +1,812 @@
+{
+ "original": "C:\\Users\\Anigma PC\\Desktop\\Tariq-Editing-Handover-2026-11-10\\reference-projects\\Exec questions.prproj",
+ "original_sha256": "3f23d2e6ad89fb73d505c632ec26d7ca6fdf8dc6398794df1083c647aa60f6cc",
+ "copy": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+ "started": "2026-11-10T11:15:49.932603+00:00",
+ "steps": [
+  {
+   "step": "Open the test copy",
+   "ok": true,
+   "result": {
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+    "name": "Stub project"
+   }
+  },
+  {
+   "step": "Make GREEN_MASTER",
+   "ok": true,
+   "result": {
+    "master": "GREEN_MASTER",
+    "from": "Keyed edit",
+    "frame_ticks": "8467191533",
+    "presenter_track": 2,
+    "shadow_track": 1,
+    "audio_clips": 0,
+    "notes": [
+     "Took the audio off the master copy. Your sequence keeps its audio.",
+     "Ultra Key here has no Contrast, Mid Point, Desaturate, Range, Spill, Luma, Saturation, Hue, Luminance, so those were left as they were.",
+     "Set the presenter key to the data reference values. The key colour was left as you had it.",
+     "Added a shadow copy under the presenter with a rough key and a soft Drop Shadow, from the Data Storytelling settings. Adjust it to taste."
+    ]
+   }
+  },
+  {
+   "step": "Check the master",
+   "ok": true,
+   "result": {
+    "when": "2026-11-10T11:15:50.010Z",
+    "premiere": "26.0-stub",
+    "ok": true,
+    "notes": [],
+    "master": "GREEN_MASTER",
+    "api": {
+     "exporter": true,
+     "filter_factory": true,
+     "save": true,
+     "overwrite": true
+    },
+    "key_effects": [],
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+    "frame_ticks": "8467191533",
+    "frame": [
+     1920,
+     1080
+    ],
+    "tracks": [
+     {
+      "track": 0,
+      "clips": 1,
+      "key": 0,
+      "shadow": 0,
+      "paths": [
+       "E:\\Videos\\DaJoshiCut\\tests\\office-bg.png"
+      ]
+     },
+     {
+      "track": 1,
+      "clips": 1,
+      "key": 1,
+      "shadow": 1,
+      "paths": [
+       "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4"
+      ]
+     },
+     {
+      "track": 2,
+      "clips": 1,
+      "key": 1,
+      "shadow": 0,
+      "paths": [
+       "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4"
+      ]
+     }
+    ],
+    "presenter_track": 2,
+    "shadow_track": 1,
+    "master_audio_clips": 0
+   }
+  },
+  {
+   "step": "Import the good mic",
+   "ok": true,
+   "result": {
+    "imported": []
+   }
+  },
+  {
+   "step": "Build the cut",
+   "ok": true,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "frame_ticks": "8467191533",
+    "video": [
+     {
+      "track": 0,
+      "start": "0",
+      "end": "3801768998317",
+      "inp": "2878845121220",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "3801768998317",
+      "end": "16612629787746",
+      "inp": "6765286034867",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "16612629787746",
+      "end": "55604046797211",
+      "inp": "19720089080357",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "55604046797211",
+      "end": "61277065124321",
+      "inp": "58838513962817",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "61277065124321",
+      "end": "73342813058846",
+      "inp": "64604671396790",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "73342813058846",
+      "end": "134967033036020",
+      "inp": "76721222480513",
+      "name": "GREEN_MASTER"
+     }
+    ],
+    "audio": [
+     {
+      "track": 0,
+      "start": "0",
+      "end": "3801768998317",
+      "inp": "3819434617220",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "3801768998317",
+      "end": "16612629787746",
+      "inp": "7705875530867",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "16612629787746",
+      "end": "55604046797211",
+      "inp": "20660678576357",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "55604046797211",
+      "end": "61277065124321",
+      "inp": "59779103458817",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "61277065124321",
+      "end": "73342813058846",
+      "inp": "65545260892790",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "73342813058846",
+      "end": "134967033036020",
+      "inp": "77661811976513",
+      "role": "mic"
+     }
+    ],
+    "gaps": [],
+    "overlaps": [],
+    "nest": true,
+    "master": "GREEN_MASTER",
+    "saved": false
+   }
+  },
+  {
+   "step": "Read back the cut",
+   "ok": true,
+   "result": []
+  },
+  {
+   "step": "Prove a key change reaches every piece",
+   "ok": true,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "master": "GREEN_MASTER",
+    "param": "Choke",
+    "original": 7.72727,
+    "test_value": 11.72727,
+    "pieces": [
+     {
+      "time_ticks": "1900884499158",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     },
+     {
+      "time_ticks": "58440555960766",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     },
+     {
+      "time_ticks": "104154923047433",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     }
+    ],
+    "shadow_unchanged": true,
+    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\proof",
+    "passed": false
+   }
+  },
+  {
+   "step": "Key change reached every piece, shadow untouched",
+   "ok": false,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "master": "GREEN_MASTER",
+    "param": "Choke",
+    "original": 7.72727,
+    "test_value": 11.72727,
+    "pieces": [
+     {
+      "time_ticks": "1900884499158",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     },
+     {
+      "time_ticks": "58440555960766",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     },
+     {
+      "time_ticks": "104154923047433",
+      "exported": false,
+      "changed": false,
+      "restored": true
+     }
+    ],
+    "shadow_unchanged": true,
+    "folder": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\proof",
+    "passed": false
+   }
+  },
+  {
+   "step": "Render a few of Tariq's animations",
+   "ok": true,
+   "result": {
+    "layers": {
+     "layers": [
+      {
+       "track": 4,
+       "kind": "animation",
+       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
+       "start_f": 270,
+       "in_f": 0,
+       "out_f": 120,
+       "name": "Animation 1 press 1"
+      },
+      {
+       "track": 3,
+       "kind": "camera_copy",
+       "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+       "start_f": 270,
+       "in_f": 0,
+       "out_f": 120,
+       "framing": {
+        "scale": 30.648148148148145,
+        "horiz": 0.16171875,
+        "vert": -0.000462962962962963,
+        "x": 1581.0,
+        "y": 539.0,
+        "slack_x": 335.44444444444446,
+        "slack_y": 0.0,
+        "left": 28.502643504531722,
+        "right": 28.502643504531722,
+        "top": 0.0,
+        "bottom": 0.0
+       },
+       "name": "Picture for animation 1"
+      },
+      {
+       "track": 4,
+       "kind": "animation",
+       "path": "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov",
+       "start_f": 390,
+       "in_f": 0,
+       "out_f": 816,
+       "name": "Animation 1 press 2"
+      },
+      {
+       "track": 3,
+       "kind": "camera_copy",
+       "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+       "start_f": 390,
+       "in_f": 0,
+       "out_f": 816,
+       "framing": {
+        "scale": 30.648148148148145,
+        "horiz": 0.16171875,
+        "vert": -0.000462962962962963,
+        "x": 1581.0,
+        "y": 539.0,
+        "slack_x": 335.44444444444446,
+        "slack_y": 0.0,
+        "left": 28.502643504531722,
+        "right": 28.502643504531722,
+        "top": 0.0,
+        "bottom": 0.0
+       },
+       "name": "Picture for animation 1"
+      }
+     ],
+     "fps_num": 254016000000,
+     "fps_den": 8467191533
+    },
+    "presses": 2,
+    "left_out": [
+     "Animation 7 press 2: \"who is this guy?\" is not in the approved script, so it was left out.",
+     "Animation 7 press 3: \"He doesn't know what he's talking about\" is not in the approved script, so it was left out.",
+     "Animation 7 press 1: \"it's about 20%\" is not in the approved script, so it was left out."
+    ]
+   }
+  },
+  {
+   "step": "Copy the cut to the assembly",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "existed": false
+   }
+  },
+  {
+   "step": "Place the animations",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "note": "",
+    "v4": 3,
+    "v5": 2,
+    "report": {
+     "gaps": [],
+     "overlaps": []
+    }
+   }
+  },
+  {
+   "step": "Export on this PC",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "output": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\FINAL_ASSEMBLY_r01_test.mp4",
+    "started": true,
+    "ame_installed": true
+   }
+  },
+  {
+   "step": "Check the exported file",
+   "ok": false,
+   "result": [
+    "Premiere reported the export, but there is no file."
+   ]
+  },
+  {
+   "step": "Save the test copy",
+   "ok": true,
+   "result": {
+    "saved": true,
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj"
+   }
+  },
+  {
+   "step": "Close the test copy",
+   "ok": true,
+   "result": {
+    "closed": true
+   }
+  },
+  {
+   "step": "Reopen the test copy",
+   "ok": true,
+   "result": {
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+    "name": "Stub project"
+   }
+  },
+  {
+   "step": "Check it after reopening",
+   "ok": true,
+   "result": {
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+    "sequences": [
+     "Sequence 01",
+     "Keyed edit",
+     "GREEN_MASTER",
+     "CLEAN_CUT_r01",
+     "FINAL_ASSEMBLY_r01"
+    ],
+    "offline": [],
+    "media": [
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov"
+    ],
+    "cut_pieces": 6,
+    "cut_is_master_nests": true,
+    "keys": [
+     {
+      "role": "presenter",
+      "track": 2,
+      "start": "0",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": [
+         1770,
+         1141
+        ]
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 115
+       }
+      ]
+     },
+     {
+      "role": "presenter",
+      "track": 2,
+      "start": "0",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 1,
+        "name": "Highlight",
+        "value": 52.04545
+       },
+       {
+        "index": 2,
+        "name": "Shadow",
+        "value": 50.22727
+       },
+       {
+        "index": 3,
+        "name": "Tolerance",
+        "value": 65.45454
+       },
+       {
+        "index": 4,
+        "name": "Pedestal",
+        "value": 100
+       },
+       {
+        "index": 5,
+        "name": "Choke",
+        "value": 7.72727
+       },
+       {
+        "index": 6,
+        "name": "Soften",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": {
+         "x": 413,
+         "y": 688
+        }
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 100.8888855
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 1,
+        "name": "Highlight",
+        "value": 52.04545
+       },
+       {
+        "index": 2,
+        "name": "Shadow",
+        "value": 50.22727
+       },
+       {
+        "index": 3,
+        "name": "Tolerance",
+        "value": 65.45454
+       },
+       {
+        "index": 4,
+        "name": "Pedestal",
+        "value": 100
+       },
+       {
+        "index": 5,
+        "name": "Choke",
+        "value": 7.72727
+       },
+       {
+        "index": 6,
+        "name": "Soften",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Drop Shadow",
+      "params": [
+       {
+        "index": 0,
+        "name": "Opacity",
+        "value": 52.7
+       },
+       {
+        "index": 1,
+        "name": "Direction",
+        "value": 135
+       },
+       {
+        "index": 2,
+        "name": "Distance",
+        "value": 5
+       },
+       {
+        "index": 3,
+        "name": "Softness",
+        "value": 121.1111
+       },
+       {
+        "index": 4,
+        "name": "Shadow Only",
+        "value": true
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "step": "Sequences, nest and media links after reopening",
+   "ok": true,
+   "result": {
+    "project": "C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj",
+    "sequences": [
+     "Sequence 01",
+     "Keyed edit",
+     "GREEN_MASTER",
+     "CLEAN_CUT_r01",
+     "FINAL_ASSEMBLY_r01"
+    ],
+    "offline": [],
+    "media": [
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press01-e104bf671b02.mov",
+     "C:\\Users\\ANIGMA~1\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\video-folder\\video\\tariq-animations\\anim01-press02-a3f3c730b387.mov"
+    ],
+    "cut_pieces": 6,
+    "cut_is_master_nests": true,
+    "keys": [
+     {
+      "role": "presenter",
+      "track": 2,
+      "start": "0",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": [
+         1770,
+         1141
+        ]
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 115
+       }
+      ]
+     },
+     {
+      "role": "presenter",
+      "track": 2,
+      "start": "0",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 1,
+        "name": "Highlight",
+        "value": 52.04545
+       },
+       {
+        "index": 2,
+        "name": "Shadow",
+        "value": 50.22727
+       },
+       {
+        "index": 3,
+        "name": "Tolerance",
+        "value": 65.45454
+       },
+       {
+        "index": 4,
+        "name": "Pedestal",
+        "value": 100
+       },
+       {
+        "index": 5,
+        "name": "Choke",
+        "value": 7.72727
+       },
+       {
+        "index": 6,
+        "name": "Soften",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": {
+         "x": 413,
+         "y": 688
+        }
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 100.8888855
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 1,
+        "name": "Highlight",
+        "value": 52.04545
+       },
+       {
+        "index": 2,
+        "name": "Shadow",
+        "value": 50.22727
+       },
+       {
+        "index": 3,
+        "name": "Tolerance",
+        "value": 65.45454
+       },
+       {
+        "index": 4,
+        "name": "Pedestal",
+        "value": 100
+       },
+       {
+        "index": 5,
+        "name": "Choke",
+        "value": 7.72727
+       },
+       {
+        "index": 6,
+        "name": "Soften",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "shadow",
+      "track": 1,
+      "start": "0",
+      "effect": "AE.ADBE Drop Shadow",
+      "params": [
+       {
+        "index": 0,
+        "name": "Opacity",
+        "value": 52.7
+       },
+       {
+        "index": 1,
+        "name": "Direction",
+        "value": 135
+       },
+       {
+        "index": 2,
+        "name": "Distance",
+        "value": 5
+       },
+       {
+        "index": 3,
+        "name": "Softness",
+        "value": 121.1111
+       },
+       {
+        "index": 4,
+        "name": "Shadow Only",
+        "value": true
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "step": "Close the test copy again",
+   "ok": true,
+   "result": {
+    "closed": true
+   }
+  }
+ ],
+ "original_unchanged": true,
+ "passed": false,
+ "finished": "2026-11-10T11:16:04.126728+00:00",
+ "limits": "Native Premiere on a copy of one project. Frame comparisons prove the master change reached three pieces, not key quality across the whole video. No listening pass.",
+ "panel_errors": [],
+ "ops_tail": [
+  "insert V5",
+  "overwrite v5 anim01-press01-e104bf671b02.mov",
+  "key Scale 30.648148148148145",
+  "key Position [object Object]",
+  "overwrite v5 anim01-press02-a3f3c730b387.mov",
+  "key Scale 30.648148148148145",
+  "key Position [object Object]",
+  "key Scale 30.648148148148145",
+  "key Position [object Object]",
+  "export FINAL_ASSEMBLY_r01 C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\FINAL_ASSEMBLY_r01_test.mp4",
+  "save",
+  "open C:\\Users\\Anigma PC\\AppData\\Local\\Temp\\tariq-native-mock-k_486f98\\data\\edit_flow\\da7cc90d-7c9f-427e-877b-98703637a90a\\native-test\\20261110T111549\\Exec questions - Tariq test copy.prproj"
+ ],
+ "scope": "MOCK: Josh OS + real helper bridge + real panel code against the Premiere stub. Not native proof."
+}

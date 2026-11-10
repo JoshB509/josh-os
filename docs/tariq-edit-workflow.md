@@ -10,15 +10,33 @@ Built 10 November 2026 from the handover at `C:\Users\Anigma PC\Desktop\Tariq-Ed
 4. **Approval.** Josh approves one revision as a whole. Unverified sync or a missing source blocks it. Approval is tied to that revision's digest, so any later change makes it stale.
 5. **Premiere cut.** Josh OS checks the approval again, then asks the Josh Cut Pro panel to build `CLEAN_CUT_rNN` as a new sequence. Its pictures are pieces of `GREEN_MASTER`, and the good mic goes on A1 using the same map. The panel reads every track back and Josh OS compares it with the plan. It never overwrites a sequence, and it never edits Josh's own sequences or media.
 6. **Proof.** "Prove a key change reaches every piece" changes one presenter Ultra Key value in the master and exports real Premiere frames from three distant pieces. It checks that each one changed and that the shadow's key did not, then puts the value back.
-7. **Animations and final.** Josh's notes are kept with the cut. Approving the storyboard ties it to the current cut, and a new cut makes it stale. The final step copies the cut to `FINAL_ASSEMBLY_rNN`, renders it with Premiere's own encoder into `video\exports` as a new file, and checks that file's length, picture and sound.
+7. **Animations and final.** Josh's notes are kept with the cut. Approving the storyboard ties it to the current cut and to the slides as they were, and a new cut or new slides make it stale. The final step runs as a job:
+   - It copies the cut to `FINAL_ASSEMBLY_rNN`.
+   - It finds each press of Tariq's approved deck in the approved transcript and maps it through the cut's own map.
+   - It renders each press on this PC, at the sequence's size. PiP and half and half come out as ProRes with alpha, into `video	ariq-animations`.
+   - The panel places them on V5, with copies of the GREEN_MASTER pieces on V4 under PiP and half and half shots. If that copy fails, it stops rather than placing the raw camera file.
+   - Then it exports with Premiere's own encoder into `video\exports` as a new file, saves, and checks the file's length, picture and sound.
+8. **Setting up the master.** "Set up Premiere" on the review screen copies Josh's keyed, uncut sequence to `GREEN_MASTER`, never changing his:
+   - It takes the audio off the copy.
+   - It can start the presenter's Ultra Key from the Data Storytelling or Executive Questions values, leaving the key colour as Josh had it.
+   - It can add a rough shadow copy under the presenter, using Drop Shadow with Shadow Only and the Data Storytelling settings.
+   - Masks come from Josh's sequence, because the plugin API has no way to make them.
+9. **The Premiere test on a copy.** "Run the Premiere test on a copy" copies a `.prproj` into Josh OS's own test folder, checks the original's hash before and after, and opens only the copy. Then it:
+   - makes the master and imports the mic
+   - builds the approved cut and reads it back
+   - proves a key change reaches three pieces
+   - renders and places a few animations
+   - exports, saves, closes, reopens and checks the sequences, the nest and the media links
+   It closes the copy at the end and writes `receipt.json` in the test folder.
 
 ## The files
 
 - **`dajoshi/edit_plan.py`** is the planner. It works in mic samples, and every setting in `CONFIG` is marked `calibrated: False`.
 - **`studio/edit_flow.py`** holds the stages, revisions, approvals, previews, Premiere requests, read-back checks, the native proof and the export check. It uses the existing `workflow_artifacts` and `workflow_approvals` tables, in kinds that start with `edit_`.
 - **`studio/agent.py`** has `edit_proposal_job`, `EDIT_JOB_SCHEMA` and `EDIT_BRIEF`.
+- **`studio/edit_animations.py`** is the animation hand-off. It finds presses, renders them and builds the layer list.
 - **`studio/web/edit-flow.js` and `edit-flow.css`** are the review screen.
-- **`E:\Videos\DaJoshiCut\panel\index.js`** (0.8.8) has the commands `tq_probe`, `tq_master_read`, `tq_master_set`, `tq_export_frames`, `tq_build_cut`, `tq_assemble`, `tq_export` and `tq_save`. The 0.8.7 package is kept in `E:\Videos\DaJoshiCut\Backups`.
+- **`E:\Videos\DaJoshiCut\panel\index.js`** (0.8.8) has the commands `tq_probe`, `tq_make_master`, `tq_master_read`, `tq_master_set`, `tq_export_frames`, `tq_import`, `tq_build_cut`, `tq_assemble`, `tq_place_layers`, `tq_export`, `tq_save`, `tq_open_project`, `tq_close_project` and `tq_verify_project`. `tq_open_project` only opens files in a `native-test` folder, and `tq_close_project` only closes the project it was given. The 0.8.7 package is kept in `E:\Videos\DaJoshiCut\Backups`.
 
 ## Decisions taken from the evidence (development settings, not calibrated)
 
@@ -42,17 +60,26 @@ Built 10 November 2026 from the handover at `C:\Users\Anigma PC\Desktop\Tariq-Ed
 | Review screen in Chrome on a throwaway Josh OS | UI | Opened from the Edit piece. Card clips, keep, selecting and cutting words, undo, redo, approval through the button and the Premiere blocker message all worked. |
 | Panel commands against the Premiere stub | MOCK | The build was made only of master nests, with the mic in sync on every piece, no camera audio and no overlaps. A second build was refused. The key change reached every piece in the stub's model and the shadow key stayed the same. Receipt `E:\Videos\DaJoshiCut\tests\tq-native-stub-receipt.json`. |
 | Josh Cut Pro's existing in-place UI test with the new panel | Regression, mock | Passed in full. |
-| Unit tests `tests/test_tariq_edit.py` | Unit | 16 pass. |
+| Animation hand-off on the real Executive deck and recording | Real renders, no Premiere | 55 of 58 presses placed in order with no overlaps. The 3 left out quote lines that aren't in this transcript, and the run reports them. One PiP press rendered as ProRes with alpha and one full screen press as H.264, both at the sequence's exact rate. Receipt `animation_handoff_receipt.json`. |
+| The whole copied-project route through Josh OS, a real Josh Cut Pro helper and the real panel code | MOCK (Premiere stub) | Every step passed: open the copy, make the master (reference key and shadow), import, build, read back, render and place 2 animations, export request, save, close, reopen, check. The frame proof and the export file check failed, as expected, because the stub writes no files. The original project's hash didn't change. Receipt `native_flow_MOCK_receipt.json`. |
+| Josh Cut Pro's existing in-place UI test after the nest-aware PiP change | Regression, mock | Passed in full. |
+| Unit tests `tests/test_tariq_edit.py` | Unit | 18 pass. |
 
 No listening pass was done. Sound and cough labels are unverified. Both recordings are development examples, so no accuracy claim follows.
 
-## What needs Premiere or Josh (not done)
+## What needs Josh (blocked here)
 
-1. **Native proof in Premiere.** Nothing has run in real Premiere. Install the 0.8.8 panel by double-clicking `E:\Videos\DaJoshiCut\DaJoshiCut_premierepro.ccx`, then save a copy of a project as a test project and open it. In that copy, duplicate the keyed, uncut sequence, name it `GREEN_MASTER`, and remove its audio. Import the good mic. Then in Josh OS run Check Premiere, Build, and Prove. After that, save, close and reopen the project and check the media links. Only that counts as proof of nesting, propagation and save and reopen.
-2. **Making GREEN_MASTER.** Premiere's plugin API documents effect parameters, frame export and sequences, but no way to create masks. So the master starts from a sequence Josh has already keyed, and Tariq reads and changes the Ultra Key values on it rather than inventing masks.
-3. **Inserting a sequence as a nest** is not documented for the plugin API. `tq_build_cut` relies on `createOverwriteItemAction` accepting a sequence's project item. If Premiere refuses it, the build stops with Premiere's message. It never falls back to raw camera media.
-4. **Animations onto the assembly.** `FINAL_ASSEMBLY_rNN` starts as a copy of the cut. Placing the rendered animations on it uses Josh Cut Pro's existing Animations tool, and the automatic hand-off from Tariq's deck to that renderer is not connected yet.
-5. **Export preset.** `tq_export` passes no preset, so Premiere uses the sequence's own export settings. Choose a preset once the first real export has been checked.
-6. **Labels for sounds.** The 26 review WAVs and the annotation sheets in the handover still need Josh's labels before any sound default changes.
-7. **A held-out recording** is needed before anyone can say how reliable this is.
-8. **Discord and Frame.io** were left out on purpose in this pass.
+1. **Installing the panel.** Premiere has the Josh Cut Pro panel 0.8.6 installed, not 0.8.7 or 0.8.8. Installing `E:\Videos\DaJoshiCut\DaJoshiCut_premierepro.ccx` goes through Adobe's plugin installer, which asks for confirmation for a third-party plugin. That's a security prompt, so Josh has to accept it himself. Double-click the file to install.
+2. **Opening Premiere.** Premiere wasn't running. Nothing in this pass ran in real Premiere, so nesting, key propagation, export and reopening are proven only in the stub model. With 0.8.8 installed and Premiere open, start Josh Cut Pro, then on the video's clean cut screen:
+   - open "Set up Premiere"
+   - type the keyed sequence's name and the path of the project to copy
+   - press "Run the Premiere test on a copy"
+   The receipt is written to the video's `native-test` folder in Josh OS's data.
+3. **Things only real Premiere can answer:**
+   - Whether `createOverwriteItemAction` accepts a sequence as a nest. If it doesn't, the build stops with Premiere's message.
+   - Whether `Project.open` with the options shows no dialogs.
+   - Whether Drop Shadow's settings are named as expected.
+   - Which export settings `exportSequence` uses when no preset is given.
+4. **Restart.** Josh OS needs a restart to load this, and it restarts the Discord bridge too. Do it once the Discord setup is finished, or when Josh is ready. The restart is `Restart DaJoshiResolve.bat`.
+5. **Listening and labels.** The 26 review WAVs and the annotation sheets in the handover still need Josh's labels before any sound default changes. A held-out recording is still needed before anyone can say how reliable this is.
+6. **Frame.io** is deferred, and Discord wasn't touched.
