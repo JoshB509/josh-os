@@ -523,8 +523,11 @@ class EditFlow:
         keeps = ep.keeps_from(rem, pl['measurements']['samples'])
         mapping = ep.output_map(keeps, SR, pl['sync']['offset_seconds'], int(frame_ticks), pl.get('inserts') or [])
         files = src['payload']['files']
+        # GREEN_MASTER built from the raw files holds Josh as a nest (his mask painted in), which has no file path
+        built = (self.latest(pid, 'edit_master') or {}).get('payload') or {}
+        nest = bool((built.get('result') or {}).get('nest'))
         return dict(project_id=pid, proposal_id=prop['id'], proposal_digest=prop['digest'], revision=pl['revision'],
-                    camera_path=files['camera']['path'], mic_path=files['mic']['path'], master=master or 'GREEN_MASTER',
+                    camera_path='' if nest else files['camera']['path'], mic_path=files['mic']['path'], master=master or 'GREEN_MASTER',
                     sequence_name=f"CLEAN_CUT_r{pl['revision']:02d}", map=mapping, map_digest=ep.digest(mapping))
 
     def build_cut(self, pid, proposal_id, expected_digest, frame_ticks, master=None):

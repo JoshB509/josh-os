@@ -1,0 +1,114 @@
+{
+ "started": "2026-11-10 20:22:57",
+ "work": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\go-ahead-real\\20261110-202257",
+ "told": [
+  "Executive Questions is ready for you to review. Your timeline is set up in Executive Questions - Tariq.prproj, with you keyed on V3, the shadow on V2 and the background on V1. I have marked 7 cuts in red and 52 moments I want you to listen to. Approve the script when you are happy and I will build the cut.",
+  "The cut for Executive Questions is built as CLEAN_CUT_r01. The animations are next. Review the slides, and when you approve the storyboard I will put it all together and export it.",
+  "Executive Questions is exported to E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\go-ahead-real\\20261110-202257\\Executive Questions\\video\\exports\\FINAL_ASSEMBLY_r01_v01.mp4. I checked its length, picture, sound and that you show in every PiP window."
+ ],
+ "master": {
+  "result": {
+   "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\go-ahead-real\\20261110-202257\\Executive Questions\\video\\Tariq\\Executive Questions - Tariq.prproj",
+   "master": "GREEN_MASTER",
+   "state": "built",
+   "problems": [],
+   "nest": "CAMERA_FILLED",
+   "mask": [
+    [
+     0.14,
+     1.0
+    ],
+    [
+     0.14,
+     0.64
+    ],
+    [
+     0.17,
+     0.56
+    ],
+    [
+     0.3,
+     0.31
+    ],
+    [
+     0.47,
+     0.15
+    ],
+    [
+     0.55,
+     0.16
+    ],
+    [
+     0.71,
+     0.25
+    ],
+    [
+     0.78,
+     0.48
+    ],
+    [
+     0.78,
+     1.0
+    ]
+   ],
+   "settings_failed": [],
+   "settings": 105,
+   "tracks": 3,
+   "note": "Your mask is drawn from fixed coordinates (look.json can change them) and painted key green in CAMERA_FILLED."
+  },
+  "built_from": "raw files"
+ },
+ "proposal": {
+  "summary": {
+   "source_s": 553.65,
+   "kept_s": 531.37,
+   "removed_s": 22.28,
+   "removals": 7,
+   "cards": 52
+  },
+  "cards": 52
+ },
+ "cut": {
+  "state": "verified",
+  "sequence": "CLEAN_CUT_r01",
+  "problems": [],
+  "error": null
+ },
+ "final": {
+  "state": "verified",
+  "output": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\go-ahead-real\\20261110-202257\\Executive Questions\\video\\exports\\FINAL_ASSEMBLY_r01_v01.mp4",
+  "problems": [],
+  "animations": {
+   "placed": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "note": "",
+    "v4": 7,
+    "v5": 6,
+    "report": {
+     "gaps": [
+      {
+       "track": "V4",
+       "at": 46.69995330110308,
+       "seconds": 35.166631500830654
+      },
+      {
+       "track": "V5",
+       "at": 46.69995330110308,
+       "seconds": 35.166631500830654
+      }
+     ],
+     "overlaps": []
+    }
+   },
+   "left_out": [
+    "Animation 7 press 2: \"who is this guy?\" is not in the approved script, so it was left out.",
+    "Animation 7 press 3: \"He doesn't know what he's talking about\" is not in the approved script, so it was left out.",
+    "Animation 7 press 1: \"it's about 20%\" is not in the approved script, so it was left out."
+   ],
+   "presses": 6
+  },
+  "error": null
+ },
+ "finished": "2026-11-10 20:28:32",
+ "scope": "REAL Premiere 25.6.6 with Josh Cut Pro 0.9.0. Proposal from cached transcript, no model pass. Six animation presses."
+}

@@ -88,15 +88,56 @@ def read_look(flow, reference=REFERENCE, sequence=None, folder=None):
 
 
 def _type(v):
+    """The setting type and the value to send. Premiere reads points back as {'value': [x, y]}."""
     if isinstance(v, bool):
-        return 'bool'
+        return 'bool', v
     if isinstance(v, (int, float)):
-        return 'number'
+        return 'number', v
+    if isinstance(v, dict) and 'value' in v and 'color' not in v:
+        v = v['value']
     if isinstance(v, list) and len(v) == 2 and all(isinstance(x, (int, float)) for x in v):
-        return 'point'
+        return 'point', v
     if isinstance(v, dict) and isinstance(v.get('color'), list):
-        return 'color'
-    return None
+        return 'color', v['color']
+    return None, None
+
+
+FILL = 'CAMERA_FILLED'  # the recording with everything outside Josh's mask painted key green
+
+
+def key_color(look):
+    for e in look.get('presenter') or []:
+        if 'Ultra Key' in e['match']:
+            for p in e['params']:
+                if isinstance(p.get('value'), dict) and isinstance(p['value'].get('color'), list):
+                    return p['value']['color'][:3]
+    return [0.33, 0.61, 0.29]
+
+
+# Josh's standard mask: an outline around him in fractions of the camera frame, from the one he drew on Exec
+# questions, carried down to the bottom so his hands stay in. It sits clear of him and inside the green screen, so a
+# camera that sits slightly differently still fits. look.json can hold its own 'mask' to change it.
+MASK = [[0.14, 1.0], [0.14, 0.64], [0.17, 0.56], [0.30, 0.31], [0.47, 0.15], [0.55, 0.16], [0.71, 0.25], [0.78, 0.48], [0.78, 1.0]]
+
+
+def mask_fill(camera, out, color, mask=None, feather=0.012):
+    """The mask drawn as a PNG the size of the recording: key green outside it, clear inside, with a soft edge.
+    Painted green, the room outside keys out with the screen."""
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(str(camera))
+    W, H = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.release()
+    if not W or not H:
+        raise MasterError('Could not read the size of the recording.')
+    m = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(m, [np.array([[x * (W - 1), y * (H - 1)] for x, y in (mask or MASK)], np.int32)], 255)
+    m = cv2.GaussianBlur(m, (0, 0), max(1, feather * W))
+    b, g, r = [int(round(c * 255)) for c in reversed(color[:3])]
+    png = np.dstack([np.full((H, W), b, np.uint8), np.full((H, W), g, np.uint8), np.full((H, W), r, np.uint8), 255 - m])
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(out), png)
+    return dict(path=str(out), mask=mask or MASK)
 
 
 def copy_steps(seq, track, have, want):
@@ -112,12 +153,11 @@ def copy_steps(seq, track, have, want):
             steps.append(dict(op='add_effect', seq=seq, kind='v', track=track, index=0, effect=e['match']))
             pool.append(e['match'])
         for i, p in enumerate(e['params']):
-            v = p['value']
-            t = _type(v)
+            t, v = _type(p['value'])
             if t is None:
                 continue
             steps.append(dict(op='set', seq=seq, kind='v', track=track, index=0, effect=e['match'], nth=nth, param_index=i,
-                              value=v['color'] if t == 'color' else v, type=t, may_fail=True, report=False))
+                              value=v, type=t, may_fail=True, report=False))
     return steps
 
 
@@ -159,17 +199,27 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
         ops(flow, [dict(op='create_project', path=str(path))])
         if MASTER in ops(flow, [dict(op='project')])[0]['sequences']:
             return dict(project=str(path), master=MASTER, state='exists')
+    fill = mask_fill(camera, path.parent / (path.stem + ' - mask fill.png'), key_color(look), look.get('mask'))
     say('Bringing in the camera, the mic and the background')
-    ops(flow, [dict(op='import', paths=[str(camera), str(mic), str(background)])])
+    ops(flow, [dict(op='import', paths=[str(camera), str(mic), str(background), fill['path']])])
+    # the mask: the recording with the room outside it painted key green, as a nest
+    info = ops(flow, [dict(op='seq_from_media', name=FILL, media=str(camera))])[0]
+    cam = next(i for i in info['items'] if i['kind'] == 'v')
+    steps = [dict(op='remove_track', seq=FILL, kind='a', track=t) for t in sorted({i['track'] for i in info['items'] if i['kind'] == 'a'})]
+    steps += [dict(op='place', seq=FILL, media=fill['path'], at='0', v=cam['track'] + 1, a=0),
+              dict(op='set_end', seq=FILL, kind='v', track=cam['track'] + 1, index=0, end=cam['end'])]
+    ops(flow, steps)
     info = ops(flow, [dict(op='seq_from_media', name=MASTER, media=str(camera))])[0]
     say('Laying out GREEN_MASTER')
     cam = next(i for i in info['items'] if i['kind'] == 'v')
     steps = [dict(op='remove_track', seq=MASTER, kind='a', track=t) for t in sorted({i['track'] for i in info['items'] if i['kind'] == 'a'})]
-    steps += [dict(op='clone', seq=MASTER, kind='v', track=cam['track'], index=0, offset='0', v_off=2 - cam['track']),
-              dict(op='clone', seq=MASTER, kind='v', track=cam['track'], index=0, offset='0', v_off=1 - cam['track']),
-              dict(op='remove', seq=MASTER, kind='v', track=cam['track'], index=0),
+    steps += [dict(op='remove', seq=MASTER, kind='v', track=cam['track'], index=0),
+              dict(op='place_sequence', seq=MASTER, source=FILL, at='0', v=2, a=0),
+              dict(op='place_sequence', seq=MASTER, source=FILL, at='0', v=1, a=0),
               dict(op='place', seq=MASTER, media=str(background), at='0', v=0, a=0),
               dict(op='set_end', seq=MASTER, kind='v', track=0, index=0, end=cam['end'], may_fail=True),
+              dict(op='remove_track', seq=MASTER, kind='a', track=0, may_fail=True),
+              dict(op='remove_track', seq=MASTER, kind='a', track=1, may_fail=True),
               dict(op='info', seq=MASTER)]
     laid = ops(flow, steps)[-1]
     first = {}
@@ -202,5 +252,6 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=print):
     if bg_end < int(cam['end']) - int(final['frame_ticks']):
         problems.append('The background stops before the recording ends.')
     return dict(project=str(path), master=MASTER, state='built' if not problems else 'problems', problems=problems,
+                nest=FILL, mask=fill['mask'],
                 settings_failed=[dict(step=s['n'], error=s.get('error')) for s in failed][:40], settings=len(steps) - 2,
-                tracks=final['video_tracks'], note=look.get('note'))
+                tracks=final['video_tracks'], note='Your mask is drawn from fixed coordinates (look.json can change them) and painted key green in ' + FILL + '.')
