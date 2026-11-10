@@ -544,24 +544,36 @@ class EditFlow:
                        'tq_make_master', 'tq_import', 'tq_open_project', 'tq_close_project', 'tq_verify_project', 'tq_place_layers'):
             raise ValueError('Unknown Premiere command.')
         import urllib.request
-        try:
-            st = json.loads(urllib.request.urlopen(self.bridge + '/bridge/status', timeout=3).read())
-        except OSError:
-            raise BridgeError('Josh Cut Pro is not running, so Premiere can\'t be reached. Start Josh Cut Pro and open Premiere with its panel.') from None
-        if not st.get('connected'):
-            raise BridgeError('Premiere\'s Josh Cut Pro panel is not connected. Open Premiere and the panel.')
+        import time as _t
         import urllib.error
-        req = urllib.request.Request(self.bridge + '/bridge/call', data=json.dumps(dict(cmd=cmd, args=args)).encode(),
-                                     headers={'Content-Type': 'application/json'}, method='POST')
-        try:
-            out = json.loads(urllib.request.urlopen(req, timeout=timeout).read())
-        except urllib.error.HTTPError as e:
+        # Premiere reloads the panel when a project opens, so it drops off the bridge for a moment. Wait it out.
+        for attempt in range(3):
+            st = {}
+            for _ in range(90):
+                try:
+                    st = json.loads(urllib.request.urlopen(self.bridge + '/bridge/status', timeout=3).read())
+                except OSError:
+                    st = None
+                if st and st.get('connected'):
+                    break
+                _t.sleep(1)
+            if st is None:
+                raise BridgeError('Josh Cut Pro is not running, so Premiere can\'t be reached. Start Josh Cut Pro and open Premiere with its panel.')
+            if not st.get('connected'):
+                raise BridgeError('Premiere\'s Josh Cut Pro panel is not connected. Open Premiere and the panel.')
+            req = urllib.request.Request(self.bridge + '/bridge/call', data=json.dumps(dict(cmd=cmd, args=args)).encode(),
+                                         headers={'Content-Type': 'application/json'}, method='POST')
             try:
-                msg = json.loads(e.read()).get('error') or str(e)
-            except ValueError:
-                msg = str(e)
-            raise BridgeError('Premiere said: ' + str(msg)[:400]) from None
-        return out.get('result') or {}
+                out = json.loads(urllib.request.urlopen(req, timeout=timeout).read())
+            except urllib.error.HTTPError as e:
+                try:
+                    msg = json.loads(e.read()).get('error') or str(e)
+                except ValueError:
+                    msg = str(e)
+                if 'not connected' in str(msg) and attempt < 2:
+                    continue  # the panel dropped before it picked the command up, so it never ran
+                raise BridgeError('Premiere said: ' + str(msg)[:400]) from None
+            return out.get('result') or {}
 
     # ------------------------------------------------------------ stage 5: animations and final
 
@@ -634,7 +646,7 @@ class EditFlow:
             else:
                 placed = dict(note='No animations to place.')
             say('Rendering the video on this PC')
-            res = self.bridge_call('tq_export', dict(sequence=name, output=str(output)), timeout=6 * 3600)
+            res = self.bridge_call('tq_export', dict(sequence=name, output=str(output), preset=export_preset()), timeout=6 * 3600)
             say('Saving the project')
             self.bridge_call('tq_save', {})
         except Exception as e:  # noqa: BLE001
@@ -763,6 +775,33 @@ def verify_export(path, mapping):
     return problems
 
 
+def verify_windows(path, result, ffmpeg, folder):
+    """In the exported file, the middle of every PiP and half and half shot must show a picture in its camera
+    window, not the flat colour of a slide painted over it. Saves each frame it looked at."""
+    from PIL import Image, ImageStat
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    fps = result['fps_num'] / result['fps_den']
+    checked, problems = [], []
+    for n, l in enumerate(x for x in result['layers'] if x['kind'] == 'camera_copy' and x.get('hole')):
+        t = (l['start_f'] + (l['out_f'] - l['in_f']) / 2) / fps
+        jpg = folder / f'window-{n:02d}.png'
+        subprocess.run([ffmpeg, '-v', 'error', '-nostdin', '-y', '-ss', f'{t:.3f}', '-i', str(path), '-frames:v', '1', str(jpg)],
+                       capture_output=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), timeout=300)
+        if not jpg.is_file():
+            problems.append(f'No frame at {t:.1f}s to check.')
+            continue
+        im = Image.open(jpg).convert('L')
+        k = im.size[0] / 1920.0
+        x, y, w, h = l['hole']
+        box = im.crop((int((x + w * 0.1) * k), int((y + h * 0.1) * k), int((x + w * 0.9) * k), int((y + h * 0.9) * k)))
+        spread = ImageStat.Stat(box).stddev[0]
+        checked.append(dict(at_s=round(t, 2), name=l.get('name'), spread=round(spread, 1), frame=str(jpg)))
+        if spread < 6:
+            problems.append(f"{l.get('name')} at {t:.1f}s shows a flat colour in the camera window, so Josh is not in it.")
+    return dict(checked=checked, problems=problems)
+
+
 def _png_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest() if Path(path).is_file() else None
 
@@ -798,7 +837,12 @@ def _proof(flow, plan, out, param='Choke', delta=4.0):
     shadow_before = [e for e in before_keys['effects'] if e['role'] == 'shadow']
 
     def frames(tag):
-        return flow.bridge_call('tq_export_frames', dict(sequence=plan['sequence_name'], times=times, dir=str(out), prefix=tag))
+        # Premiere sometimes drops one (seen on the first frame after a build), so ask again for a set with a gap
+        for _ in range(3):
+            r = flow.bridge_call('tq_export_frames', dict(sequence=plan['sequence_name'], times=times, dir=str(out), prefix=tag))
+            if all(_frame_file(out, f'{tag}-{i:03d}.png').exists() for i in range(len(times))):
+                break
+        return r
     frames('before')
     flow.bridge_call('tq_master_set', dict(master=master, camera_path=plan['camera_path'], param=param, value=float(value) + delta))
     frames('changed')
@@ -807,7 +851,7 @@ def _proof(flow, plan, out, param='Choke', delta=4.0):
     frames('restored')
     rows = []
     for i, t in enumerate(times):
-        h = {tag: _png_hash(out / f'{tag}-{i:03d}.png') for tag in ('before', 'changed', 'restored')}
+        h = {tag: _png_hash(_frame_file(out, f'{tag}-{i:03d}.png')) for tag in ('before', 'changed', 'restored')}
         rows.append(dict(time_ticks=t, exported=all(h.values()), changed=h['before'] != h['changed'], restored=h['before'] == h['restored']))
     shadow_after = [e for e in after_keys['effects'] if e['role'] == 'shadow']
     return dict(sequence=plan['sequence_name'], master=master, param=param, original=value, test_value=float(value) + delta, pieces=rows,
@@ -815,8 +859,118 @@ def _proof(flow, plan, out, param='Choke', delta=4.0):
                 passed=all(r['exported'] and r['changed'] for r in rows) and shadow_before == shadow_after)
 
 
+def _frame_file(folder, name):
+    """Premiere adds the format's extension itself, so before-000.png arrives as before-000.png.png."""
+    import time as _t
+    # Premiere writes the frame after the call returns, so wait until it is there, readable and no longer growing
+    last = -1
+    for _ in range(120):
+        for cand in (folder / name, folder / (name + '.png')):
+            try:
+                size = cand.stat().st_size
+                with open(cand, 'rb'):
+                    pass
+            except OSError:
+                continue
+            if size and size == last:
+                return cand
+            last = size
+            break
+        _t.sleep(0.5)
+    return folder / name
+
+
+def export_preset():
+    """Adobe's own H.264 Match Source preset. Premiere's exportSequence rejects an empty preset (25.6.6)."""
+    for pat in ('Adobe Media Encoder */MediaIO/systempresets/*/H264 Match Source - High bitrate.epr',
+                'Adobe Premiere Pro */MediaIO/systempresets/*/H264 Match Source - High bitrate.epr'):
+        found = sorted(Path(r'C:\Program Files\Adobe').glob(pat))
+        if found:
+            return str(found[-1])
+    return ''
+
+
 def _layers_summary(x):
     return dict(layers=x['result'], presses=len(x['shots']), left_out=x['problems'])
+
+
+HELPER = Path(r'E:\Videos\DaJoshiCut\helper\dajoshi_cut.py')
+
+
+def _premiere_exe():
+    found = sorted(Path(r'C:\Program Files\Adobe').glob('Adobe Premiere Pro */Adobe Premiere Pro.exe'))
+    return found[-1] if found else None
+
+
+def _premiere_running():
+    p = subprocess.run(['tasklist', '/FI', 'IMAGENAME eq Adobe Premiere Pro.exe', '/NH'], capture_output=True, text=True,
+                       creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    return 'premiere' in p.stdout.lower()
+
+
+def wake_premiere(flow, wait=300, say=None):
+    """Get Premiere and the Josh Cut Pro panel ready without Josh: start the helper with no window if it isn't up,
+    launch Premiere if it isn't running (never while OBS is open), then wait for the panel to link up. Premiere loads
+    the panel when it starts. Fixed programs only, nothing from a request. Returns what it had to start."""
+    import time as _t
+    import urllib.request
+    say = say or (lambda m: None)
+    started = []
+
+    def status():
+        try:
+            return json.loads(urllib.request.urlopen(flow.bridge + '/bridge/status', timeout=3).read())
+        except OSError:
+            return None
+    st = status()
+    if st and st.get('connected'):
+        return dict(started=started)
+    if st is None:
+        if flow.bridge.rstrip('/') != BRIDGE.rstrip('/'):
+            raise BridgeError('The Josh Cut Pro helper on ' + flow.bridge + ' is not running.')
+        pyw = Path(sys.executable).with_name('pythonw.exe')
+        say('Starting the Josh Cut Pro helper')
+        subprocess.Popen([str(pyw if pyw.exists() else sys.executable), str(HELPER), '--no-window'], cwd=str(HELPER.parent),
+                         creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0) | getattr(subprocess, 'DETACHED_PROCESS', 0))
+        started.append('helper')
+        for _ in range(40):
+            if status() is not None:
+                break
+            _t.sleep(0.5)
+        if status() is None:
+            raise BridgeError('The Josh Cut Pro helper would not start. Its log is E:\\Videos\\DaJoshiCut\\Projects\\helper.log.')
+    if not _premiere_running():
+        try:
+            from worker import guard_recording
+            guard_recording()
+        except RuntimeError as e:
+            raise BridgeError(str(e)) from None
+        exe = _premiere_exe()
+        if not exe:
+            raise BridgeError('Premiere Pro is not installed where Josh OS looks for it (C:\\Program Files\\Adobe).')
+        say('Opening Premiere')
+        subprocess.Popen([str(exe)], cwd=str(exe.parent))
+        started.append('premiere')
+    say('Waiting for the Josh Cut Pro panel in Premiere')
+    t0 = _t.time()
+    while _t.time() - t0 < wait:
+        st = status()
+        if st and st.get('connected'):
+            return dict(started=started, seconds=round(_t.time() - t0))
+        _t.sleep(2)
+    raise BridgeError('Premiere is open but the Josh Cut Pro panel did not connect within %d seconds. '
+                      'Premiere may be showing a message that needs Josh.' % wait)
+
+
+def _close_copy(flow, copy):
+    """Close the test copy. After a save Premiere reports its path with a long-path prefix, which panel 0.8.8
+    compares exactly, so pass the path the way Premiere reports it, once it is checked to be the same file."""
+    def norm(p):
+        return str(p or '').replace('/', '\\').lower().removeprefix('\\\\?\\')
+    now_open = (flow.bridge_call('tq_probe', dict(master='GREEN_MASTER')) or {}).get('project') or ''
+    if norm(now_open) != norm(copy):
+        raise ValueError('The open project is not the test copy, so nothing was closed.')
+    return flow.bridge_call('tq_close_project', dict(path=now_open))
 
 
 def native_test(flow, pid, project_path, source_sequence, reference=None, add_shadow=False, render_limit=3):
@@ -853,6 +1007,7 @@ def native_test(flow, pid, project_path, source_sequence, reference=None, add_sh
                 steps.append(dict(step=name, ok=False, error=str(e)[:500]))
                 raise
         try:
+            step('Get Premiere ready', lambda: wake_premiere(flow))
             step('Open the test copy', lambda: flow.bridge_call('tq_open_project', dict(path=str(copy))))
             step('Make GREEN_MASTER', lambda: flow.bridge_call('tq_make_master', dict(source=source_sequence, reference=reference, add_shadow=add_shadow)))
             check = step('Check the master', lambda: flow.bridge_call('tq_probe', dict(master='GREEN_MASTER')))
@@ -874,17 +1029,19 @@ def native_test(flow, pid, project_path, source_sequence, reference=None, add_sh
                 step('Place the animations', lambda: flow.bridge_call('tq_place_layers', dict(sequence=final, result=layers['layers'], nest='GREEN_MASTER'),
                                                                       timeout=6 * 3600))
             out = test / f'{final}_test.mp4'
-            step('Export on this PC', lambda: flow.bridge_call('tq_export', dict(sequence=final, output=str(out)), timeout=6 * 3600))
+            step('Export on this PC', lambda: flow.bridge_call('tq_export', dict(sequence=final, output=str(out), preset=export_preset()), timeout=6 * 3600))
             bad = verify_export(out, plan['map'])
             steps.append(dict(step='Check the exported file', ok=not bad, result=bad))
+            windows = verify_windows(out, layers['layers'], flow.ffmpeg, test / 'windows')
+            steps.append(dict(step='Josh shows in every camera window', ok=not windows['problems'], result=windows))
             step('Save the test copy', lambda: flow.bridge_call('tq_save', {}))
-            step('Close the test copy', lambda: flow.bridge_call('tq_close_project', dict(path=str(copy))))
+            step('Close the test copy', lambda: _close_copy(flow, copy))
             step('Reopen the test copy', lambda: flow.bridge_call('tq_open_project', dict(path=str(copy))))
             again = step('Check it after reopening', lambda: flow.bridge_call('tq_verify_project', dict(
                 expect=['GREEN_MASTER', plan['sequence_name'], final], cut=plan['sequence_name'], master='GREEN_MASTER')))
             steps.append(dict(step='Sequences, nest and media links after reopening',
                               ok=not again.get('missing') and not again.get('offline') and again.get('cut_is_master_nests') is True, result=again))
-            step('Close the test copy again', lambda: flow.bridge_call('tq_close_project', dict(path=str(copy))))
+            step('Close the test copy again', lambda: _close_copy(flow, copy))
         except Exception as e:  # noqa: BLE001
             receipt['stopped'] = str(e)[:500]
         receipt['original_unchanged'] = sha256_file(src) == before

@@ -64,22 +64,27 @@ Built 10 November 2026 from the handover at `C:\Users\Anigma PC\Desktop\Tariq-Ed
 | The whole copied-project route through Josh OS, a real Josh Cut Pro helper and the real panel code | MOCK (Premiere stub) | Every step passed: open the copy, make the master (reference key and shadow), import, build, read back, render and place 2 animations, export request, save, close, reopen, check. The frame proof and the export file check failed, as expected, because the stub writes no files. The original project's hash didn't change. Receipt `native_flow_MOCK_receipt.json`. |
 | Josh Cut Pro's existing in-place UI test after the nest-aware PiP change | Regression, mock | Passed in full. |
 | Unit tests `tests/test_tariq_edit.py` | Unit | 18 pass. |
+| The whole copied-project route in real Premiere 25.6.6 with panel 0.8.8, started unattended (`tests/tariq_native_real.py`) | **Native** | All 21 steps passed in about 10 minutes on a copy of `Exec questions.prproj`, with the original's hash unchanged. Josh OS started the helper with no window and launched Premiere, and the panel linked by itself 5 seconds later. GREEN_MASTER was made from the uncut AutoCut backup. `CLEAN_CUT_r01` was 6 master nests with the mic on A1, and the read back matched. A Choke change in the master changed the exported frame at all three pieces and putting it back restored them byte for byte. 3 animations were placed, the 4K export was checked, and Josh shows in every PiP window. The copy saved, closed, reopened with all 6 sequences and no offline media. Receipt `native_flow_REAL_receipt.json`. |
+| Master from an already cut sequence (AutoCut, 14 pieces) | MOCK | Rebuilt as one uncut take with the effects copied over. This is in panel 0.8.9, which is packaged but not installed, so it hasn't run in Premiere. |
+
+**Correction.** The earlier animation hand-off row said a PiP press rendered "with alpha". It did, but the alpha was solid everywhere, because Josh's house deck has a white background and only a grey placeholder where the camera goes. In Premiere the slide covered Josh. Only the real export showed it. The renderer now cuts a see-through window at the deck's `#pip` and `#half` boxes, adds the 6px gold border and shadow for PiP, and refuses a render whose window isn't clear. The native test also checks the exported frames for a picture in every window.
+
+**Fixed from the real run.**
+- Premiere reloads the panel when a project opens, so the bridge waits for it to come back.
+- Premiere adds `.png` to frame names itself.
+- Frames arrive after the call returns, so Josh OS waits for them, and asks again if one never arrives.
+- `exportSequence` rejects an empty preset, so Josh OS passes Adobe's own `H264 Match Source - High bitrate.epr`.
+- After a save Premiere reports the project path with a `\\?\` prefix.
 
 No listening pass was done. Sound and cough labels are unverified. Both recordings are development examples, so no accuracy claim follows.
 
 ## What needs Josh (blocked here)
 
-1. **Installing the panel.** Premiere has the Josh Cut Pro panel 0.8.6 installed, not 0.8.7 or 0.8.8. Installing `E:\Videos\DaJoshiCut\DaJoshiCut_premierepro.ccx` goes through Adobe's plugin installer, which asks for confirmation for a third-party plugin. That's a security prompt, so Josh has to accept it himself. Double-click the file to install.
-2. **Opening Premiere.** Premiere wasn't running. Nothing in this pass ran in real Premiere, so nesting, key propagation, export and reopening are proven only in the stub model. With 0.8.8 installed and Premiere open, start Josh Cut Pro, then on the video's clean cut screen:
-   - open "Set up Premiere"
-   - type the keyed sequence's name and the path of the project to copy
-   - press "Run the Premiere test on a copy"
-   The receipt is written to the video's `native-test` folder in Josh OS's data.
-3. **Things only real Premiere can answer:**
-   - Whether `createOverwriteItemAction` accepts a sequence as a nest. If it doesn't, the build stops with Premiere's message.
-   - Whether `Project.open` with the options shows no dialogs.
-   - Whether Drop Shadow's settings are named as expected.
-   - Which export settings `exportSequence` uses when no preset is given.
+1. **Installing panel 0.8.9.** 0.8.8 is installed and passed the native test. 0.8.9 adds the master rebuild from an already cut sequence and the path fix for closing. Installing goes through Adobe's plugin installer, which asks Josh to confirm, so he has to double-click `E:\Videos\DaJoshiCut\DaJoshiCut_premierepro.ccx` himself. After that, Josh OS starts the helper and Premiere on its own.
+2. **Still unproven in Premiere.**
+   - Drop Shadow's settings and the shadow copy. Josh's sequences have no spare track above the presenter, and whether Premiere adds one when asked is unknown.
+   - Copying Ultra Key settings onto a freshly placed clip (0.8.9).
+3. **Josh's simpler PiP layout.** Josh suggested putting the slide underneath, with its PiP box drawn on it, and the cropped camera copy on the track above. That needs no transparency. It would change the panel, so it would ship in the next package.
 4. **Restart.** Josh OS needs a restart to load this, and it restarts the Discord bridge too. Do it once the Discord setup is finished, or when Josh is ready. The restart is `Restart DaJoshiResolve.bat`.
 5. **Listening and labels.** The 26 review WAVs and the annotation sheets in the handover still need Josh's labels before any sound default changes. A held-out recording is still needed before anyone can say how reliable this is.
 6. **Frame.io** is deferred, and Discord wasn't touched.

@@ -121,7 +121,8 @@ def render_shots(shots, deck, out_dir, frame_ticks, scale, ffmpeg, job_dir, log=
     env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1]))
     for n, s in enumerate(shots, 1):
         frames = s['end_f'] - s['start_f']
-        key = hashlib.sha1(json.dumps([deck_hash, s['beat'], s['previous'], frames, str(fps), s['alpha'], scale]).encode()).hexdigest()[:12]
+        hole = camera_hole(s['type']) if s['alpha'] else None
+        key = hashlib.sha1(json.dumps([deck_hash, s['beat'], s['previous'], frames, str(fps), s['alpha'], scale, hole]).encode()).hexdigest()[:12]
         out = out_dir / f"anim{s['animation']:02d}-press{s['press']:02d}-{key}{'.mov' if s['alpha'] else '.mp4'}"
         s['asset'] = str(out)
         if out.is_file():
@@ -129,13 +130,43 @@ def render_shots(shots, deck, out_dir, frame_ticks, scale, ffmpeg, job_dir, log=
         log(f"Rendering animation {s['animation']}, press {s['press']} ({n} of {len(shots)})")
         req = Path(job_dir) / f"render-{n:03d}.json"
         req.write_text(json.dumps(dict(deck=str(Path(deck).resolve()), beat=s['beat'], previous=s['previous'], frames=frames, fps=str(fps),
-                                       out=str(out), alpha=s['alpha'], scale=scale, job=str(job_dir), ffmpeg=ffmpeg, contract=contract)), encoding='utf-8')
+                                       out=str(out), alpha=s['alpha'], scale=scale, job=str(job_dir), ffmpeg=ffmpeg, contract=contract,
+                                       hole=hole, border=s['type'] == 'pip')), encoding='utf-8')
         run = subprocess.run([sys.executable, str(RENDER), str(req)], capture_output=True, text=True, encoding='utf-8', timeout=1800, env=env,
                              cwd=str(job_dir), creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if run.returncode != 0 or not out.is_file():
             raise ValueError(f"Animation {s['animation']} press {s['press']} would not render: " +
                              ((run.stderr or run.stdout).strip().splitlines() or ['no details'])[-1][:300])
+        if hole:
+            window_open(out, hole, s)
     return shots
+
+
+def window_open(out, hole, s):
+    """The camera window must really be see-through. Checked on the last rendered frame, since FFmpeg reads
+    ProRes 4444 alpha unreliably. A deck that paints over the window would hide Josh in Premiere."""
+    from PIL import Image
+    report = json.loads(Path(out).with_suffix('.json').read_text(encoding='utf-8'))
+    frames = sorted(Path(report['frame_directory']).glob('*.png'))
+    if not frames:
+        return
+    im = Image.open(frames[-1]).convert('RGBA')
+    k = im.size[0] / 1920.0
+    x, y, w, h = hole
+    spots = [(x + w * fx, y + h * fy) for fx in (0.2, 0.5, 0.8) for fy in (0.2, 0.5, 0.8)]
+    if any(im.getpixel((int(px * k), int(py * k)))[3] > 8 for px, py in spots):
+        raise ValueError(f"Animation {s['animation']} press {s['press']} covers the camera window, so Josh would not show in it.")
+
+
+def camera_hole(kind):
+    """The window the camera copy shows through, in the deck's 1920 by 1080 layout. It is the same box the framing
+    below fills, and the same place Josh's house deck puts its #pip and #half placeholders."""
+    sys.path.insert(0, str(CUT_HELPER))
+    try:
+        import style as cut_style
+        return cut_style.camera_box(kind, {})
+    finally:
+        sys.path.remove(str(CUT_HELPER))
 
 
 def camera_framing(kind, video_w, video_h, frame_h):
@@ -161,6 +192,6 @@ def layer_result(shots, frame_ticks, camera_path, video_size, frame_size):
                            name=f"Animation {s['animation']} press {s['press']}"))
         if s['type'] in ALPHA_TYPES:
             layers.append(dict(track=TRACK_CAMERA, kind='camera_copy', path=camera_path, start_f=s['start_f'], in_f=0, out_f=n,
-                               framing=camera_framing(s['type'], video_size[0], video_size[1], frame_size[1]),
+                               framing=camera_framing(s['type'], video_size[0], video_size[1], frame_size[1]), hole=camera_hole(s['type']),
                                name=f"Picture for animation {s['animation']}"))
     return dict(layers=layers, fps_num=fps.numerator, fps_den=fps.denominator)

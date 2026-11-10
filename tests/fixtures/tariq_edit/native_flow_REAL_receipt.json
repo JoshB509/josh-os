@@ -1,0 +1,979 @@
+{
+ "original": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\video\\Exec questions.prproj",
+ "original_sha256": "3f23d2e6ad89fb73d505c632ec26d7ca6fdf8dc6398794df1083c647aa60f6cc",
+ "copy": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+ "started": "2026-11-10T14:04:41.859426+00:00",
+ "steps": [
+  {
+   "step": "Get Premiere ready",
+   "ok": true,
+   "result": {
+    "started": []
+   }
+  },
+  {
+   "step": "Open the test copy",
+   "ok": true,
+   "result": {
+    "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+    "name": "Exec questions - Tariq test copy.prproj"
+   }
+  },
+  {
+   "step": "Make GREEN_MASTER",
+   "ok": true,
+   "result": {
+    "master": "GREEN_MASTER",
+    "from": "AutoCut-Backup<||>2026-11-05_answering-exec-questions_recording_v02<||>Thursday, November 05 2026 17:34:41",
+    "frame_ticks": "8467191533",
+    "presenter_track": 1,
+    "shadow_track": null,
+    "audio_clips": 0,
+    "notes": [
+     "Took the audio off the master copy. Your sequence keeps its audio."
+    ]
+   }
+  },
+  {
+   "step": "Check the master",
+   "ok": true,
+   "result": {
+    "when": "2026-11-10T14:04:42.418Z",
+    "premiere": "25.6.6",
+    "ok": true,
+    "notes": [],
+    "master": "GREEN_MASTER",
+    "api": {
+     "exporter": true,
+     "filter_factory": true,
+     "save": true,
+     "overwrite": true
+    },
+    "key_effects": [
+     "AE.ADBE Color Key",
+     "AE.ADBE Legacy Key Luma",
+     "AE.ADBE Legacy Key Track Matte",
+     "AE.ADBE Ultra Key"
+    ],
+    "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+    "frame_ticks": "8467191533",
+    "frame": [
+     3840,
+     2160
+    ],
+    "tracks": [
+     {
+      "track": 0,
+      "clips": 1,
+      "key": 0,
+      "shadow": 0,
+      "paths": [
+       "E:\\CareerOS\\12_YouTube\\Backgrounds\\Josh-Video-Background-Office-4K.png"
+      ]
+     },
+     {
+      "track": 1,
+      "clips": 1,
+      "key": 1,
+      "shadow": 0,
+      "paths": [
+       "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4"
+      ]
+     }
+    ],
+    "presenter_track": 1,
+    "shadow_track": null,
+    "master_audio_clips": 0
+   }
+  },
+  {
+   "step": "Import the good mic",
+   "ok": true,
+   "result": {
+    "imported": []
+   }
+  },
+  {
+   "step": "Build the cut",
+   "ok": true,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "frame_ticks": "8467191533",
+    "video": [
+     {
+      "track": 0,
+      "start": "0",
+      "end": "3801768998317",
+      "inp": "3818703381383",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "3801768998317",
+      "end": "16612629787746",
+      "inp": "7705144295030",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "16612629787746",
+      "end": "55604046797211",
+      "inp": "20659947340520",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "55604046797211",
+      "end": "61277065124321",
+      "inp": "59778372222980",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "61277065124321",
+      "end": "73342813058846",
+      "inp": "65544529656953",
+      "name": "GREEN_MASTER"
+     },
+     {
+      "track": 0,
+      "start": "73342813058846",
+      "end": "134967033036020",
+      "inp": "77661080740676",
+      "name": "GREEN_MASTER"
+     }
+    ],
+    "audio": [
+     {
+      "track": 0,
+      "start": "0",
+      "end": "3801768998317",
+      "inp": "3818703381383",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "3801768998317",
+      "end": "16612629787746",
+      "inp": "7705144295030",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "16612629787746",
+      "end": "55604046797211",
+      "inp": "20659947340520",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "55604046797211",
+      "end": "61277065124321",
+      "inp": "59778372222980",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "61277065124321",
+      "end": "73342813058846",
+      "inp": "65544529656953",
+      "role": "mic"
+     },
+     {
+      "track": 0,
+      "start": "73342813058846",
+      "end": "134967033036020",
+      "inp": "77661080740676",
+      "role": "mic"
+     }
+    ],
+    "gaps": [],
+    "overlaps": [],
+    "nest": true,
+    "master": "GREEN_MASTER",
+    "saved": false
+   }
+  },
+  {
+   "step": "Read back the cut",
+   "ok": true,
+   "result": []
+  },
+  {
+   "step": "Prove a key change reaches every piece",
+   "ok": true,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "master": "GREEN_MASTER",
+    "param": "Choke",
+    "original": 0,
+    "test_value": 4.0,
+    "pieces": [
+     {
+      "time_ticks": "1900884499158",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     },
+     {
+      "time_ticks": "58440555960766",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     },
+     {
+      "time_ticks": "104154923047433",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     }
+    ],
+    "shadow_unchanged": true,
+    "folder": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\proof",
+    "passed": true
+   }
+  },
+  {
+   "step": "Key change reached every piece, shadow untouched",
+   "ok": true,
+   "result": {
+    "sequence": "CLEAN_CUT_r01",
+    "master": "GREEN_MASTER",
+    "param": "Choke",
+    "original": 0,
+    "test_value": 4.0,
+    "pieces": [
+     {
+      "time_ticks": "1900884499158",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     },
+     {
+      "time_ticks": "58440555960766",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     },
+     {
+      "time_ticks": "104154923047433",
+      "exported": true,
+      "changed": true,
+      "restored": true
+     }
+    ],
+    "shadow_unchanged": true,
+    "folder": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\proof",
+    "passed": true
+   }
+  },
+  {
+   "step": "Render a few of Tariq's animations",
+   "ok": true,
+   "result": {
+    "layers": {
+     "layers": [
+      {
+       "track": 4,
+       "kind": "animation",
+       "path": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press01-47b1bb36589a.mov",
+       "start_f": 270,
+       "in_f": 0,
+       "out_f": 120,
+       "name": "Animation 1 press 1"
+      },
+      {
+       "track": 3,
+       "kind": "camera_copy",
+       "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+       "start_f": 270,
+       "in_f": 0,
+       "out_f": 120,
+       "framing": {
+        "scale": 61.29629629629629,
+        "horiz": 0.16171875,
+        "vert": -0.000462962962962963,
+        "x": 1581.0,
+        "y": 539.0,
+        "slack_x": 335.44444444444446,
+        "slack_y": 0.0,
+        "left": 28.502643504531722,
+        "right": 28.502643504531722,
+        "top": 0.0,
+        "bottom": 0.0
+       },
+       "hole": [
+        1328,
+        208,
+        506,
+        662
+       ],
+       "name": "Picture for animation 1"
+      },
+      {
+       "track": 4,
+       "kind": "animation",
+       "path": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press02-24e8ce9b40ae.mov",
+       "start_f": 390,
+       "in_f": 0,
+       "out_f": 816,
+       "name": "Animation 1 press 2"
+      },
+      {
+       "track": 3,
+       "kind": "camera_copy",
+       "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+       "start_f": 390,
+       "in_f": 0,
+       "out_f": 816,
+       "framing": {
+        "scale": 61.29629629629629,
+        "horiz": 0.16171875,
+        "vert": -0.000462962962962963,
+        "x": 1581.0,
+        "y": 539.0,
+        "slack_x": 335.44444444444446,
+        "slack_y": 0.0,
+        "left": 28.502643504531722,
+        "right": 28.502643504531722,
+        "top": 0.0,
+        "bottom": 0.0
+       },
+       "hole": [
+        1328,
+        208,
+        506,
+        662
+       ],
+       "name": "Picture for animation 1"
+      },
+      {
+       "track": 4,
+       "kind": "animation",
+       "path": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press03-0a20d2eb420b.mov",
+       "start_f": 1206,
+       "in_f": 0,
+       "out_f": 51,
+       "name": "Animation 1 press 3"
+      },
+      {
+       "track": 3,
+       "kind": "camera_copy",
+       "path": "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+       "start_f": 1206,
+       "in_f": 0,
+       "out_f": 51,
+       "framing": {
+        "scale": 61.29629629629629,
+        "horiz": 0.16171875,
+        "vert": -0.000462962962962963,
+        "x": 1581.0,
+        "y": 539.0,
+        "slack_x": 335.44444444444446,
+        "slack_y": 0.0,
+        "left": 28.502643504531722,
+        "right": 28.502643504531722,
+        "top": 0.0,
+        "bottom": 0.0
+       },
+       "hole": [
+        1328,
+        208,
+        506,
+        662
+       ],
+       "name": "Picture for animation 1"
+      }
+     ],
+     "fps_num": 254016000000,
+     "fps_den": 8467191533
+    },
+    "presses": 3,
+    "left_out": [
+     "Animation 7 press 2: \"who is this guy?\" is not in the approved script, so it was left out.",
+     "Animation 7 press 3: \"He doesn't know what he's talking about\" is not in the approved script, so it was left out.",
+     "Animation 7 press 1: \"it's about 20%\" is not in the approved script, so it was left out."
+    ]
+   }
+  },
+  {
+   "step": "Copy the cut to the assembly",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "existed": false
+   }
+  },
+  {
+   "step": "Place the animations",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "note": "",
+    "v4": 4,
+    "v5": 3,
+    "report": {
+     "gaps": [],
+     "overlaps": []
+    }
+   }
+  },
+  {
+   "step": "Export on this PC",
+   "ok": true,
+   "result": {
+    "sequence": "FINAL_ASSEMBLY_r01",
+    "output": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\FINAL_ASSEMBLY_r01_test.mp4",
+    "started": true,
+    "ame_installed": true
+   }
+  },
+  {
+   "step": "Check the exported file",
+   "ok": true,
+   "result": []
+  },
+  {
+   "step": "Josh shows in every camera window",
+   "ok": true,
+   "result": {
+    "checked": [
+     {
+      "at_s": 11.0,
+      "name": "Picture for animation 1",
+      "spread": 84.7,
+      "frame": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\windows\\window-00.png"
+     },
+     {
+      "at_s": 26.6,
+      "name": "Picture for animation 1",
+      "spread": 84.0,
+      "frame": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\windows\\window-01.png"
+     },
+     {
+      "at_s": 41.05,
+      "name": "Picture for animation 1",
+      "spread": 84.7,
+      "frame": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\windows\\window-02.png"
+     }
+    ],
+    "problems": []
+   }
+  },
+  {
+   "step": "Save the test copy",
+   "ok": true,
+   "result": {
+    "saved": true,
+    "project": "\\\\?\\E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj"
+   }
+  },
+  {
+   "step": "Close the test copy",
+   "ok": true,
+   "result": {
+    "closed": true
+   }
+  },
+  {
+   "step": "Reopen the test copy",
+   "ok": true,
+   "result": {
+    "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+    "name": "Exec questions - Tariq test copy.prproj"
+   }
+  },
+  {
+   "step": "Check it after reopening",
+   "ok": true,
+   "result": {
+    "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+    "sequences": [
+     "GREEN_MASTER",
+     "2026-11-05_answering-exec-questions_recording_v02",
+     "CLEAN_CUT_r01",
+     "FINAL_ASSEMBLY_r01",
+     "AutoCut-Backup<||>2026-11-05_answering-exec-questions_recording_v02<||>Thursday, November 05 2026 17:36:05",
+     "AutoCut-Backup<||>2026-11-05_answering-exec-questions_recording_v02<||>Thursday, November 05 2026 17:34:41"
+    ],
+    "offline": [],
+    "media": [
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+     "E:\\CareerOS\\12_YouTube\\Backgrounds\\Josh-Video-Background-Office-4K.png",
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press01-47b1bb36589a.mov",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press02-24e8ce9b40ae.mov",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press03-0a20d2eb420b.mov"
+    ],
+    "cut_pieces": 6,
+    "cut_is_master_nests": true,
+    "keys": [
+     {
+      "role": "presenter",
+      "track": 1,
+      "start": "939858260163",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": [
+         0.5,
+         0.5291666388511658
+        ]
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 116
+       },
+       {
+        "index": 2,
+        "name": "Scale Width",
+        "value": 100
+       },
+       {
+        "index": 3,
+        "name": " ",
+        "value": true
+       },
+       {
+        "index": 4,
+        "name": "Rotation",
+        "value": 0
+       },
+       {
+        "index": 5,
+        "name": "Anchor Point",
+        "value": [
+         0.5,
+         0.5
+        ]
+       },
+       {
+        "index": 6,
+        "name": "Anti-flicker Filter",
+        "value": 0
+       },
+       {
+        "index": 7,
+        "name": "Crop Left",
+        "value": 0
+       },
+       {
+        "index": 8,
+        "name": "Crop Top",
+        "value": 0
+       },
+       {
+        "index": 9,
+        "name": "Crop Right",
+        "value": 0
+       },
+       {
+        "index": 10,
+        "name": "Crop Bottom",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "presenter",
+      "track": 1,
+      "start": "939858260163",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Output",
+        "value": 0
+       },
+       {
+        "index": 1,
+        "name": "Setting",
+        "value": 3
+       },
+       {
+        "index": 2,
+        "name": "Key Color",
+        "value": null
+       },
+       {
+        "index": 3,
+        "name": "Matte Generation",
+        "value": false
+       },
+       {
+        "index": 4,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 5,
+        "name": "Highlight",
+        "value": 5.283019065856934
+       },
+       {
+        "index": 6,
+        "name": "Shadow",
+        "value": 46.79245376586914
+       },
+       {
+        "index": 7,
+        "name": "Tolerance",
+        "value": 52.45283126831055
+       },
+       {
+        "index": 8,
+        "name": "Pedestal",
+        "value": 61.509437561035156
+       },
+       {
+        "index": 9,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 10,
+        "name": "Matte Cleanup",
+        "value": false
+       },
+       {
+        "index": 11,
+        "name": "Choke",
+        "value": 0
+       },
+       {
+        "index": 12,
+        "name": "Soften",
+        "value": 0
+       },
+       {
+        "index": 13,
+        "name": "Contrast",
+        "value": 0
+       },
+       {
+        "index": 14,
+        "name": "Mid Point",
+        "value": 50
+       },
+       {
+        "index": 15,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 16,
+        "name": "Spill Suppression",
+        "value": false
+       },
+       {
+        "index": 17,
+        "name": "Desaturate",
+        "value": 25
+       },
+       {
+        "index": 18,
+        "name": "Range",
+        "value": 50
+       },
+       {
+        "index": 19,
+        "name": "Spill",
+        "value": 50
+       },
+       {
+        "index": 20,
+        "name": "Luma",
+        "value": 50
+       },
+       {
+        "index": 21,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 22,
+        "name": "Color Correction",
+        "value": false
+       },
+       {
+        "index": 23,
+        "name": "Saturation",
+        "value": 100
+       },
+       {
+        "index": 24,
+        "name": "Hue",
+        "value": 0
+       },
+       {
+        "index": 25,
+        "name": "Luminance",
+        "value": 100
+       },
+       {
+        "index": 26,
+        "name": "",
+        "value": false
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "step": "Sequences, nest and media links after reopening",
+   "ok": true,
+   "result": {
+    "project": "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\data\\edit_flow\\861b8b85-d4e3-4f80-86e5-89a97711c8c8\\native-test\\20261110T140441\\Exec questions - Tariq test copy.prproj",
+    "sequences": [
+     "GREEN_MASTER",
+     "2026-11-05_answering-exec-questions_recording_v02",
+     "CLEAN_CUT_r01",
+     "FINAL_ASSEMBLY_r01",
+     "AutoCut-Backup<||>2026-11-05_answering-exec-questions_recording_v02<||>Thursday, November 05 2026 17:36:05",
+     "AutoCut-Backup<||>2026-11-05_answering-exec-questions_recording_v02<||>Thursday, November 05 2026 17:34:41"
+    ],
+    "offline": [],
+    "media": [
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\2026-11-05_answering-exec-questions_recording_v02.mp4",
+     "E:\\CareerOS\\12_YouTube\\Backgrounds\\Josh-Video-Background-Office-4K.png",
+     "E:\\CareerOS\\12_YouTube\\answering-exec-questions\\Recorded\\Input\\00111_Wireless_PRO-esv2-50p-bg-10p-music-10p.wav",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press01-47b1bb36589a.mov",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press02-24e8ce9b40ae.mov",
+     "E:\\Videos\\DaJoshiResolve\\Data\\edit_flow\\native-real\\run-sx9fu52q\\video-folder\\video\\tariq-animations\\anim01-press03-0a20d2eb420b.mov"
+    ],
+    "cut_pieces": 6,
+    "cut_is_master_nests": true,
+    "keys": [
+     {
+      "role": "presenter",
+      "track": 1,
+      "start": "939858260163",
+      "effect": "AE.ADBE Motion",
+      "params": [
+       {
+        "index": 0,
+        "name": "Position",
+        "value": [
+         0.5,
+         0.5291666388511658
+        ]
+       },
+       {
+        "index": 1,
+        "name": "Scale",
+        "value": 116
+       },
+       {
+        "index": 2,
+        "name": "Scale Width",
+        "value": 100
+       },
+       {
+        "index": 3,
+        "name": " ",
+        "value": true
+       },
+       {
+        "index": 4,
+        "name": "Rotation",
+        "value": 0
+       },
+       {
+        "index": 5,
+        "name": "Anchor Point",
+        "value": [
+         0.5,
+         0.5
+        ]
+       },
+       {
+        "index": 6,
+        "name": "Anti-flicker Filter",
+        "value": 0
+       },
+       {
+        "index": 7,
+        "name": "Crop Left",
+        "value": 0
+       },
+       {
+        "index": 8,
+        "name": "Crop Top",
+        "value": 0
+       },
+       {
+        "index": 9,
+        "name": "Crop Right",
+        "value": 0
+       },
+       {
+        "index": 10,
+        "name": "Crop Bottom",
+        "value": 0
+       }
+      ]
+     },
+     {
+      "role": "presenter",
+      "track": 1,
+      "start": "939858260163",
+      "effect": "AE.ADBE Ultra Key",
+      "params": [
+       {
+        "index": 0,
+        "name": "Output",
+        "value": 0
+       },
+       {
+        "index": 1,
+        "name": "Setting",
+        "value": 3
+       },
+       {
+        "index": 2,
+        "name": "Key Color",
+        "value": null
+       },
+       {
+        "index": 3,
+        "name": "Matte Generation",
+        "value": false
+       },
+       {
+        "index": 4,
+        "name": "Transparency",
+        "value": 45
+       },
+       {
+        "index": 5,
+        "name": "Highlight",
+        "value": 5.283019065856934
+       },
+       {
+        "index": 6,
+        "name": "Shadow",
+        "value": 46.79245376586914
+       },
+       {
+        "index": 7,
+        "name": "Tolerance",
+        "value": 52.45283126831055
+       },
+       {
+        "index": 8,
+        "name": "Pedestal",
+        "value": 61.509437561035156
+       },
+       {
+        "index": 9,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 10,
+        "name": "Matte Cleanup",
+        "value": false
+       },
+       {
+        "index": 11,
+        "name": "Choke",
+        "value": 0
+       },
+       {
+        "index": 12,
+        "name": "Soften",
+        "value": 0
+       },
+       {
+        "index": 13,
+        "name": "Contrast",
+        "value": 0
+       },
+       {
+        "index": 14,
+        "name": "Mid Point",
+        "value": 50
+       },
+       {
+        "index": 15,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 16,
+        "name": "Spill Suppression",
+        "value": false
+       },
+       {
+        "index": 17,
+        "name": "Desaturate",
+        "value": 25
+       },
+       {
+        "index": 18,
+        "name": "Range",
+        "value": 50
+       },
+       {
+        "index": 19,
+        "name": "Spill",
+        "value": 50
+       },
+       {
+        "index": 20,
+        "name": "Luma",
+        "value": 50
+       },
+       {
+        "index": 21,
+        "name": "",
+        "value": false
+       },
+       {
+        "index": 22,
+        "name": "Color Correction",
+        "value": false
+       },
+       {
+        "index": 23,
+        "name": "Saturation",
+        "value": 100
+       },
+       {
+        "index": 24,
+        "name": "Hue",
+        "value": 0
+       },
+       {
+        "index": 25,
+        "name": "Luminance",
+        "value": 100
+       },
+       {
+        "index": 26,
+        "name": "",
+        "value": false
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "step": "Close the test copy again",
+   "ok": true,
+   "result": {
+    "closed": true
+   }
+  }
+ ],
+ "original_unchanged": true,
+ "passed": true,
+ "finished": "2026-11-10T14:09:09.933968+00:00",
+ "limits": "Native Premiere on a copy of one project. Frame comparisons prove the master change reached three pieces, not key quality across the whole video. No listening pass.",
+ "scope": "REAL Premiere 25.6 with Josh Cut Pro 0.8.8, on a copy of Exec questions.prproj."
+}

@@ -77,7 +77,8 @@ def main():
             page.set_content('<div id="activity"></div><div id="link"></div><div id="linkText"></div><div id="seq"></div><button id="open"></button>')
             page.add_script_tag(content=f"window.JOSH_HELPER='http://127.0.0.1:{PORT}';window.STUB_VIDEO={json.dumps(str(CAM))};"
                                         f"window.STUB_MIC={json.dumps(str(MIC))};window.STUB_SOURCE_ONLY=true;window.STUB_LENGTH=600;"
-                                        "window.STUB_TIMEBASE='8467191533';")
+                                        + ("window.STUB_SOURCE_CUT=true;" if '--cut-source' in sys.argv else '')
+                                        + "window.STUB_TIMEBASE='8467191533';")
             page.add_script_tag(path=str(CUT / 'tests' / 'ppro-stub.js'))
             page.add_script_tag(path=str(CUT / 'tests' / 'tq-stub-ext.js'))
             errors = []
@@ -112,7 +113,7 @@ def main():
             b.close()
     finally:
         helper.kill()
-    out = ROOT / 'tests' / 'fixtures' / 'tariq_edit' / 'native_flow_MOCK_receipt.json'
+    out = ROOT / 'tests' / 'fixtures' / 'tariq_edit' / ('native_flow_MOCK_cut_source_receipt.json' if '--cut-source' in sys.argv else 'native_flow_MOCK_receipt.json')
     receipt['scope'] = 'MOCK: Josh OS + real helper bridge + real panel code against the Premiere stub. Not native proof.'
     out.write_text(json.dumps(receipt, indent=1, default=str)[:400000], encoding='utf-8')
     for s in receipt['steps']:
