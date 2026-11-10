@@ -120,30 +120,46 @@ function vpPhase(p,su,heads,action,foot){
 }
 function vpEditScript(p,d){
   if(!d.proposal&&!(d.suggest?.ambiguous))return `<div class="vp-card vp-later"><h3>Nothing here yet</h3><p>Tariq puts the script here once he has transcribed the recording and marked his cuts. You can watch him get there on the Setting up tab.</p></div>`;
-  const bu=d.phases?.build;
-  const build=d.proposal?.approved&&bu?vpPhase(p,bu,{running:'Tariq is building your cut in Premiere',done:'The cut is built',failed:'The cut did not build',interrupted:'The build stopped'},
-    bu.state==='running'?'':bu.state==='done'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':`<button class="primary" data-vp-build ${vpEditBusy?'disabled':''}>Build it again</button>`):'';
+  const st=Object.fromEntries((d.status||[]).map(x=>[x.key,x])),bu=d.phases?.build;
+  let build='';
+  if(d.proposal?.approved&&bu&&(bu.state==='running'||st.cut?.state==='verified'||bu.state!=='done'))
+    build=vpPhase(p,bu,{running:'Tariq is building your cut in Premiere',done:'The cut is built',failed:'The cut did not build',interrupted:'The build stopped'},
+      bu.state==='running'?'':st.cut?.state==='verified'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':`<button class="primary" data-vp-build ${vpEditBusy?'disabled':''}>Build it again</button>`);
+  else if(d.proposal?.approved&&st.cut?.state!=='verified')
+    build=`<div class="vp-card"><h3>Your script is approved</h3><p>${st.cut&&!['waiting','requested','running'].includes(st.cut.state)?`The last build stopped. ${esc(st.cut.reason||'')}`:'Tariq builds it in Premiere as a new sequence, CLEAN_CUT, from his own project.'}</p>
+      <div class="vp-actions"><button class="primary" data-vp-build ${vpEditBusy?'disabled':''}>Build the cut in Premiere</button></div></div>`;
   return `${build}<div id="ef-embed">${efInner(true)}</div>`;
 }
+let vpAnimSeen={};
 function vpEditAnimations(p,d){
   const st=Object.fromEntries((d.status||[]).map(x=>[x.key,x])),s=vpStatus[p.id]||{},ph=d.phases||{};
-  if(st.cut?.state!=='verified')return `<div class="vp-card vp-later"><h3>Nothing here yet</h3><p>The animations come once you approve the script and Tariq has built the cut in Premiere.</p></div>`;
-  const vis=st.visuals,an=ph.animate,fi=ph.final;
-  const making=an&&an.state==='running';
-  const deck=making?'':`<div class="vp-card"><h3>${vis?.state==='approved'?'Storyboard approved':s.deck?'The animations are ready to review':'No animation deck yet'}</h3>
-    ${s.deck?`<p>${esc(s.deck.slides)} and ${esc(s.deck.shot_list||'no shot list yet')}. Review them as a slide show, then approve the storyboard and Tariq puts it all together and exports it.</p>`
-      :`<p>Tariq makes the slides and shot list from the approved script.</p>`}
-    <div class="vp-actions">${s.deck?`<button class="${vis?.state==='approved'?'subtle':'primary'}" data-er-open="${esc(p.id)}">Review the animations</button>`:vis?.state==='approved'?'':`<button class="primary" data-dock-ask="Make the animation slides and shot list for this video.">Ask Tariq to make them</button>`}
-      ${s.deck&&vis?.state!=='approved'?'<button class="subtle" data-ef-storyboard>Approve the storyboard</button>':''}</div></div>`;
-  const anim=an&&(making||an.state!=='done')?vpPhase(p,an,{running:'Tariq is making the slides and shot list',done:'The slides are ready',failed:'Tariq stopped on the slides',interrupted:'Tariq stopped on the slides'}):'';
+  const cutOk=st.cut?.state==='verified',vis=st.visuals,an=ph.animate,fi=ph.final,making=an?.state==='running';
+  const anim=an&&an.state!=='done'?vpPhase(p,an,{running:'Tariq is making the slides and shot list',failed:'Tariq stopped on the slides',interrupted:'Tariq stopped on the slides'},
+    making?'':`<button class="subtle" data-vp-slides ${vpEditBusy?'disabled':''}>Try again</button>`):'';
+  const deck=s.deck?`<div class="vp-card"><h3>${vis?.state==='approved'?'Storyboard approved':'The slides are ready to review'}</h3>
+      <p>${esc(s.deck.slides)} and ${esc(s.deck.shot_list||'no shot list yet')}. Review them as a slide show. ${cutOk?'Approve the storyboard and Tariq puts it all together and exports it.':'You can approve the storyboard once the cut is built on the Script tab.'}</p>
+      <div class="vp-actions"><button class="${vis?.state==='approved'?'subtle':'primary'}" data-er-open="${esc(p.id)}">Review the animations</button>
+      ${cutOk&&vis?.state!=='approved'?'<button class="subtle" data-ef-storyboard>Approve the storyboard</button>':''}
+      ${making?'':`<button class="subtle" data-vp-slides ${vpEditBusy?'disabled':''}>Make them again</button>`}</div></div>`
+    :making?'':`<div class="vp-card"><h3>No slides yet</h3><p>Tariq makes the slides and shot list from the script, with your notes below. You can watch each step here while he works.</p>
+      <div class="vp-actions"><button class="primary" data-vp-slides ${vpEditBusy?'disabled':''}>Make the slides</button></div></div>`;
+  const n=d.anim_notes||{};
+  const notes=`<div class="vp-card vp-notes-card"><h3>Your notes for the animations</h3>
+    <p class="hint">Tariq reads these when he makes the slides and when you chat with him. Ideas you give him in chat get added here too.</p>
+    <textarea id="vp-anim-notes" rows="7" placeholder="For example, four blank cards that fill in one tip at a time, or a picture in picture on the chess line">${esc(n.text||'')}</textarea>
+    <div class="vp-actions"><button class="subtle" data-vp-anim-notes>Save notes</button>${n.at?`<span class="hint">Saved ${esc(new Date(n.at).toLocaleString(undefined,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}</span>`:''}</div></div>`;
   const fin=vis?.state==='approved'&&fi?vpPhase(p,fi,{running:'Tariq is putting it together and exporting it',done:'Exported and checked',failed:'The export has a problem',interrupted:'The export stopped'}):'';
-  return anim+deck+fin;
+  // when the slides finish, look for the new deck
+  if(vpAnimSeen[p.id]==='running'&&an?.state==='done')vpLoad(p.id);
+  vpAnimSeen[p.id]=an?.state;
+  return anim+deck+fin+notes;
 }
 function vpEditRender(){
   const p=current;if(!p||vpPiece(p)!=='edit')return;
   const body=$('#tab-body');if(!body)return;
-  const keep=$('#ef-script')?.scrollTop,y=scrollY;
+  const keep=$('#ef-script')?.scrollTop,y=scrollY,ta=$('#vp-anim-notes'),typing=ta&&document.activeElement===ta?{v:ta.value,a:ta.selectionStart,b:ta.selectionEnd}:null;
   body.innerHTML=vpEdit(p);
+  if(typing){const t=$('#vp-anim-notes');if(t){t.value=typing.v;t.focus();t.setSelectionRange(typing.a,typing.b)}}
   if(keep!=null&&$('#ef-script'))$('#ef-script').scrollTop=keep;
   scrollTo(0,y);
   const row=document.querySelector('.vp-pieces');if(row)row.outerHTML=vpPiecesRow(p);
@@ -191,6 +207,13 @@ document.addEventListener('click',async e=>{
   if(!current||view==='edit-review')return;
   const pc=e.target.closest('[data-vp-piece]');if(pc){if(typeof leave==='function'&&dirty){/* autosave keeps edits */}vpOpen[current.id]=pc.dataset.vpPiece;vpTakes=null;renderDetail();if(typeof dockRender==='function')dockRender();return}
   const et=e.target.closest('[data-vp-edit-tab]');if(et){vpEditTab[current.id]=et.dataset.vpEditTab;vpEditRender();return}
+  if(e.target.closest('[data-vp-slides]')){const pid=current.id;vpEditBusy=true;vpEditRender();
+    try{const t=$('#vp-anim-notes')?.value;if(t!=null)await api(`/api/projects/${encodeURIComponent(pid)}/edit-flow/anim_notes`,{text:t});
+      await api(`/api/projects/${encodeURIComponent(pid)}/edit-flow/slides`,{});toast('Tariq is making the slides')}catch(err){toast(err.message,true)}
+    finally{vpEditBusy=false}if(current?.id===pid){await efLoad();vpEditRender()}return}
+  if(e.target.closest('[data-vp-anim-notes]')){const pid=current.id;
+    try{await api(`/api/projects/${encodeURIComponent(pid)}/edit-flow/anim_notes`,{text:$('#vp-anim-notes').value});toast('Notes saved')}catch(err){toast(err.message,true)}
+    if(current?.id===pid){await efLoad();vpEditRender()}return}
   if(e.target.closest('[data-vp-build]')){const pid=current.id;vpEditBusy=true;vpEditRender();
     try{await api(`/api/projects/${encodeURIComponent(pid)}/edit-flow/build_again`,{});toast('Tariq is building the cut again')}catch(err){toast(err.message,true)}
     finally{vpEditBusy=false}if(current?.id===pid){await efLoad();vpEditRender()}return}

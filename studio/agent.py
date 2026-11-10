@@ -207,6 +207,10 @@ EDIT_PROPS = {
             'setup': {'type': 'boolean', 'description': 'True to make the video\'s edit folders the way Josh lays them out.'},
             'rerender': {'type': 'array', 'items': {'type': 'integer'},
                          'description': 'Animation numbers whose review pictures need taking again. Josh OS also does this by itself when the slides file changes.'},
+            'animation_notes': {'type': 'string', 'description': 'Ideas Josh gives you in chat for this video\'s animations (what a screen '
+                                                                  'shows, a running device like cards or a tracker, a picture in picture moment), written as a '
+                                                                  'note to keep. Josh OS adds it to the notes box on the Animations tab, which you read when you '
+                                                                  'make the slides.'},
             'go_ahead': {'type': 'boolean', 'description': 'True when Josh wants you to start editing this video, however he puts it (for '
                                                           'example "go ahead", "start the edit", "can you get this one cut", "crack on with it"). '
                                                           'Judge what he means, not the exact words. It runs the stages in order: gather the files, set '
@@ -1245,7 +1249,8 @@ class Agents:
                        'The full script is below, so line retention moments up with the exact words.' if saved is not None else '')
                     + '\n' + json.dumps(dict(id=p['id'], name=p['name'], title=title, stage=p['stage'], publish_date=p.get('publish_date'),
                                             notes=(p.get('notes') or '')[:2000], script=(p.get('script') or '')[:20000],
-                                            results=saved), ensure_ascii=False, indent=1))
+                                            results=saved), ensure_ascii=False, indent=1)
+                    + ('\n' + self.anim_notes_text(cid) if self.anim_notes_text(cid) else ''))
         if kind == 'edit' and getattr(self, 'edit_review', None) is not None:
             er = self.edit_review
             try:
@@ -1266,6 +1271,8 @@ class Agents:
                      'If you add or remove a press, renumber every later data-from, data-to, data-b, data-off and data-add, and TOTAL.',
                      'Josh OS takes the review pictures again by itself when the slides change. Follow the video-editing-prep skill for',
                      'anything new, and the house style of the existing deck. Never touch the recordings, Premiere projects or masters.']
+            if self.anim_notes_text(cid):
+                lines += ['', self.anim_notes_text(cid)]
             if part:
                 lines += ['', 'The part he has open:', json.dumps({k: part.get(k) for k in ('kind', 'n', 'type', 'time', 'desc', 'script', 'presses')},
                                                                   ensure_ascii=False, indent=1)]
@@ -1444,6 +1451,7 @@ class Agents:
             if er is not None and edit_folder is not None:
                 saved += self.apply_edit(er, str(ctx['id']), action, before)
                 saved += self.start_go_ahead(str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
+                saved += self.keep_anim_notes(str(ctx['id']), action)
                 saved += self.start_deck_job(agent_id, str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
             elif er is not None and action.get('project_id'):
                 saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via)
@@ -1552,7 +1560,21 @@ class Agents:
             return [dict(id=pid, title='the edit', action='failed', kind='edit', error=str(e)[:200])]
         done = self.apply_edit(er, pid, {k: action[k] for k in ('setup', 'rerender') if k in action}, self._deck_state(er, pid))
         done += self.start_go_ahead(pid, p['name'], action, via)
+        done += self.keep_anim_notes(pid, action)
         return done + self.start_deck_job(agent_id, pid, p['name'], action, via)
+
+    def anim_notes_text(self, pid):
+        flow = getattr(self, 'edit_flow', None)
+        text = ((flow.anim_notes(pid).get('text') if flow else '') or '').strip()
+        return ("Josh's notes for this video's animations (follow them):\n" + text[:8000]) if text else ''
+
+    def keep_anim_notes(self, pid, action):
+        note = str(action.get('animation_notes') or '').strip()
+        flow = getattr(self, 'edit_flow', None)
+        if note and flow:
+            flow.set_anim_notes(pid, note, add=True)
+            return [dict(id=pid, title='your animation notes', action='updated', kind='edit')]
+        return []
 
     def start_deck_job(self, agent_id, pid, name, action, via=''):
         """Josh asked for the slides or shot list to be made or changed: it runs as a job and Tariq posts back."""
@@ -1586,7 +1608,9 @@ class Agents:
             folder = er.project_folder(pid)
             learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
-            parts = [self.focus(dict(kind='edit', id=pid), [], None), '', 'Josh asked, from chat: ' + change]
+            parts = [self.focus(dict(kind='edit', id=pid), [], None), '', 'Josh asked: ' + change]
+            if self.anim_notes_text(pid):
+                parts += ['', self.anim_notes_text(pid)]
             for name in SKILLS.get(agent_id, []):
                 text = self.skill_text(name)
                 if text:

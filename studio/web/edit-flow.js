@@ -121,7 +121,7 @@ function efNext(){
     </section>`;
   }
   const cut=st.cut,vis=st.visuals,fin=st.final;
-  if(efEmbedded()&&efData.phases?.build)return '';
+  if(efEmbedded())return '';  // the Script tab shows the build itself
   if(efEmbedded())return `<section class="ef-card ef-approve">
     <p>You approved revision ${p.revision}. ${cut?.state==='verified'?'Tariq has built the cut in Premiere, so the animations are next.':cut?.state==='blocked'||cut?.state==='failed'?esc(cut.reason):'Tariq is building it in Premiere now.'}</p>
     ${cut?.state==='verified'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':''}</section>`;

@@ -354,7 +354,7 @@ class EditFlow:
     def view(self, pid, proposal_id=None):
         prop = self.get(pid, proposal_id) if proposal_id else self.latest(pid, 'edit_proposal')
         if not prop:
-            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid))
+            return dict(proposal=None, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid), anim_notes=self.anim_notes(pid))
         pl = prop['payload']
         rem, issues = self.computed(prop)
         total = pl['measurements']['samples']
@@ -369,7 +369,7 @@ class EditFlow:
             sync=pl['sync'], editorial=pl['editorial'], asr=pl['asr'], notes=pl['notes'],
             summary=dict(source_s=round(total / SR, 2), kept_s=round(kept / SR, 2), removed_s=round((total - kept) / SR, 2),
                          removals=len(rem), cards=len(ep.queue(pl['events'], pl['decisions'], issues))),
-            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid))
+            config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid), anim_notes=self.anim_notes(pid))
 
     def revise(self, pid, proposal_id, expected_digest, changes=(), words=(), note=''):
         """Josh's (or Tariq's) changes make a new revision. The old one is never edited."""
@@ -754,6 +754,22 @@ class EditFlow:
                 if st['state'] == 'running':
                     st['state'], st['message'] = 'failed', 'This stopped when Josh OS closed. Ask me to start it again.'
         return s
+
+    def anim_notes(self, pid):
+        """Josh's notes for the animations: typed in the box on the Animations tab, or told to Tariq in chat."""
+        try:
+            return json.loads((self.folder(pid) / 'animation-notes.json').read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return dict(text='', at=None)
+
+    def set_anim_notes(self, pid, text, add=False):
+        text = str(text or '').strip()
+        if add:
+            old = self.anim_notes(pid).get('text') or ''
+            text = (old + '\n\n' + text).strip() if text and text not in old else old
+        n = dict(text=text[:20000], at=now())
+        write_atomic(self.folder(pid) / 'animation-notes.json', n)
+        return n
 
     def phases(self, pid):
         return {k: self.setup(pid, k) for k in self.PHASES}

@@ -94,6 +94,13 @@ class Server(ThreadingHTTPServer):
         if action=='approve':return f.approve_script(pid,d['proposal_id'],d['digest'],d.get('note',''),auto=True)
         if action=='go':return f.go_ahead(pid)
         if action=='build_again':return f.build_again(pid)
+        if action=='anim_notes':return f.set_anim_notes(pid,d.get('text',''))
+        if action=='slides':
+            name=self.store.get(pid)['name'];notes=(f.anim_notes(pid).get('text') or '').strip()
+            ask='Make the animation slides and shot list for this video from its current script, following the video-editing-prep skill.'+(' Josh\'s notes for the animations are in your brief.' if notes else '')
+            r=self.agents.start_deck_job('tariq',pid,name,dict(deck_change=ask),'')
+            if r and r[0].get('action')=='failed':raise ValueError(r[0].get('error') or 'Tariq could not start the slides.')
+            return dict(state='started')
         if action=='preview':return f.preview(pid,d['proposal_id'],d['event_id'],float(d.get('context_s',2)))
         if action=='premiere':return f.bridge_call('tq_probe',dict(master=d.get('master') or 'GREEN_MASTER'))
         if action=='build':
