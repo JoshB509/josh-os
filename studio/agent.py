@@ -1751,7 +1751,7 @@ class Agents:
         import re as _re
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         out, kit = self.guides_dir()
-        slug = _re.sub(r'[^a-z0-9]+', '-', topic.lower()).strip('-')[:50] or 'guide'
+        slug = _re.sub(r'[^a-z0-9]+', '-', topic.lower())[:50].strip('-') or 'guide'
         work = out / '_source' / f"{now()[:10]}_{slug}"
         files, text = [], ''
         try:
