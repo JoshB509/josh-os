@@ -23,7 +23,7 @@ from pathlib import Path
 
 from .store import now
 
-SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook'], 'anouk': [], 'max': []}
+SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook', 'written-guides'], 'anouk': [], 'max': []}
 REFERENCES = 'reference_sources'
 TIMEOUT = 300
 SCHEMA = {
@@ -174,6 +174,10 @@ GUIDE_PROPS = {
                        'one topic for the reader to keep and use, not a breakdown of a lesson. It runs on this PC after your reply '
                        'and you post the PDF back when it is done. Leave it out unless he asked for a guide or document like this.',
         'properties': {
+            'kind': {'type': 'string', 'enum': ['working', 'companion'],
+                     'description': 'working: a tactical working document for someone who has studied the lessons and is now writing '
+                                    'the real thing (a goals form, a review), organised by the writing task. companion: a guide that '
+                                    'follows a set of lessons. When unsure, working. See the written-guides skill.'},
             'topic': {'type': 'string', 'description': 'What the guide is about, in a few words.'},
             'brief': {'type': 'string', 'description': 'Everything Josh asked for: who it is for, what it should cover, examples or '
                                                        'material he named, length, and anything to avoid. Quote him where you can.'},
@@ -190,29 +194,22 @@ GUIDE_SCHEMA = {
     },
     'required': ['reply'],
 }
-GUIDE_BRIEF = """Write a standalone written guide. It is a document of its own on one topic, to be read and kept, and never a
-breakdown of a lesson. Josh has had these made before as the lesson guides, so match their house style, components and voice.
+GUIDE_BRIEF = """Make a standalone written guide of the kind given below. The written-guides skill below says what each kind
+is and how it's structured, and it is the brief. Follow its section for this kind exactly, and never confuse the two. A working
+document is organised around the writing task the reader is doing now, and a companion follows the lessons.
 
-1. Read the house brief {kit}\\BRIEF.md and the exemplar {kit}\\lessons\\3.1.html first, then base.css and extra.css for the
-   components and the macro list at the top of {kit}\\make.py. Read 08_Strategy\\audience.md and the voice notes your training
-   files point to. Use Josh's own material where it exists (course scripts, lead magnets, the Executive Communication Handbook)
-   and say in your reply what you drew on.
-2. Shape it as a guide, adapting the lesson structure. A cover with the eyebrow "CareerOS · Guide", the title with its key
-   words in gold <em>, a one-line promise of what the reader will be able to do, and one row per section. An opening page that
-   names the reader's problem in their words, a small scene figure and an "In this guide" box. Numbered sections, each opening
-   by saying plainly what it is, with promise-led headings, worked examples and two to five figures built from the kit's
-   components (every figure gets a one-sentence note). One pull quote with the sentence the guide exists to deliver. A short
-   close that says what to do first. No lesson numbers, no "In this lesson", no next-lesson box, and no bonuses, downloads or
-   sales. Four to eight pages unless Josh asked for another length.
-3. Follow Josh's writing rules in the brief exactly. No em or en dashes, no colons in prose, no "not X, but Y" framing, none of
-   the banned words, no fragment lists, British spelling, grade 12, second person.
-4. Save the body to {work}\\guide.html. Its first line is <!-- title: The title | slug: the-slug -->, then the cover, opening and
-   sections as in the exemplar. Build it with
+1. Read the house brief {kit}\\BRIEF.md, the exemplar {kit}\\lessons\\3.1.html, base.css, extra.css and the macro list at
+   the top of {kit}\\make.py for the components and voice. For a working document, also read the opening and one letter's
+   section of the BENS Dictionary, {bens}, the practical style reference. Read 08_Strategy\\audience.md and the voice notes
+   your training files point to. Read the real lessons the topic comes from, and say in your reply which files you used.
+2. Save the body to {work}\\guide.html. Its first line is <!-- title: The title | slug: the-slug -->. The cover eyebrow is
+   "CareerOS · Guide" for a companion and "CareerOS · Working document" for a working document.
+3. Build it with
        "{python}" -m studio.written_guide "{work}\\guide.html" "{out}"
    run from {root}. It prints the HTML and PDF paths, the page count and a picture of the guide in print layout. Read the
-   picture and fix anything that overflows, splits, leaves a big gap or looks off, then build again (each build is a new
+   picture and check every page for layout and for use, as the skill says, then fix and build again (each build is a new
    version, so earlier ones stay). Grep guide.html for the banned words and dashes before the last build.
-5. Answer once, with the final pdf and html paths."""
+4. Answer once, with the final pdf and html paths, the source files you used and the examples you wrote yourself."""
 # Team members who look after YouTube save each video's results, thumbnail tests and retention reading from chat.
 VIDEO_PROPS = {
     'videos': {
@@ -1734,6 +1731,7 @@ class Agents:
     def start_guide(self, agent_id, spec, via=''):
         """Josh asked for a standalone written guide: Saskia writes and builds it as a job and posts the PDF back."""
         topic = str(spec.get('topic') or '').strip()[:120]
+        kind = 'companion' if spec.get('kind') == 'companion' else 'working'
         brief = str(spec.get('brief') or '').strip()[:6000]
         if not topic:
             return [dict(id='', title='the guide', action='failed', kind='guide', error='The guide needs a topic.')]
@@ -1742,17 +1740,17 @@ class Agents:
         t = self.jobs.get(key)
         if t and t.is_alive():
             return [dict(id='', title=topic, action='failed', kind='guide', error='That guide is already being written.')]
-        t = threading.Thread(target=self._guide_job, args=(agent_id, topic, brief, via), daemon=True)
+        t = threading.Thread(target=self._guide_job, args=(agent_id, topic, brief, via, kind), daemon=True)
         self.jobs[key] = t
         t.start()
-        return [dict(id='', title='the guide on ' + topic, action='started', kind='guide')]
+        return [dict(id='', title=('the working document on ' if kind == 'working' else 'the guide on ') + topic, action='started', kind='guide')]
 
-    def _guide_job(self, agent_id, topic, brief, via):
+    def _guide_job(self, agent_id, topic, brief, via, kind='working'):
         import re as _re
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         out, kit = self.guides_dir()
         slug = _re.sub(r'[^a-z0-9]+', '-', topic.lower())[:50].strip('-') or 'guide'
-        work = out / '_source' / f"{now()[:10]}_{slug}"
+        work = out / '_source' / f"{now()[:10]}_{kind}_{slug}"
         files, text = [], ''
         try:
             work.mkdir(parents=True, exist_ok=True)
@@ -1762,13 +1760,16 @@ class Agents:
                 python = sys.executable
             learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
-            parts = [GUIDE_BRIEF.format(kit=kit, work=work, out=out, python=python, root=self.root), '', 'The topic: ' + topic]
+            bens = Path(kit).parent.parent / 'Bonuses' / 'BENS-Dictionary' / '2026-10_bens-dictionary_swipe-file_v02.html'
+            parts = [GUIDE_BRIEF.format(kit=kit, work=work, out=out, python=python, root=self.root, bens=bens), '',
+                     'The kind: ' + ('working document' if kind == 'working' else 'lesson companion'), 'The topic: ' + topic]
             if brief:
                 parts += ['', "What Josh asked for: " + brief]
-            for name in ('careeros-playbook',):
+            for name, note in (('written-guides', 'the brief for this guide, follow it exactly'),
+                               ('careeros-playbook', 'house checks for CareerOS documents; the written-guides skill wins where they differ')):
                 skill = self.skill_text(name)
                 if skill:
-                    parts += ['', f'=== Skill: {name} (house style and checks for CareerOS documents; the guide structure above wins) ===', skill]
+                    parts += ['', f'=== Skill: {name} ({note}) ===', skill]
             system = self.desk_system_prompt(agent, learnings) + '\n\nYou are writing one standalone guide Josh asked for. Do it fully, then answer once.'
             careeros = Path(out).parent.parent
             reply, answer = self.run(system, '\n'.join(parts), GUIDE_SCHEMA, list(dirs) + [str(kit), str(careeros)],
