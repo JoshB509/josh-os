@@ -18,6 +18,8 @@ async function openEditReview(pid){
   $('#workspace').innerHTML='<p class="hint">Loading the review…</p>';
   try{erData=await api(`/api/projects/${encodeURIComponent(pid)}/edit-review`)}catch(e){toast(e.message,true);return}
   render();scrollTo(0,0);
+  // the slides changed since the pictures were taken, or none were taken: take them now so every picture matches its words
+  if(erData.slides&&(erData.stale||!erData.rendered))erRender();
 }
 async function erRender(only){
   if(erBusy)return;erBusy=true;renderEditReview();
@@ -50,8 +52,10 @@ function renderEditReview(){
     <button class="primary" data-dock-ask="Set up the edit folders for this video if they aren't there, then make the slides and shot list for it.">Ask Tariq to make the deck</button></div>`;return}
   erAt=Math.max(0,Math.min(parts.length-1,erAt));const p=parts[erAt];
   const anims=parts.filter(x=>x.kind==='animation'),missingPics=anims.some(a=>!(a.images||[]).length);
-  const beat=p.kind==='animation'&&p.images?.length?Math.min(erBeat??p.images.length,p.images.length):null;
-  const big=p.kind==='animation'&&p.images?.length?erImg(p.images[beat-1]):'/edit-standin.webp';
+  // A part that brings an animation back starts partway through its presses, so pictures are numbered by press
+  const off=(p.first_press||1)-1,lastP=off+(p.images?.length||0);
+  const beat=p.kind==='animation'&&p.images?.length?Math.min(Math.max(erBeat??lastP,off+1),lastP):null;
+  const big=p.kind==='animation'&&p.images?.length?erImg(p.images[beat-1-off]):'/edit-standin.webp';
   $('#workspace').innerHTML=`<div class="er">
     <header class="er-head">
       <div><h1>${esc(project?.name||'Animation review')}</h1><p>${anims.length?`${new Set(anims.map(a=>a.n)).size} animations`:'No animations'} across ${parts.length} parts, from ${esc(erData.slides)} and ${esc(erData.shot_list)}.${erData.stale?' The slides have changed since these pictures were taken.':''}</p></div>
@@ -67,7 +71,7 @@ function renderEditReview(){
           <button class="er-nav prev" data-er-go="${erAt-1}" ${erAt===0?'disabled':''} aria-label="Previous part">‹</button>
           <button class="er-nav next" data-er-go="${erAt+1}" ${erAt===parts.length-1?'disabled':''} aria-label="Next part">›</button></div>
         <div class="er-meta"><b>${esc(erLabel(p))}</b><span>${esc(erSub(p))}${p.time?`, from ${esc(p.time)}`:''}</span>${erSectionOf(erAt)?`<span class="er-sec">${esc(erSectionOf(erAt))}</span>`:''}</div>
-        ${p.kind==='animation'&&p.images?.length?`<div class="er-beats">${p.images.map((n,i)=>`<button class="er-beat ${i+1===beat?'on':''}" data-er-beat="${i+1}"><img src="${erImg(n)}" alt=""><span>${i+1}</span></button>`).join('')}</div>`:''}
+        ${p.kind==='animation'&&p.images?.length?`<div class="er-beats">${p.images.map((n,i)=>`<button class="er-beat ${off+i+1===beat?'on':''}" data-er-beat="${off+i+1}"><img src="${erImg(n)}" alt=""><span>${off+i+1}</span></button>`).join('')}</div>`:''}
         ${p.desc?`<p class="er-desc">${esc(p.desc)}</p>`:''}
         <div class="er-script">${erMarked(p)}</div>
       </section>
@@ -113,7 +117,7 @@ document.addEventListener('keydown',e=>{
   const parts=erParts(),p=parts[erAt];
   if(e.key==='ArrowRight'||e.key==='PageDown'||(e.key===' '&&!e.shiftKey)){e.preventDefault();if(erAt<parts.length-1)erGo(erAt+1)}
   else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();if(erAt>0)erGo(erAt-1)}
-  else if(/^[1-9]$/.test(e.key)&&p?.images?.length>=+e.key){erBeat=+e.key;renderEditReview()}
+  else if(/^[1-9]$/.test(e.key)&&+e.key>=(p?.first_press||1)&&+e.key<(p?.first_press||1)+(p?.images?.length||0)){erBeat=+e.key;renderEditReview()}
 });
 
 // Routing, and a way in from the video page.

@@ -199,6 +199,11 @@ class EditReview:
         manifest = self.out_folder(pid) / 'manifest.json'
         made = json.loads(manifest.read_text(encoding='utf-8')) if manifest.is_file() else {}
         current = hashlib.sha1(html.encode('utf-8')).hexdigest()[:12]
+        stale = bool(made) and made.get('slides_hash') != current
+        seen = {}
+        for p in parts:
+            if p['kind'] == 'animation':
+                seen[p['n']] = seen.get(p['n'], 0) + 1
         for p in parts:
             if p['kind'] != 'animation':
                 continue
@@ -206,9 +211,18 @@ class EditReview:
             if s:
                 p['beats'] = s['end'] - s['start'] + 1
                 p['type'] = s['type']
-            p['images'] = (made.get('images') or {}).get(str(p['n']), [])
-        out.update(parts=parts, rendered=made.get('at'), stale=bool(made) and made.get('slides_hash') != current,
-                   slides_hash=current)
+            # Pictures of slides that have since changed would sit against the wrong words, so none are shown until retaken
+            images = [] if stale else (made.get('images') or {}).get(str(p['n']), [])
+            p['first_press'] = 1
+            if seen[p['n']] > 1:
+                # An animation that leaves for talking head and comes back shows, each time, only the presses it builds then
+                mine = [x['press'] for x in p.get('presses') or [] if x.get('found')]
+                if mine:
+                    p['first_press'] = min(mine)
+                    images = images[min(mine) - 1:max(mine)]
+                    p['presses'] = [x for x in p['presses'] if x.get('found')]
+            p['images'] = images
+        out.update(parts=parts, rendered=made.get('at'), stale=stale, slides_hash=current)
         return out
 
     def image(self, pid, name):

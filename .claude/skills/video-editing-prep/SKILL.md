@@ -29,7 +29,19 @@ This is the first and most important step. Most of the video stays as talking he
 
 - **"In this video" is always half and half.** Where the hook says what's coming ("in this video I'll show you", "here's what you'll learn", "by the end of this"), it's a half and half animation, with each promise building on its own press on the left and Josh on the right.
 - **"Watch this next" is always half and half, left blank.** On the closing invitation to watch another video, it's a half and half end screen. The left half stays completely blank (no text, thumbnail, arrow or placeholder), because Josh adds the YouTube end screen there. Hold it to the end of the video.
-- **Single cards for emphasis.** When he lands a point worth remembering, put one short phrase on a full screen card on the words he says it with. It's one card, one idea, three to eight words, with at most a gold highlight or a strike-through. Use these often.
+- **Single cards for emphasis.** When he lands a point worth remembering, put the line full screen on the words he says it with. It's one idea, usually his own words, as plain black text on the white frame with no card or box around it, and the key words get a gold highlighter stroke that draws in just after the line fades up. Use these often. This is the markup and style, the same as the Data Storytelling and Executive Questions decks:
+
+```html
+<div class="abs km" style="left:210px;width:1500px;top:440px" data-b="12">Having the information is <span class=hl>not enough</span> to drive a decision.</div>
+```
+
+```css
+.km{font-family:'Outfit';font-weight:600;font-size:60px;line-height:1.3;text-align:center;color:var(--ink);text-wrap:balance}
+.hl{background-image:linear-gradient(rgba(245,194,27,.6),rgba(245,194,27,.6));background-repeat:no-repeat;background-size:0% 40%;background-position:0 90%;transition:background-size .9s ease .9s;font-weight:700}
+.km.on .hl{background-size:100% 40%}
+```
+
+A second line can build on the next press with its own `km` about 140px lower.
 - **Develop an animation in parts.** Don't hold a PiP or full screen animation on screen through a long explanation. Build its first presses, cut back to talking head while he explains ("Back to full-frame talking head from …"), then come back to the same animation where it left off ("Back to Animation N") and build its next presses. It's one scene in the slides with its presses numbered straight through, and the shot list marks every time it leaves and comes back. A running device, like a tracker of the N tips or a board that fills up, works the same way across the whole video.
 - **Make it visual.** Prefer a picture of the idea (two people in a meeting, a chessboard, a chart, a before and after) to a sentence on a card. Text-only scenes are for single cards and lists.
 
