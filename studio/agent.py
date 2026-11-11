@@ -15,6 +15,7 @@ import socket
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import uuid
@@ -164,6 +165,54 @@ JOB_BRIEF = {
                   "entry in the kit's lessons.json and run build.py on this PC with the Python named in settings.json. Save the image "
                   "into the course's Thumbnails folder, named like the others, and send its path in \"thumbnail\"."),
 }
+# Saskia writes standalone written guides from any chat: a document of its own on one topic, in the lesson guides' house
+# style, built to HTML and PDF in the Guides folder. A job Josh OS runs after the reply, like the lesson work.
+GUIDE_PROPS = {
+    'written_guide': {
+        'type': 'object',
+        'description': 'Start a standalone written guide when Josh asks for one, from any chat. It is its own explanation document on '
+                       'one topic for the reader to keep and use, not a breakdown of a lesson. It runs on this PC after your reply '
+                       'and you post the PDF back when it is done. Leave it out unless he asked for a guide or document like this.',
+        'properties': {
+            'topic': {'type': 'string', 'description': 'What the guide is about, in a few words.'},
+            'brief': {'type': 'string', 'description': 'Everything Josh asked for: who it is for, what it should cover, examples or '
+                                                       'material he named, length, and anything to avoid. Quote him where you can.'},
+        },
+        'required': ['topic', 'brief'],
+    },
+}
+GUIDE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'reply': {'type': 'string', 'description': 'What you made, for Josh, in a few sentences, and anything he needs to confirm.'},
+        'pdf': {'type': 'string', 'description': 'The full path of the guide PDF the builder saved.'},
+        'html': {'type': 'string', 'description': 'The full path of the guide HTML the builder saved.'},
+    },
+    'required': ['reply'],
+}
+GUIDE_BRIEF = """Write a standalone written guide. It is a document of its own on one topic, to be read and kept, and never a
+breakdown of a lesson. Josh has had these made before as the lesson guides, so match their house style, components and voice.
+
+1. Read the house brief {kit}\\BRIEF.md and the exemplar {kit}\\lessons\\3.1.html first, then base.css and extra.css for the
+   components and the macro list at the top of {kit}\\make.py. Read 08_Strategy\\audience.md and the voice notes your training
+   files point to. Use Josh's own material where it exists (course scripts, lead magnets, the Executive Communication Handbook)
+   and say in your reply what you drew on.
+2. Shape it as a guide, adapting the lesson structure. A cover with the eyebrow "CareerOS · Guide", the title with its key
+   words in gold <em>, a one-line promise of what the reader will be able to do, and one row per section. An opening page that
+   names the reader's problem in their words, a small scene figure and an "In this guide" box. Numbered sections, each opening
+   by saying plainly what it is, with promise-led headings, worked examples and two to five figures built from the kit's
+   components (every figure gets a one-sentence note). One pull quote with the sentence the guide exists to deliver. A short
+   close that says what to do first. No lesson numbers, no "In this lesson", no next-lesson box, and no bonuses, downloads or
+   sales. Four to eight pages unless Josh asked for another length.
+3. Follow Josh's writing rules in the brief exactly. No em or en dashes, no colons in prose, no "not X, but Y" framing, none of
+   the banned words, no fragment lists, British spelling, grade 12, second person.
+4. Save the body to {work}\\guide.html. Its first line is <!-- title: The title | slug: the-slug -->, then the cover, opening and
+   sections as in the exemplar. Build it with
+       "{python}" -m studio.written_guide "{work}\\guide.html" "{out}"
+   run from {root}. It prints the HTML and PDF paths, the page count and a picture of the guide in print layout. Read the
+   picture and fix anything that overflows, splits, leaves a big gap or looks off, then build again (each build is a new
+   version, so earlier ones stay). Grep guide.html for the banned words and dashes before the last build.
+5. Answer once, with the final pdf and html paths."""
 # Team members who look after YouTube save each video's results, thumbnail tests and retention reading from chat.
 VIDEO_PROPS = {
     'videos': {
@@ -1397,6 +1446,7 @@ class Agents:
             courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
             if courses is not None:
                 schema['properties'].update(LESSON_PROPS)
+                schema['properties'].update(GUIDE_PROPS)
                 if str(self.store.root / 'assets') not in dirs:
                     dirs = list(dirs) + [str(self.store.root / 'assets')]
             ctx = data.get('context') or {}
@@ -1449,6 +1499,8 @@ class Agents:
                     except (ValueError, KeyError) as e:
                         saved.append(dict(id=str((t or {}).get('project_id') or ''), title='thumbnails', action='failed', kind='thumbnail',
                                           error=str(e).strip("'\"")[:200]))
+            if courses is not None and isinstance(answer.get('written_guide'), dict):
+                saved += self.start_guide(agent_id, answer['written_guide'], via)
             action = answer.get('edit') if isinstance(answer.get('edit'), dict) else {}
             if er is not None and edit_folder is not None:
                 saved += self.apply_edit(er, str(ctx['id']), action, before)
@@ -1673,6 +1725,72 @@ class Agents:
                 mark('build', 'running', msg, fraction=(n - 1) / of if ok else None)
             else:
                 mark(d['stage'], 'running', labels[d['stage']])
+
+    def guides_dir(self):
+        courses = getattr(self, 'courses', None)
+        content = courses.content_dir() if courses is not None else Path(r'E:\CareerOS\04_Programme\Course_Content')
+        return Path(content).parent / 'Guides', Path(content) / 'Heard_at_the_Top' / 'Lesson_Guides' / '_source'
+
+    def start_guide(self, agent_id, spec, via=''):
+        """Josh asked for a standalone written guide: Saskia writes and builds it as a job and posts the PDF back."""
+        topic = str(spec.get('topic') or '').strip()[:120]
+        brief = str(spec.get('brief') or '').strip()[:6000]
+        if not topic:
+            return [dict(id='', title='the guide', action='failed', kind='guide', error='The guide needs a topic.')]
+        self.jobs = getattr(self, 'jobs', {})
+        key = ('guide', topic.lower())
+        t = self.jobs.get(key)
+        if t and t.is_alive():
+            return [dict(id='', title=topic, action='failed', kind='guide', error='That guide is already being written.')]
+        t = threading.Thread(target=self._guide_job, args=(agent_id, topic, brief, via), daemon=True)
+        self.jobs[key] = t
+        t.start()
+        return [dict(id='', title='the guide on ' + topic, action='started', kind='guide')]
+
+    def _guide_job(self, agent_id, topic, brief, via):
+        import re as _re
+        agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
+        out, kit = self.guides_dir()
+        slug = _re.sub(r'[^a-z0-9]+', '-', topic.lower()).strip('-')[:50] or 'guide'
+        work = out / '_source' / f"{now()[:10]}_{slug}"
+        files, text = [], ''
+        try:
+            work.mkdir(parents=True, exist_ok=True)
+            try:
+                python = json.loads((self.root / 'settings.json').read_text(encoding='utf-8')).get('python') or sys.executable
+            except (OSError, ValueError):
+                python = sys.executable
+            learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
+            _, dirs = self.training(agent_id)
+            parts = [GUIDE_BRIEF.format(kit=kit, work=work, out=out, python=python, root=self.root), '', 'The topic: ' + topic]
+            if brief:
+                parts += ['', "What Josh asked for: " + brief]
+            for name in ('careeros-playbook',):
+                skill = self.skill_text(name)
+                if skill:
+                    parts += ['', f'=== Skill: {name} (house style and checks for CareerOS documents; the guide structure above wins) ===', skill]
+            system = self.desk_system_prompt(agent, learnings) + '\n\nYou are writing one standalone guide Josh asked for. Do it fully, then answer once.'
+            careeros = Path(out).parent.parent
+            reply, answer = self.run(system, '\n'.join(parts), GUIDE_SCHEMA, list(dirs) + [str(kit), str(careeros)],
+                                     tools='Read,Grep,Glob,Write,Edit,Bash', allow=scoped('Read,Grep,Glob,Write,Edit,Bash', out),
+                                     cwd=str(self.root), timeout=3600, full=True)
+            pdf = Path(str((answer or {}).get('pdf') or ''))
+            if not pdf.is_file() or out not in pdf.parents:
+                found = sorted(out.glob(f'*_{slug}*_guide.pdf'), key=lambda f: f.stat().st_mtime)
+                pdf = found[-1] if found else None
+            text = reply or 'The guide is done.'
+            if pdf:
+                files = [pdf]
+            else:
+                text += ' I could not find the PDF in the Guides folder, so check the build.'
+        except Exception as e:  # noqa: BLE001 - the failure goes back to Josh in the chat
+            text = f"I couldn't finish the guide on {topic}: {str(e)[:300]}"
+        self.post(agent_id, text, files=files, via=via)
+        if via == 'discord' and getattr(self, 'notify', None):
+            try:
+                self.notify(agent_id, text, [str(f) for f in files])
+            except Exception:  # noqa: BLE001
+                pass
 
     def keep_lessons(self, agent, lessons):
         """Save the rules a team member worked out from Josh's edits or answers to the shared lessons log."""
