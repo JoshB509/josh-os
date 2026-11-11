@@ -1,0 +1,68 @@
+/* Scorecard. Josh OS tokens only: card surfaces, lines and the lift shadow, with gold kept for focus and the selected bar. */
+.sc{display:flex;flex-direction:column;gap:var(--sp-5);max-width:1240px}
+.sc-window{margin:0;font-size:var(--fs-small);color:var(--muted)}
+.sc-window b{font-weight:600;color:var(--ink)}
+.sc-fresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-3)}
+.sc-fresh-facts{display:flex;flex-wrap:wrap;gap:var(--sp-1) var(--sp-4);font-size:var(--fs-caption);color:var(--muted)}
+.sc-fresh-facts .warn{color:var(--yellow-t)}
+.sc-fresh-act{display:flex;align-items:center;gap:var(--sp-2)}
+.sc-mtd{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:var(--sp-5);padding:var(--sp-5);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--lift)}
+.sc-mtd h2{margin:0;font-size:var(--fs-sub);color:var(--ink)}
+.sc-of{font-size:var(--fs-lead);font-weight:500;color:var(--muted)}
+.sc-meter{height:8px;margin:var(--sp-2) 0 var(--sp-3);border-radius:var(--r-full);background:var(--tag);overflow:hidden}
+.sc-meter i{display:block;height:100%;border-radius:inherit;background:var(--ink)}
+.sc-mtd-facts{margin:0;display:flex;flex-direction:column;gap:var(--sp-3);align-self:center}
+.sc-mtd-facts div{display:flex;flex-direction:column;gap:2px;padding-bottom:var(--sp-3);border-bottom:1px solid var(--line)}
+.sc-mtd-facts div:last-child{border-bottom:0;padding-bottom:0}
+.sc-mtd-facts dt{font-size:var(--fs-caption);color:var(--muted)}
+.sc-mtd-facts dd{margin:0;font-family:var(--display,inherit);font-size:var(--fs-sub);font-weight:600;color:var(--ink);display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
+.sc-mtd-facts small{flex-basis:100%;font-family:inherit;font-size:var(--fs-caption);font-weight:400;color:var(--faint)}
+.sc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-4)}
+.sc-card{display:flex;flex-direction:column;min-height:440px;padding:var(--sp-5);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--lift)}
+.sc-card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.sc-card-head h2{margin:0;font-size:var(--fs-small);font-weight:600;letter-spacing:.02em;color:var(--muted)}
+.sc-info{width:22px;height:22px;min-height:0;padding:0;border-radius:var(--r-full);border:1px solid var(--line2);background:none;box-shadow:none;font-size:11px;font-weight:700;color:var(--muted)}
+.sc-info[aria-expanded=true]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.sc-label{margin:var(--sp-3) 0 0;font-size:var(--fs-small);color:var(--text)}
+.sc-big{margin:2px 0 0;display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap;font-family:var(--display,inherit);font-size:var(--fs-display);font-weight:700;line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums}
+.sc-big.na{font-size:var(--fs-h2);color:var(--faint)}
+.sc-delta{font-size:var(--fs-lead);font-weight:600;color:var(--muted)}
+.sc-delta.up{color:var(--green-t)}
+.sc-delta.down{color:var(--red)}
+.sc-context{margin:var(--sp-1) 0 0;font-size:var(--fs-caption);line-height:1.45;color:var(--muted)}
+.sc-def{margin:var(--sp-2) 0 0;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-md);background:var(--side);font-size:var(--fs-caption);line-height:1.5;color:var(--text)}
+.sc-def em{font-style:normal;color:var(--muted)}
+.sc-def span{color:var(--faint)}
+.sc-chart{position:relative;margin:var(--sp-4) 0 0}
+.sc-chart svg{display:block;width:100%;height:96px;overflow:visible}
+.sc-chart svg rect{stroke:none}  /* the app styles every svg with a stroke for its icons */
+.sc-bar{fill:var(--ink);opacity:.82}
+.sc-bar.partial{opacity:.45}
+.sc-bar.on{fill:var(--gold);opacity:1}
+.sc-bar.neg{fill:var(--red);opacity:.7}
+.sc-zero{stroke:var(--line2);stroke-width:1;vector-effect:non-scaling-stroke}
+.sc-gap{fill:var(--line2)}
+.sc-prev{fill:none;stroke:var(--faint);stroke-width:1.5;vector-effect:non-scaling-stroke;stroke-dasharray:3 3}
+.sc-hit{fill:transparent;cursor:pointer}
+.sc-chart figcaption{display:flex;justify-content:space-between;gap:var(--sp-2);margin-top:var(--sp-1);font-size:11px;color:var(--faint)}
+.sc-basis{color:var(--muted)}
+.sc-chart.empty{display:flex;align-items:center;justify-content:center;height:96px;border-radius:var(--r-md);border:1px dashed var(--line2);font-size:var(--fs-caption);color:var(--faint)}
+.sc-tip{position:absolute;bottom:calc(100% - 6px);width:140px;padding:var(--sp-2);border-radius:var(--r-md);background:var(--card);box-shadow:var(--lift);display:flex;flex-direction:column;gap:2px;font-size:var(--fs-caption);pointer-events:none;z-index:5}
+.sc-tip b{font-weight:600;color:var(--ink)}
+.sc-tip span{font-size:var(--fs-small);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.sc-tip small{color:var(--muted)}
+.sc-note{margin:var(--sp-3) 0 0;font-size:var(--fs-caption);line-height:1.45;color:var(--muted)}
+.sc-rows{list-style:none;margin:auto 0 0;padding:var(--sp-3) 0 0;display:flex;flex-direction:column}
+.sc-row{border-top:1px solid var(--line)}
+.sc-row-main{width:100%;min-height:0;display:grid;grid-template-columns:1fr auto;gap:0 var(--sp-2);padding:var(--sp-2) 0;border:0;background:none;box-shadow:none;text-align:left;border-radius:0}
+.sc-row-main:hover{background:none}
+.sc-row-label{font-size:var(--fs-small);color:var(--text)}
+.sc-row-val{display:flex;align-items:baseline;gap:var(--sp-1);font-size:var(--fs-small);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.sc-row-val .sc-delta{font-size:var(--fs-caption)}
+.sc-row-prev{grid-column:1/-1;font-size:11px;color:var(--faint)}
+.sc-row.na .sc-row-val{font-weight:500;color:var(--faint)}
+.sc-row .sc-def{margin:0 0 var(--sp-2)}
+.sc-empty{padding:var(--sp-6);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--lift);color:var(--muted)}
+.sc-warnings{margin:0;padding-left:var(--sp-4);font-size:var(--fs-caption);color:var(--muted)}
+@media (max-width:1100px){.sc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.sc-grid{grid-template-columns:1fr}.sc-mtd{grid-template-columns:1fr}.sc-card{min-height:0}.sc-big{font-size:var(--fs-h1)}}

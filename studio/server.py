@@ -29,6 +29,7 @@ from .edit_review import EditReview,STANDIN
 from .video_pieces import VideoPieces
 from .video_thumbnails import VideoThumbnails
 from .youtube_ideas import YouTubeIdeas
+from .scorecard import Scorecard
 from .edit_flow import EditFlow
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
@@ -61,7 +62,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review);self.agents.edit_flow=self.edit_flow;self.youtube_ideas=YouTubeIdeas(self.root);self.agents.youtube_ideas=self.youtube_ideas;self.inspiration.youtube_ideas=self.youtube_ideas
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review);self.agents.edit_flow=self.edit_flow;self.youtube_ideas=YouTubeIdeas(self.root);self.agents.youtube_ideas=self.youtube_ideas;self.inspiration.youtube_ideas=self.youtube_ideas;self.scorecard=Scorecard(self.store,self.root,self.store.root)
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -257,7 +258,7 @@ class Handler(BaseHTTPRequestHandler):
                     text=(Path(__file__).parent/'web'/'index.html').read_text(encoding='utf-8').replace('__TOKEN__',s.token)
                     text=text.replace('<link rel="stylesheet" href="/brand-fonts.css">','<link rel="stylesheet" href="/thumbnail-creator.css"><link rel="stylesheet" href="/brand-fonts.css">').replace('</body>','<script src="/thumbnail-creator.js"></script></body>')
                     return self.send(text.encode(),mime='text/html; charset=utf-8',cookie=True)
-                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/edit-review.js','/edit-review.css','/edit-flow.js','/edit-flow.css','/video-page.js','/video-page.css','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/success.js','/success.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
+                if path in ['/team.js','/team.css','/tokens.css','/system.css','/shell.js','/carousels.js','/inspo.js','/dock.js','/edit-review.js','/edit-review.css','/edit-flow.js','/edit-flow.css','/scorecard.js','/scorecard.css','/video-page.js','/video-page.css','/editing.js','/desk.js','/screens.js','/youtube.js','/studio.js','/results.js','/results.css','/success.js','/success.css','/courses.js','/chat-images.js','/courses.css','/youtube.css','/mobile.js','/autosave.js','/calendar-sync.js','/app.js','/writer.js','/keying.js','/planning.js','/planning.css','/style.css','/workflow.js','/workflow.css','/notion.js','/notion.css']:
                     p=Path(__file__).parent/'web'/path[1:];return self.send(p.read_bytes(),mime='text/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8')
                 if path=='/icon.png':return self.send((s.root/'DaJoshiResolve.png').read_bytes(),mime='image/png')
                 if path in ('/inspiration/creatorhooks','/inspiration/creatorhooks.library.json'):
@@ -296,6 +297,12 @@ class Handler(BaseHTTPRequestHandler):
                     if file.suffix=='.png':return self.image(file,mime,'private, max-age=86400')
                     return self.send(file.read_bytes(),mime=mime,csp=policy)
                 if path=='/api/inspiration':return self.send(s.inspiration.catalog())
+                if path=='/api/scorecard':
+                    v=s.scorecard.view()
+                    import datetime as _dt
+                    old=not v['snapshot'] or (_dt.datetime.now(_dt.timezone.utc)-_dt.datetime.fromisoformat(v['freshness']['fetched_at'])).total_seconds()>3*3600
+                    if old and not v['refreshing']:s.scorecard.refresh();v['refreshing']=True
+                    return self.send(v)
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='workflow':return self.send(s.workflow.status(parts[2]))
                 if len(parts)==4 and parts[:2]==['api','projects'] and parts[3]=='handoff':return self.send(s.workflow.handoff(parts[2]))
                 if len(parts)==6 and parts[:2]==['api','projects'] and parts[3]=='workflow-file':
@@ -383,6 +390,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/agents/reflect' and method=='POST':
                 try:return self.send(s.agents.reflect(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)
+            if path=='/api/scorecard/refresh' and method=='POST':return self.send(s.scorecard.refresh())
             if path=='/api/agents/chat' and method=='POST':
                 try:return self.send(s.agents.chat(data,s.carousels.all()['items'],s.carousels,s.inspo))
                 except AgentError as e:return self.send({'error':str(e)},503)

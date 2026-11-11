@@ -6,6 +6,7 @@
   const I={
     today:'<circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/>',
     calendar:'<rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/>',
+    scorecard:'<rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 11V8M8 11V5M11 11V9"/>',
     team:'<circle cx="8" cy="5" r="2.4"/><path d="M3.5 13.5c.6-2.6 2.4-3.9 4.5-3.9s3.9 1.3 4.5 3.9"/><circle cx="3" cy="6.5" r="1.5"/><circle cx="13" cy="6.5" r="1.5"/>',
     youtube:'<rect x="1.8" y="3.5" width="12.4" height="9" rx="2.2"/><path d="m6.8 6.3 3.2 1.7-3.2 1.7z"/>',
     carousels:'<rect x="4" y="3" width="8" height="10" rx="1.6"/><path d="M2 5v6M14 5v6"/>',
@@ -22,7 +23,7 @@
   };
   const svg=k=>`<svg viewBox="0 0 16 16" aria-hidden="true">${I[k]}</svg>`;
   const NAV=[
-    {items:[['today','Today','/#today'],['calendar','Calendar','/#calendar'],['team','Team','/#team']]},
+    {items:[['today','Today','/#today'],['calendar','Calendar','/#calendar'],['team','Team','/#team'],['scorecard','Scorecard','/#scorecard']]},
     {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['editing','Editing','/#editing'],['email','Email','/#email'],['success','Customer success','/#success']]},
     {label:'Workspace',items:[['library','Library','/#inspiration'],['tasks','Tasks & Goals','/tasks'],['lessons','Lesson recording','/lessons'],['archive','Archive','/#archive']]},
     {label:'Clients',later:true,items:[['clients','Clients','/admin#clients'],['customers','Customers','/admin#customers']]},
