@@ -82,9 +82,12 @@ def saved_line(saved):
     """A short line about what the team member changed in Josh OS, under their reply."""
     if not saved:
         return ''
-    done = [s for s in saved if s.get('action') != 'failed']
+    done = [s for s in saved if s.get('action') not in ('failed', 'already saved')]
+    already = [s for s in saved if s.get('action') == 'already saved']
     failed = [s for s in saved if s.get('action') == 'failed']
     bits = []
+    if already:
+        bits.append('Already in Josh OS: ' + ', '.join(f"{s.get('title') or s.get('kind', 'item')}" for s in already[:5]))
     if done:
         names = ', '.join(f"{s.get('title') or s.get('kind', 'item')}" for s in done[:5])
         bits.append(f"Saved in Josh OS: {names}" + (f" and {len(done) - 5} more" if len(done) > 5 else ''))

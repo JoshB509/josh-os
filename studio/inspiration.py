@@ -33,6 +33,10 @@ class Inspiration:
         if thumbs.exists():
             for r in json.loads(thumbs.read_text(encoding='utf-8-sig'))['examples']:
                 cards.append(dict(id='format:'+r['id'],kind='formats',title=r['title'],credit=r.get('verified_channel') or 'Original creator — see source screenshot',source=r.get('source_url',''),image='/inspiration/thumbnail-formats/'+r['crop_path'],asset_path='References/ThumbnailFormats/'+r['crop_path'],screenshot='/inspiration/thumbnail-formats/'+r['source_screenshot'],tags=r.get('format_tags',[]),description=r.get('observed_scene',''),question=r.get('unanswered_question','')))
+        ideas=getattr(self,'youtube_ideas',None)
+        for v in (ideas.all() if ideas else []):
+            facts=[x for x in (v.get('published') and 'Published '+v['published'], v.get('views_at_save') is not None and f"{v['views_at_save']:,} views when saved", 'Saved '+v['observed_at'][:10]) if x]
+            cards.append(dict(id='video:'+v['id'],kind='videos',title=v.get('title') or 'Title unavailable',credit=v.get('channel') or 'Channel unavailable',source=v['url'],video=v['url'],image=('/inspiration/youtube-ideas/'+v['id']+'.jpg') if v.get('thumbnail') else '',tags=v.get('tags') or ['Saved video'],description=' · '.join(facts)+('. '+v['note'] if v.get('note') else ''),unavailable=v.get('unavailable') or []))
         saved={}
         for p in self.store.projects():
             lineage={r.get('asset'):r for r in self.links(p['id']) if r.get('asset')}

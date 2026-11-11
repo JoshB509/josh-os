@@ -210,6 +210,19 @@ document is organised around the writing task the reader is doing now, and a com
    picture and check every page for layout and for use, as the skill says, then fix and build again (each build is a new
    version, so earlier ones stay). Grep guide.html for the banned words and dashes before the last build.
 4. Answer once, with the final pdf and html paths, the source files you used and the examples you wrote yourself."""
+# Sam saves YouTube videos Josh drops into chat (Josh OS or Discord) to the inspiration library, once per video ID.
+YOUTUBE_SAVE_PROPS = {
+    'save_youtube': {
+        'type': 'array',
+        'description': 'YouTube videos Josh asks you to save as ideas or inspiration, one item per link. Josh OS saves each to the '
+                       'inspiration library with its title, channel, date, views and thumbnail, and adds a line to your reply saying '
+                       'whether it was saved or was already there, with the details. So keep your own reply to one short sentence, like "On it." or a line on why it\'s a good one, and don\'t say whether it\'s new or already saved, or mention the line. Leave empty unless he asked you to save a video.',
+        'items': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'The YouTube link exactly as Josh gave it.'},
+            'note': {'type': 'string', 'description': 'Why he wants it, if he said, in his words.'}},
+            'required': ['url']},
+    },
+}
 # Team members who look after YouTube save each video's results, thumbnail tests and retention reading from chat.
 VIDEO_PROPS = {
     'videos': {
@@ -1440,6 +1453,9 @@ class Agents:
             people = getattr(self, 'people', None) if 'customers' in (agent.get('workflows') or []) else None
             if people is not None:
                 schema['properties'].update(PEOPLE_PROPS)
+            ideas = getattr(self, 'youtube_ideas', None) if agent_id == 'sam' else None
+            if ideas is not None:
+                schema['properties'].update(YOUTUBE_SAVE_PROPS)
             courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
             if courses is not None:
                 schema['properties'].update(LESSON_PROPS)
@@ -1496,6 +1512,19 @@ class Agents:
                     except (ValueError, KeyError) as e:
                         saved.append(dict(id=str((t or {}).get('project_id') or ''), title='thumbnails', action='failed', kind='thumbnail',
                                           error=str(e).strip("'\"")[:200]))
+            if ideas is not None and isinstance(answer.get('save_youtube'), list):
+                confirm = []
+                for item in answer['save_youtube'][:10]:
+                    url = str((item or {}).get('url') or '').strip()
+                    try:
+                        entry, status = ideas.save(url, (item or {}).get('note') or '', by=agent_id, via=via)
+                        saved.append(dict(id=entry['id'], title=entry.get('title') or entry['id'], action=status, kind='idea'))
+                        confirm.append(ideas.describe(entry, status))
+                    except (ValueError, OSError) as e:
+                        saved.append(dict(id='', title=url[:80], action='failed', kind='idea', error=str(e)[:200]))
+                        confirm.append(f"I couldn't save {url}: {str(e)[:200]}")
+                if confirm:
+                    reply = (reply or '').rstrip() + '\n\n' + '\n'.join(confirm)
             if courses is not None and isinstance(answer.get('written_guide'), dict):
                 saved += self.start_guide(agent_id, answer['written_guide'], via)
             action = answer.get('edit') if isinstance(answer.get('edit'), dict) else {}

@@ -28,6 +28,7 @@ from .feedback import Feedback
 from .edit_review import EditReview,STANDIN
 from .video_pieces import VideoPieces
 from .video_thumbnails import VideoThumbnails
+from .youtube_ideas import YouTubeIdeas
 from .edit_flow import EditFlow
 from .phone import PhoneAccess
 from .agent import Agents,AgentError
@@ -60,7 +61,7 @@ class Server(ThreadingHTTPServer):
         self.project_folders=ProjectFolders(self.store)
         self.youtube_recording=Recording(self.store,self.root)
         self.thumbnail_creator=ThumbnailCreator(self.store)
-        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review);self.agents.edit_flow=self.edit_flow
+        self.team=Team(self.store);self.carousels=Carousels(self.store);self.inspo=Inspo(self.store);self.feedback=Feedback(self.store);self.agents=Agents(self.store,self.root,self.team);self.agents.feedback=self.feedback;self.agents.emails=self.emails;self.results=VideoResults(self.store);self.agents.results=self.results;self.people=People(self.store);self.agents.people=self.people;self.courses=CourseLessons(self.store,self.root,self.lessons);self.courses.agents=self.agents;self.agents.courses=self.courses;self.edit_review=EditReview(self.store,self.project_folders);self.agents.edit_review=self.edit_review;self.pieces=VideoPieces(self.store,self.project_folders,self.youtube_recording,self.edit_review);self.video_thumbs=VideoThumbnails(self.store,self.project_folders,self.agents);self.agents.video_thumbs=self.video_thumbs;self.edit_flow=EditFlow(self.store,self.root,self.agents,self.project_folders,self.edit_review);self.agents.edit_flow=self.edit_flow;self.youtube_ideas=YouTubeIdeas(self.root);self.agents.youtube_ideas=self.youtube_ideas;self.inspiration.youtube_ideas=self.youtube_ideas
         self.phone=PhoneAccess(self.root,self.store.root)
         if not port:port=self.phone.port
         self.admin=Admin(self.store.root,self.root)
@@ -265,6 +266,13 @@ class Handler(BaseHTTPRequestHandler):
                     if not file.is_file():raise KeyError('Inspiration library has not been installed')
                     policy="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'none'; connect-src 'none'; font-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
                     return self.send(file.read_bytes(),mime='text/html; charset=utf-8' if name.endswith('.html') else 'application/json',csp=policy)
+                if path.startswith('/inspiration/youtube-ideas/'):
+                    import re
+                    name=path.rsplit('/',1)[1]
+                    if not re.fullmatch(r'[A-Za-z0-9_-]{11}\.jpg',name):raise KeyError('Unknown saved video thumbnail')
+                    file=s.youtube_ideas.thumbs/name
+                    if not file.is_file():raise KeyError('Saved video thumbnail not downloaded')
+                    return self.image(file,'image/jpeg','private, max-age=604800')
                 if path.startswith('/inspiration/creatorhooks-thumbs/'):
                     import re
                     name=path.rsplit('/',1)[1]
