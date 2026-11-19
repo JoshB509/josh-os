@@ -8,9 +8,9 @@ The existing Analytics connection stays read-only. The separate publishing API a
 
 ## Prepare when Josh says the edit is done
 
-Find the approved final export, not a source clip or an earlier render. Collect the exact channel, final video file, approved title, complete description with verified links, category, language, audience designation, required disclosure settings, and thumbnail assets. Use the current project's information before asking Josh. Ask only for missing decisions. Do not infer made-for-kids or paid-promotion declarations.
+CareerOS's video page is the one version of the release (19 Nov 2026). Publish uses exactly what it shows: the chosen title, the description and pinned comment in Packaging, the thumbnails in Main, B and C, and the approved final export. You are given that as the video's "publishing" block. Never write your own title, description or "package" for publishing and never keep a separate copy. If something is wrong, change it in CareerOS (draft the description again, ask Josh to choose the title or thumbnail) so the page shows it, then publish what the page shows. prepare_release takes only the video, unlisted or schedule, and Josh's three disclosure answers, and builds the packet from the page. Do not infer made-for-kids, paid-promotion or altered-content answers; ask Josh, or point him to the Publish panel on the video.
 
-Collect the release date, clock time and named timezone. A date alone is not a schedule. Show Josh the local time, timezone and UTC equivalent, including the daylight-saving offset. Do not borrow the Analytics reporting timezone. Identify ambiguous or nonexistent daylight-saving times before approval.
+An unlisted upload needs no date or time. Never ask Josh for a time when he publishes unlisted. Only scheduling needs the release date, clock time and named timezone saved on the video; then show Josh the local time, timezone and UTC equivalent, including the daylight-saving offset, and flag ambiguous or nonexistent daylight-saving times before approval. Do not borrow the Analytics reporting timezone.
 
 Prepare three approved thumbnail concepts for the first native Test & Compare round, including a short hypothesis and labels. If testing titles as well, show the exact title variants and get approval for that scope. If only thumbnails were requested, preserve the approved title.
 

@@ -486,9 +486,8 @@ function vpPackagingLive(p,r){
     <div class="pk-pub done"><span>Published ${esc(day(y.published_at))}</span><a class="button subtle" href="${esc(y.url)}" target="_blank" rel="noopener">Watch on YouTube</a></div>
   </article>`;
 }
-// The foot of Packaging: the publish time and the way to Publishing. Open Publishing stays disabled until the release
-// check (studio/release_ready.py) has nothing open, exactly as before. What is still open shows as short links to the
-// place it is done. Upload, scheduling and the YouTube approval stay on the Publishing page.
+// What the release check still has open. Publishing itself now starts from the Publish button in the header, whose
+// panel reads the project-bound preview (studio/project_publishing.py): exactly what this page shows.
 function vpPublishOpen(p){
   const r=vpRel[p.id];if(!r||r.error||!r.items)return null;
   const x=vpPackItems(p);
@@ -629,6 +628,8 @@ function vpPublishControls(){
   for(const b of d.querySelectorAll('[data-vp-publish-mode]')){
     const gaps=v?.blockers?.[b.dataset.vpPublishMode];
     b.disabled=vpPublishBusy||!v||!v.completed_edit||!answered||!Array.isArray(gaps)||gaps.length>0;
+    // Each button says what it still needs; Schedule's time never holds up Upload unlisted.
+    b.title=!answered?'Answer the three questions above first.':Array.isArray(gaps)&&gaps.length?gaps[0]:'';
   }
   d.querySelector('[data-vp-publish-close]').disabled=vpPublishBusy;
   answers.forEach(s=>s.disabled=vpPublishBusy);
@@ -644,7 +645,7 @@ function vpPublishRender(d,v,p){
     <div class="vp-publish-channel"><span class="vp-publish-avatar">J</span><b>Josh</b></div>
     <section class="vp-publish-description${missing('description')}" aria-label="Description">${esc(v.description||'No description yet')}</section>
     <section class="vp-publish-comment${missing('pinned_comment')}" aria-label="Pinned comment"><small>${commentLabel}</small><p>${esc(v.pinned_comment||'No comment yet')}</p></section>
-    <div class="vp-publish-date${vpPublishMissing(v.publish_date&&v.publish_time)}"><span>${esc(v.publish_date||'No date selected')}</span><span>${esc(v.publish_time||'No time selected')} ${esc(v.timezone||'')}</span></div>
+    <div class="vp-publish-date"><span>${v.publish_date&&v.publish_time?`${esc(v.publish_date)}, ${esc(v.publish_time)} ${esc(v.timezone||'')}`:'Unlisted goes up now. A date and time are only for Schedule.'}</span></div>
     <div class="vp-publish-disclosures">${[['made_for_kids','Made for kids'],['contains_paid_promotion','Paid promotion'],['contains_synthetic_media','Altered / synthetic content']].map(([key,label])=>`<label>${label}<select data-disclosure="${key}" aria-label="${label}"><option value="">Select</option><option value="false" ${v.disclosures?.[key]===false?'selected':''}>No</option><option value="true" ${v.disclosures?.[key]===true?'selected':''}>Yes</option></select></label>`).join('')}</div></div>
     <footer class="vp-publish-footer"><p data-vp-publish-notice role="status">${esc(block)}</p><div><button class="subtle" data-vp-publish-mode="unlisted" disabled>Upload unlisted</button><button class="primary" data-vp-publish-mode="schedule" disabled>Schedule</button></div></footer>`;
   d.querySelector('[data-vp-publish-close]').onclick=vpPublishClose;

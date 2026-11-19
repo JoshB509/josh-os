@@ -303,13 +303,11 @@ class ThumbnailWorkspace(unittest.TestCase):
         self.open(self.p2)
         self.assertEqual(self.shown(), [self.a[4], None, None])
         self.assertTrue(self.page.locator(f'[data-tw-place="0"][data-asset="{self.a[4]}"]').is_disabled(), 'already in Main')
-        # The publish row at the foot of Packaging (it replaced the old readiness list on 16 Nov) names the release check's
-        # own thumbnail approval as plain words, not a link back here, and never says to place it again.
-        html = self.page.evaluate("""()=>{vpRel[current.id]={items:[{key:'thumbnail',label:'Thumbnail',state:'todo',detail:'1 options, none selected.',next:'Pick the thumbnail.'}]};return vpPublishRow(current)}""")
-        self.assertIn('<span class="pk-need-link">Thumbnail approval</span>', html)
-        self.assertNotIn('data-vp-piece="thumbnail"', html)
+        # Since 18 Nov Packaging has no publish row; publishing starts from the header's Publish button, whose panel reads
+        # the project-bound preview. Packaging never tells Josh to place a placed thumbnail again.
+        html = self.page.evaluate("""()=>{vpRel[current.id]={items:[{key:'thumbnail',label:'Thumbnail',state:'todo',detail:'1 options, none selected.',next:'Pick the thumbnail.'}]};return vpPublishRow(current)+vpPackaging(current)}""")
         self.assertNotIn('again', html)
-        self.assertIn('<button class="primary" disabled>Open Publishing</button>', html, 'Publishing stays closed while anything is open')
+        self.assertNotIn('pk-still', html)
         self.assertEqual(self.puts, [], 'opening an older video saves nothing')
         self.assertNotIn('thumbnail', self.saved(self.p2).get('locks') or {})
         self.assertEqual(self.errors, [])
@@ -343,6 +341,8 @@ class ThumbnailWorkspace(unittest.TestCase):
         pg.click('dialog.yh [data-yh-rank="1"]')
         self.assertIn(self.a[1], pg.evaluate("()=>document.querySelector('dialog.yh .yh-card.mine img').getAttribute('src')"))
         pg.click('dialog.yh [data-yh-close]')
+        # The dialog is removed in its close event, which the browser fires a moment after close().
+        pg.wait_for_function("!document.querySelector('dialog.yh')", timeout=5000)
         self.assertEqual(pg.locator('dialog.yh').count(), 0)
         self.assertEqual(self.puts, [], 'the preview saves nothing')
         self.assertEqual(self.outside, [], 'nothing leaves the page')

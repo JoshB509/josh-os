@@ -33,7 +33,10 @@ class PublishPanel(unittest.TestCase):
         page.route('**/api/publishing/approve',approve)
         page.click('[data-vp-publish]')
         page.wait_for_selector('.vp-publish-dialog .missing')
-        self.assertEqual(page.locator('.vp-publish-dialog .missing').count(),4)
+        # Image, description and comment are missing. The date and time are not, because only Schedule needs them (19 Nov 2026).
+        self.assertEqual(page.locator('.vp-publish-dialog .missing').count(),3)
+        self.assertEqual(page.locator('.vp-publish-date.missing').count(),0)
+        self.assertIn('only for Schedule',page.locator('.vp-publish-date').inner_text())
         self.assertEqual(page.locator('[data-vp-publish-mode]').count(),2)
         self.assertTrue(page.locator('[data-vp-publish-mode="unlisted"]').is_disabled())
         self.assertEqual(requests,[])
@@ -41,11 +44,15 @@ class PublishPanel(unittest.TestCase):
         self.assertEqual(page.locator('.vp-publish-dialog').count(),0)
         self.assertEqual(approvals,[])
         value.update(title='The confirmed title',description='Real description',pinned_comment='Get the pack',thumbnail_url='/assets/'+self.shot,
-          publish_date='2027-01-15',publish_time='17:00',completed_edit=True,connected=True,blockers=dict(unlisted=[],schedule=[]))
+          publish_date='',publish_time='',completed_edit=True,connected=True,
+          blockers=dict(unlisted=[],schedule=['Choose a future publish date and time.']))
         page.click('[data-vp-publish]')
         page.wait_for_selector('[data-disclosure]')
         for select in page.locator('[data-disclosure]').all():select.select_option('false')
+        # Josh's case: no time set. Unlisted can go; Schedule says what it needs.
         self.assertTrue(page.locator('[data-vp-publish-mode="unlisted"]').is_enabled())
+        self.assertTrue(page.locator('[data-vp-publish-mode="schedule"]').is_disabled())
+        self.assertEqual(page.locator('[data-vp-publish-mode="schedule"]').get_attribute('title'),'Choose a future publish date and time.')
         page.screenshot(path=str(Path(__file__).resolve().parents[1]/'Evidence'/'publish-panel-review.png'))
         page.set_viewport_size(dict(width=390,height=844))
         self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)

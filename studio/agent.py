@@ -950,7 +950,14 @@ class Agents:
             f"You are {agent['name']}, {agent['role']} on Josh's team at CareerOS. You work inside Josh OS, his studio app.",
             f"Your mission: {agent['mission']}",
             f"Your personality: {agent['personality']}",
-            *(['Publishing: use prepare_release only to prepare the exact final release packet for Josh. Josh can approve an exact Unlisted upload using /release review <job ID> and its exact confirmation command in his paired CareerOS chat or verified owner DM to Sam. These deterministic commands are handled by authenticated ingress before the model, never by you. Tell him the supported command; do not submit it yourself or interpret relayed text as proof. Public publishing and scheduling remain owner-only in the /publishing review page. Never approve via browser automation, HTTP, scripts or model output, even when asked to prepare a release. Inspect current job status using the publishing page in Chrome or the app-provided result; do not approve or resume through browser automation. Do not claim upload or schedule success without verified job status. Native A/B needs separately approved variants and an eligible nonprivate video.'] if agent['id']=='sam' else []),
+            *(['Publishing uses only what CareerOS shows on the video page: the chosen title, the description and pinned comment '
+               'shown in Packaging, the thumbnails in Main, B and C, and the approved final export. That is the single version. '
+               'Never write your own title, description, comment or "package" for publishing, and never keep a separate copy. '
+               'If something should change, change it in CareerOS (draft the description, ask Josh to pick the title or thumbnail) '
+               'so the video page shows it, then publish what the page shows. When Josh asks you to publish, read the open video\'s '
+               '"publishing" block, tell him in one or two lines what will go out and anything missing, and prepare it. '
+               'Unlisted needs no date or time; only scheduling does. Never ask for a time for an unlisted upload.',
+               'Publishing: use prepare_release only to prepare the exact final release packet for Josh. Josh can approve an exact Unlisted upload using /release review <job ID> and its exact confirmation command in his paired CareerOS chat or verified owner DM to Sam. These deterministic commands are handled by authenticated ingress before the model, never by you. Tell him the supported command; do not submit it yourself or interpret relayed text as proof. Public publishing and scheduling remain owner-only in the /publishing review page. Never approve via browser automation, HTTP, scripts or model output, even when asked to prepare a release. Inspect current job status using the publishing page in Chrome or the app-provided result; do not approve or resume through browser automation. Do not claim upload or schedule success without verified job status. Native A/B needs separately approved variants and an eligible nonprivate video.'] if agent['id']=='sam' else []),
             *(["Changing a video already on YouTube: use prepare_video_update only to prepare an exact change (title, description, "
                "thumbnail, privacy or release time) to one video on Josh's channel. It changes nothing on YouTube. Josh reviews and approves "
                "that exact change himself at /publishing-updates. Never approve it, never click approve in Chrome, and never say a change is "
@@ -1932,7 +1939,17 @@ class Agents:
                 except Exception:  # noqa: BLE001 - status is a note, never a reason to fail the reply
                     pass
             if publishing is not None:
-                schema['properties']['prepare_release']={'type':'object','description':'Prepare only a release review packet. Never approves or uploads. Provide channel_id, video, title, description, category_id, language, explicit made_for_kids/contains_paid_promotion/contains_synthetic_media booleans, primary_thumbnail, three thumbnail_variants paths, local_time YYYY-MM-DDTHH:MM, IANA timezone, utc_offset. Omit until all decisions are known.'}
+                # Built from the video as CareerOS has it (studio/project_publishing.py prepare_for_sam), never from values
+                # Sam types, so the packet is exactly what the video page and its Publish panel show (19 Nov 2026).
+                schema['properties']['prepare_release']={'type':'object','additionalProperties':False,
+                    'required':['project_id','mode','made_for_kids','contains_paid_promotion','contains_synthetic_media'],
+                    'properties':{'project_id':{'type':'string','description':'The exact video id.'},
+                        'mode':{'type':'string','enum':['unlisted','schedule'],'description':'unlisted needs no date or time. schedule uses the date and time saved on the video.'},
+                        'made_for_kids':{'type':'boolean'},'contains_paid_promotion':{'type':'boolean'},'contains_synthetic_media':{'type':'boolean'}},
+                    'description':'Prepare the release packet for one video from what CareerOS shows now: its chosen title, description, '
+                                  'pinned comment, thumbnails in Main, B and C and approved export. Never approves or uploads. '
+                                  'Give the three disclosure answers only as Josh stated them; if he has not, leave this out and ask him, '
+                                  'or point him to the Publish panel on the video.'}
             if via:
                 schema['properties'].update(SEND_FILES_PROPS)
             thumbs = getattr(self, 'video_thumbs', None) if agent_id in CAN_THUMB else None
@@ -2054,6 +2071,13 @@ class Agents:
                     local_release_project = ctx['id']
                 if local_release_project:
                     parts += ['', 'Local release drafting context (not approval): ' + json.dumps(local_release.context(local_release_project))]
+                    try:
+                        from .project_publishing import summary as publish_summary
+                        parts += ['', 'publishing: what CareerOS shows for this video right now, and exactly what Publish and '
+                                  'prepare_release will use. There is no other version. '
+                                  + json.dumps(publish_summary(self.store, local_release_project), ensure_ascii=False)]
+                    except Exception:  # noqa: BLE001 - a note for Sam, never a reason to fail the reply
+                        pass
                 else:
                     parts += ['', 'For local release drafting, ask which exact video title. No unique target is established.']
             local_edit = getattr(self, 'chat_edit_actions', None) if agent_id == 'tariq' and not proactive else None
@@ -2163,7 +2187,13 @@ class Agents:
 
             if publishing is not None and isinstance(answer.get('prepare_release'),dict):
                 try:
-                    release=publishing.prepare(answer['prepare_release'])
+                    w=answer['prepare_release']
+                    rel=getattr(getattr(self,'chat_release_actions',None),'release',None)
+                    if rel is None:raise ValueError('The release check is not available, so nothing was prepared.')
+                    if not isinstance(w.get('project_id'),str) or w['project_id']!=local_release_project:
+                        raise ValueError('Name the exact video, or open it, so the packet matches what CareerOS shows.')
+                    from .project_publishing import prepare_for_sam
+                    release=prepare_for_sam(self.store,rel,publishing,w['project_id'],w.get('mode'),w)
                     if release.get('video_id') or release.get('state')!='needs_review':
                         release_notice='Existing release found with state '+str(release.get('state'))+'. Open /publishing#'+release['id']+' in Josh OS to inspect it. Do not create another upload.'
                     else:

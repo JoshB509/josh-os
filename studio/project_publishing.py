@@ -61,3 +61,44 @@ def prepare(store, release, publishing, pid, data):
     # Preserve the exact reviewed comment in the digest without pretending the upload API pins it.
     source['project_id']=pid;source['project_revision']=view['revision'];source['pinned_comment']=view['pinned_comment']
     return publishing.prepare(source)
+
+SLOTS=('Main','B','C')
+
+def summary(store, pid):
+    """What Publish would use for this video right now, read from the same project fields as preview(). It makes no
+    YouTube call and does not hash the video, so it is cheap enough to give Sam on every message. Publishing itself
+    still checks the export's bytes and the YouTube connection."""
+    p=store.get(pid); r=p.get('release') or {}
+    from .release_ready import text_sha
+    title=next((t['text'] for t in p.get('titles',[]) if t['id']==p.get('chosen_title')), '')
+    d=r.get('description') or {}; c=r.get('cta') or {}
+    description=d.get('text',''); comment=c.get('text','')
+    link=next((l.get('url') for l in r.get('links',[]) if l.get('source_type')=='pinned_comment'),None)
+    if link and link not in comment: comment+='\n\n'+link
+    names={t['asset']:t.get('name','') for t in p.get('thumbnails') or []}
+    thumbs=[dict(slot=SLOTS[i],file=names.get(a,a)) for i,a in enumerate((p.get('top_three') or [])[:3])]
+    export=r.get('export_approval') or {}; pt=r.get('publish_time') or {}
+    unlisted=[]
+    if not export.get('path'): unlisted.append('There isn\'t a completed, approved edit yet.')
+    if not title: unlisted.append('Choose a title.')
+    if not thumbs: unlisted.append('Choose a thumbnail.')
+    if not description: unlisted.append('Add a description.')
+    if not comment: unlisted.append('Add a pinned comment.')
+    schedule=[] if p.get('publish_date') and pt.get('time') and pt.get('tz') else ['Choose a publish date and time to schedule.']
+    return dict(project_id=pid,revision=p['revision'],title=title,description=description,
+                description_approved=bool(description) and (d.get('approved') or {}).get('sha')==text_sha(description),
+                pinned_comment=comment,pinned_comment_approved=bool(c.get('text')) and (c.get('approved') or {}).get('sha')==text_sha(c.get('text')),
+                thumbnails=thumbs,approved_export=dict(file=export['path'].replace('\\','/').rsplit('/',1)[-1],approved_at=export.get('at',''))
+                if export.get('path') else None,publish_date=p.get('publish_date',''),publish_time=pt.get('time',''),timezone=pt.get('tz',''),
+                missing_to_upload_unlisted=unlisted,also_missing_to_schedule=schedule)
+
+def prepare_for_sam(store, release, publishing, pid, mode, answers):
+    """Sam's release packet, built only from the video as CareerOS has it now: the same preview the Publish button shows,
+    bound to its current revision and digest. Sam gives no title, description, file or time of his own. The three
+    disclosure answers must come from Josh. Josh still approves the upload himself; this only prepares it."""
+    view,_=preview(store,release,publishing,pid)
+    data=dict(revision=view['revision'],preview_digest=view['preview_digest'],mode=mode)
+    for k in FLAGS: data[k]=answers.get(k)
+    if any(type(data[k]) is not bool for k in FLAGS):
+        raise ReleaseError('Josh has to answer made for kids, paid promotion and altered or synthetic content first. He can do it in the Publish panel on the video.')
+    return prepare(store,release,publishing,pid,data)

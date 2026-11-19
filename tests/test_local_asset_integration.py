@@ -107,12 +107,20 @@ class IntegrationTests(unittest.TestCase):
 
     def test_receipt_preserves_recommendations_and_earlier_verified_notice(self):
         explanation = '1. Target returning learners.\n2. Demonstrate the outcome.\n3. Offer a clear next step.'
+        # Sam's packet is built from a named video (19 Nov 2026), so the fixture names one and stubs the builder.
+        from studio.chat_release_actions import ChatReleaseActions
+        video = self.store.create('Fixture video')
         self.agents.publishing = SimpleNamespace(prepare=lambda request: dict(id='fixture-review', state='needs_review'))
-        self.answer.update(reply=explanation, prepare_release={'fixture': True})
+        self.agents.chat_release_actions = ChatReleaseActions(SimpleNamespace(store=self.store))
+        self.answer.update(reply=explanation, prepare_release=dict(project_id=video['id'], mode='unlisted', made_for_kids=False,
+                                                                   contains_paid_promotion=False, contains_synthetic_media=False))
+        built = patch('studio.project_publishing.prepare_for_sam', return_value=dict(id='fixture-review', state='needs_review'))
+        built.start()
+        self.addCleanup(built.stop)
         for invalid in (False, True):
             with self.subTest(invalid=invalid):
                 self.answer['create_local_assets'] = dict(self.request, owner='max') if invalid else self.request
-                text = self.ask(message='Create a visual and explain the three campaign recommendations.')['reply']['text']
+                text = self.ask(message=f'Create a visual for {video["id"]} and explain the three campaign recommendations.')['reply']['text']
                 self.assertIn(explanation, text)
                 self.assertIn('Release prepared for your review.', text)
                 self.assertIn('Nothing has been uploaded yet.', text)
