@@ -183,6 +183,7 @@ function renderCarouselEditor(){
     ${carouselSteps(c)}
     <p class="pv-when">${esc(carouselStep(c).label)}. ${esc(carouselWhen(c))}<span id="carousel-save" class="save-note"></span></p>
     <div id="pv-actions">${carouselActions(c)}</div>
+    <div id="carousel-job-progress" data-carousel-progress="${esc(c.id)}" aria-live="polite"></div>
   </header>
   <div class="pv-body">
     <div class="pv-left" id="pv-viewer">${carouselViewer(c)}</div>

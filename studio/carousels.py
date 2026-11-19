@@ -9,8 +9,11 @@ Every carousel carries a short set of tags, each from a fixed list so posts can 
 grouped and compared, and results at 1 day and 7 days. Sam fills both in.
 """
 import hashlib
+from contextlib import contextmanager
 import json
 import re
+import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -18,6 +21,7 @@ import uuid
 from datetime import date
 from pathlib import Path
 from .store import Conflict, now
+from . import carousel_jobs
 
 STAGES = ['Idea', 'Drafting', 'Ready for review', 'Approved', 'Scheduled', 'Posted']
 PLATFORMS = ['YouTube Community', 'Instagram', 'LinkedIn', 'TikTok', 'Other']
@@ -46,6 +50,21 @@ RESULT_WINDOWS = ('d1', 'd7')
 RESULT_NUMBERS = ('views', 'likes', 'comments', 'clicks', 'downloads', 'new_people', 'course_clicks', 'sale_value')
 SLIDE_ROOT = Path(r'E:\CareerOS\03_Community_Posts')
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
+CUSTOM_DESIGN_ERROR = 'This carousel has custom slides. Use a single-slide override to preserve its immutable images.'
+
+
+def save_receipt(results):
+    """Only host results, after commit, may describe a carousel as saved."""
+    lines = []
+    for row in results:
+        label = row.get('title') or row.get('id') or 'carousel'
+        if row.get('action') == 'pending':
+            lines.append('Carousel work is still in progress. Completion has not been confirmed.')
+        elif row.get('action') == 'failed':
+            lines.append(f"Could not save {label}: {row.get('error', 'Unknown error')} No carousel changes were saved for this request.")
+        else:
+            lines.append(f"Saved {label} in Josh OS (revision {row['revision']}; {row['action']}).")
+    return '\n'.join(lines)
 
 
 def clean_tags(tags):
@@ -106,6 +125,7 @@ def clean_results(results):
 class Carousels:
     def __init__(self, store):
         self.store = store
+        self.jobs = carousel_jobs.CarouselJobs(store)
         with store.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS carousels(id TEXT PRIMARY KEY,revision INTEGER NOT NULL,body TEXT NOT NULL)')
 
@@ -150,6 +170,9 @@ class Carousels:
         return path if path.is_dir() else None
 
     def images(self, item):
+        if (item.get('design') or {}).get('override_version'):
+            from .carousel_overrides import verified_images
+            return verified_images(self, item)
         folder = self.folder(item)
         if not folder:
             return []
@@ -189,7 +212,7 @@ class Carousels:
         if not isinstance(item.get('design', {}), dict) or len(json.dumps(item.get('design', {}))) > 500:
             raise ValueError('Design details must be a small set of values.')
 
-    def create(self, data):
+    def create(self, data, *, make_design=False, commit_check=None):
         if not isinstance(data, dict) or set(data) - FIELDS - {'id'}:
             raise ValueError('Unknown carousel field.')
         cid = data.get('id') or str(uuid.uuid4())
@@ -205,37 +228,92 @@ class Carousels:
         self.validate(item)
         if item['stage'] == 'Posted':
             item['posted_at'] = now()
+        # Resolve retries before rendering. Recheck under the insert transaction.
         with self.store.connect() as c:
-            c.execute('BEGIN IMMEDIATE')
             row = c.execute('SELECT body FROM carousels WHERE id=?', (cid,)).fetchone()
-            if row:
-                return self.defaults(json.loads(row['body']))
-            c.execute('INSERT INTO carousels VALUES(?,?,?)', (cid, 1, json.dumps(item)))
+        if row:
+            if carousel_jobs.ACTIVE.get():
+                raise Conflict('This carousel was created in another window. Reload it before saving again.')
+            return self.defaults(json.loads(row['body']))
+        with self._prepared_design(item, make_design) as item:
+            self.validate(item)
+            with self.store.connect() as c:
+                c.execute('BEGIN IMMEDIATE')
+                row = c.execute('SELECT body FROM carousels WHERE id=?', (cid,)).fetchone()
+                if row:
+                    # Do not publish a rendered version for an intervening create.
+                    raise Conflict('This carousel was created in another window. Reload it before saving again.')
+                if commit_check is not None:commit_check(c)
+                c.execute('INSERT INTO carousels VALUES(?,?,?)', (cid, 1, json.dumps(item)))
+                carousel_jobs.committed(c, item)
         return item
 
-    def save(self, cid, changes, revision):
+    def save(self, cid, changes, revision, *, make_design=False):
         if not isinstance(changes, dict) or set(changes) - FIELDS:
             raise ValueError('Unknown carousel field.')
         if type(revision) is not int:
             raise ValueError('A saved revision is required.')
-        with self.store.connect() as c:
-            c.execute('BEGIN IMMEDIATE')
-            row = c.execute('SELECT revision,body FROM carousels WHERE id=?', (cid,)).fetchone()
-            if not row:
-                raise KeyError('Carousel not found.')
-            if row['revision'] != revision:
-                raise Conflict('This carousel changed in another window. Reload it before saving again.')
-            previous = self.defaults(json.loads(row['body']))
-            item = dict(previous, **changes)
+        previous = self.get(cid)
+        if previous['revision'] != revision:
+            raise Conflict('This carousel changed in another window. Reload it before saving again.')
+        item = dict(previous, **changes)
+        self.validate(item)
+        if previous['design'].get('photo_version'):
+            if make_design or any(item[k] != previous[k] for k in ('slides', 'folder', 'design')):
+                raise ValueError('Photo draft images are immutable. Create a new Photo draft to revise the copy.')
+        if previous['design'].get('override_version'):
+            if make_design:
+                raise ValueError(CUSTOM_DESIGN_ERROR)
+            if any(item[k] != previous[k] for k in ('slides', 'folder', 'design')):
+                # The override service supplies a complete, verified new version.
+                # A regular text edit must never leave immutable images stale.
+                if (not item['design'].get('override_version') or
+                        item['design']['override_version'] == previous['design']['override_version'] or
+                        item['design'].get('words') != self.words_hash(item)):
+                    raise ValueError(CUSTOM_DESIGN_ERROR)
+                from .carousel_overrides import verified_images
+                verified_images(self, item)
+        with self._prepared_design(item, make_design) as item:
             self.validate(item)
-            if all(item[k] == previous[k] for k in FIELDS):
-                return previous
-            item.update(revision=revision + 1, updated_at=now())
-            item['posted_at'] = (previous.get('posted_at') or now()) if item['stage'] == 'Posted' else None
-            c.execute('UPDATE carousels SET revision=?,body=? WHERE id=?', (item['revision'], json.dumps(item), cid))
+            with self.store.connect() as c:
+                c.execute('BEGIN IMMEDIATE')
+                row = c.execute('SELECT revision FROM carousels WHERE id=?', (cid,)).fetchone()
+                if not row:
+                    raise KeyError('Carousel not found.')
+                if row['revision'] != revision:
+                    raise Conflict('This carousel changed in another window. Reload it before saving again.')
+                if all(item[k] == previous[k] for k in FIELDS):
+                    carousel_jobs.committed(c, previous, False)
+                    return previous
+                item.update(revision=revision + 1, updated_at=now())
+                item['posted_at'] = (previous.get('posted_at') or now()) if item['stage'] == 'Posted' else None
+                c.execute('UPDATE carousels SET revision=?,body=? WHERE id=?', (item['revision'], json.dumps(item), cid))
+                carousel_jobs.committed(c, item)
         return item
 
-    def apply(self, owner, updates):
+    def apply(self, owner, updates, revisions=None, request_id=None):
+        if owner != 'sam' or request_id is None:
+            return self._apply(owner, updates, revisions)
+        # Register the complete immutable batch in one transaction before rendering.
+        # Repeated delivery can replay receipts, but cannot add or change operations.
+        try:
+            pending = self.jobs.batch(request_id, updates or [], revisions)
+        except (ValueError, Conflict) as exc:
+            return [dict(id='', title='', kind='carousel', action='failed', error=str(exc))]
+        done = []
+        for update, job, fresh in pending:
+            if fresh:
+                try:
+                    with job.active():
+                        job.mark('preparing')
+                        self._apply(owner, [update], revisions,
+                            new_id=job.record['carousel_id'] if job.record['new'] else None)
+                except Exception as exc:
+                    job.fail(exc)
+            done.append(job.receipt())
+        return done
+
+    def _apply(self, owner, updates, revisions=None, new_id=None):
         """Changes a team member asked for from chat. Tags and results merge into what is there."""
         done = []
         for u in updates or []:
@@ -244,9 +322,14 @@ class Carousels:
             u = {k: v for k, v in u.items() if v is not None}
             cid = u.pop('id', '') or ''
             redo = u.pop('make_design', False) is True
+            revision = u.pop('revision', None)
             try:
                 if cid:
                     current = self.get(cid)
+                    expected = revisions.get(cid) if revisions is not None else (
+                        revision if revision is not None else current['revision'])
+                    if expected != current['revision']:
+                        raise Conflict('This carousel changed since the chat snapshot. Reload it before saving again.')
                     if 'tags' in u:
                         u['tags'] = dict(current['tags'], **u['tags'])
                     if 'results' in u:
@@ -254,21 +337,24 @@ class Carousels:
                         for w, nums in u['results'].items():
                             merged[w] = dict(merged.get(w, {}), **(nums or {}))
                         u['results'] = merged
-                    item = self.save(cid, {k: v for k, v in u.items() if k in FIELDS}, current['revision'])
+                    changes = {k: v for k, v in u.items() if k in FIELDS}
+                    proposed = dict(current, **changes)
                     # New words on a post Josh OS already designed get a new design, so Josh never sees the old slides.
-                    if not redo and (current.get('design') or {}).get('words') and self.words_hash(item) != current['design']['words']:
+                    if not redo and (current.get('design') or {}).get('words') and self.words_hash(proposed) != current['design']['words']:
                         redo = True
-                    if redo:
-                        item = self.make_design(cid)
-                    done.append(dict(id=item['id'], title=item['title'], action='designed' if redo else 'updated'))
+                    item = self.save(cid, changes, expected, make_design=redo)
+                    done.append(dict(id=item['id'], revision=item['revision'], kind='carousel', title=item['title'], action='designed' if redo else 'updated'))
                 else:
                     u.setdefault('owner', owner)
-                    item = self.create({k: v for k, v in u.items() if k in FIELDS})
-                    if redo:
-                        item = self.make_design(item['id'])
-                    done.append(dict(id=item['id'], title=item['title'], action='added'))
-            except (ValueError, KeyError, Conflict) as e:
-                done.append(dict(id=cid, title=u.get('title', ''), action='failed', error=str(e).strip("'\"")))
+                    data = {k: v for k, v in u.items() if k in FIELDS}
+                    if new_id:
+                        data['id'] = new_id
+                    item = self.create(data, make_design=redo)
+                    done.append(dict(id=item['id'], revision=item['revision'], kind='carousel', title=item['title'], action='added'))
+            except (ValueError, KeyError, Conflict, OSError, sqlite3.Error) as e:
+                if carousel_jobs.ACTIVE.get():
+                    raise
+                done.append(dict(id=cid, kind='carousel', title=u.get('title', ''), action='failed', error=str(e).strip("'\"")))
         return done
 
     # Design ----------------------------------------------------------------
@@ -303,32 +389,70 @@ class Carousels:
         return out
 
     def make_design(self, cid):
-        """Render the slides in the Paper style into the post's folder and point the card at it."""
+        """Render a fresh version, then atomically point the card at it."""
         item = self.get(cid)
+        saved = self.save(cid, {}, item['revision'], make_design=True)
+        return dict(saved, images=saved['tags']['slide_count'])
+
+    @contextmanager
+    def _prepared_design(self, item, render):
+        """Keep the old record and files intact until a complete render commits."""
+        if not render:
+            carousel_jobs.mark('saving')
+            yield item
+            return
+        if (item.get('design') or {}).get('override_version'):
+            raise ValueError(CUSTOM_DESIGN_ERROR)
         blocks = [b for b in re.split(r'\n-{3,}\n?', item.get('slides') or '') if b.strip()]
         slides = [self.slide_parts(b, i + 1) for i, b in enumerate(blocks)]
         if not slides:
             raise ValueError('Write the slides first, then make the design.')
-        current = self.folder(item)
-        if current and current.parent == SLIDE_ROOT / 'Carousel':
-            out = current
-        else:
-            slug = re.sub(r'[^a-z0-9]+', '-', item['title'].lower()).strip('-')[:60] or 'carousel'
-            out = SLIDE_ROOT / 'Carousel' / f"{item.get('post_date') or date.today().isoformat()}_{slug}"
-        job = Path(tempfile.mkdtemp()) / 'job.json'
-        job.write_text(json.dumps({'slides': slides, 'out': str(out)}), encoding='utf-8')
-        try:
-            run = subprocess.run([sys.executable, str(Path(__file__).with_name('render_carousel.py')), str(job)],
-                                 capture_output=True, text=True, encoding='utf-8', timeout=240,
-                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-        except subprocess.TimeoutExpired:
-            raise ValueError('Making the design took too long, so it stopped. Try again.') from None
-        if run.returncode != 0:
-            raise ValueError('The design could not be made: ' + ((run.stderr or run.stdout).strip().splitlines() or ['no details'])[-1][:300])
-        tags = dict(item['tags'], slide_count=len(slides))
-        tags.setdefault('style', 'Paper')
-        changes = dict(folder=str(out.relative_to(SLIDE_ROOT)), tags=tags,
-                       design=dict(style='Paper', words=self.words_hash(item), at=now()))
-        saved = self.save(cid, changes, item['revision'])
-        saved['images'] = len(self.images(saved))
-        return saved
+        # The renderer deletes old slide_*.png files. It must only see scratch
+        # output, never a current or historical carousel directory.
+        with tempfile.TemporaryDirectory(prefix='carousel-render-', ignore_cleanup_errors=True) as scratch:
+            stage = Path(scratch) / 'images'
+            job = Path(scratch) / 'job.json'
+            job.write_text(json.dumps({'slides': slides, 'out': str(stage)}), encoding='utf-8')
+            carousel_jobs.mark('rendering')
+            try:
+                run = subprocess.run([sys.executable, str(Path(__file__).with_name('render_carousel.py')), str(job)],
+                                     capture_output=True, text=True, encoding='utf-8', timeout=240,
+                                     creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+            except subprocess.TimeoutExpired:
+                raise ValueError('Making the design took too long, so it stopped. Try again.') from None
+            if run.returncode != 0:
+                raise ValueError('The design could not be made: ' + ((run.stderr or run.stdout).strip().splitlines() or ['no details'])[-1][:300])
+            from PIL import Image
+            expected = {f'slide_{i + 1:02d}.png' for i in range(len(slides))}
+            if not stage.is_dir() or {p.name for p in stage.iterdir()} != expected:
+                raise ValueError('The design did not produce the complete slide image set.')
+            try:
+                for name in expected:
+                    with Image.open(stage / name) as image:
+                        if image.format != 'PNG':
+                            raise ValueError('The design must produce PNG slides.')
+                        image.verify()
+            except (OSError, SyntaxError) as exc:
+                raise ValueError('The design produced an invalid slide image.') from exc
+            # A unique folder prevents same-title posts and previous versions
+            # from overwriting one another. Old versions remain recoverable.
+            root = SLIDE_ROOT.resolve()
+            out = root / 'Carousel' / f"{item['id']}_{uuid.uuid4().hex}"
+            if out.resolve().parent != root / 'Carousel':
+                raise ValueError('Invalid carousel render destination.')
+            committed = owned = False
+            try:
+                out.mkdir(parents=True, exist_ok=False)
+                owned = True
+                shutil.copytree(stage, out, dirs_exist_ok=True)
+                tags = dict(item['tags'], slide_count=len(slides))
+                tags.setdefault('style', 'Paper')
+                carousel_jobs.mark('saving')
+                yield dict(item, folder=str(out.relative_to(root)), tags=tags,
+                           design=dict(style='Paper', words=self.words_hash(item), at=now()))
+                committed = True
+            finally:
+                if owned and not committed and out.exists():
+                    if out.resolve().parent != root / 'Carousel':
+                        raise ValueError('Invalid carousel render cleanup target.')
+                    shutil.rmtree(out)

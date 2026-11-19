@@ -77,7 +77,10 @@ class AgentTests(unittest.TestCase):
         self.assertEqual([m['role'] for m in thread], ['josh', 'agent'])
         self.assertEqual(thread[0]['selection']['text'], 'Old hook line.')
         self.ask(message='And the next line?')
-        self.assertIn('Earlier in this conversation', json.loads(self.log.read_text(encoding='utf-8'))['prompt'])
+        prompt = json.loads(self.log.read_text(encoding='utf-8'))['prompt']
+        self.assertIn('Earlier with this same team member across Josh OS and Discord', prompt)
+        self.assertIn('dated context only, not action approval', prompt)
+        self.assertIn('Make this punchier', prompt)
 
     def test_the_script_chat_is_the_same_conversation_with_every_power(self):
         import io

@@ -12,9 +12,10 @@ function erLabel(p){return p.kind==='talk'?'Talking head':`Animation ${p.n}`}
 function erSub(p){return p.kind==='talk'?'You, full frame':ER_TYPES[p.type]||'Animation'}
 function erFinal(p){return p.kind==='animation'&&p.images?.length?erImg(p.images.at(-1)):'/edit-standin.webp'}
 
-async function openEditReview(pid){
+async function openEditReview(pid,at){
   if(typeof leave==='function'&&!leave())return;
-  erPid=pid;erAt=0;erBeat=null;erScript=false;current=null;view='edit-review';
+  erPid=pid;erAt=+at||0;erBeat=null;erScript=false;current=null;view='edit-review';
+  if(typeof vpNoPush!=='undefined'&&!vpNoPush)history.pushState({er:pid,at:erAt},'');
   $('#workspace').innerHTML='<p class="hint">Loading the review…</p>';
   try{erData=await api(`/api/projects/${encodeURIComponent(pid)}/edit-review`)}catch(e){toast(e.message,true);return}
   render();scrollTo(0,0);
@@ -101,7 +102,11 @@ function erGo(i){erAt=i;erBeat=null;erScript=false;renderEditReview();if(typeof 
 
 document.addEventListener('click',e=>{
   if(view!=='edit-review')return;
-  if(e.target.closest('[data-er-back]')){const pid=erPid;view='board';erPid=null;erData=null;openProject(pid);return}
+  if(e.target.closest('[data-er-back]')){const pid=erPid;view='board';erPid=null;erData=null;
+    if(typeof vpOpen!=='undefined'){vpOpen[pid]='edit';vpEditTab[pid]='animations';vpNoPush=true}
+    try{openProject(pid)}finally{if(typeof vpNoPush!=='undefined')vpNoPush=false}
+    // Back goes to where the review was opened from, the Animations tab of Editing.
+    if(current?.id===pid&&typeof vpOpen!=='undefined'){vpOpen[pid]='edit';vpEditTab[pid]='animations';renderDetail()}return}
   const go=e.target.closest('[data-er-go]');if(go&&!go.disabled){erGo(+go.dataset.erGo);return}
   const b=e.target.closest('[data-er-beat]');if(b){erBeat=+b.dataset.erBeat;renderEditReview();return}
   if(e.target.closest('[data-er-script]')){erScript=!erScript;renderEditReview();return}

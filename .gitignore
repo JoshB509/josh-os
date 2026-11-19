@@ -29,3 +29,10 @@ settings.json
 
 # Decoded audio caches
 *.f32
+
+# Local settings backups made before risky changes (machine-specific, like settings.json)
+settings.*.json
+!settings.example.json
+
+# Temporary folders some tests leave behind
+tests/tmp*/

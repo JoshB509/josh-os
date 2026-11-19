@@ -103,8 +103,6 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('keydown',e=>{if(e.target.id==='sam-input'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();const v=e.target.value;e.target.value='';samSend(v)}});
 
-// Thumbnails: drag files or library images straight into slots 1, 2 and 3.
-function thumbsToSlot(asset,i){const arr=current.top_three.filter(a=>a!==asset);arr.splice(Math.min(i,arr.length),0,asset);current.top_three=arr.slice(0,3)}
 async function thumbsImport(files){
   const added=[];
   for(const f of files){if(!/^image\/(png|jpeg|webp)$/.test(f.type)){toast(`${f.name} isn't a PNG, JPEG or WebP`,true);continue}
@@ -112,26 +110,177 @@ async function thumbsImport(files){
     const t=await api('/api/images',{name:f.name,data});if(!current.thumbnails.some(x=>x.asset===t.asset))current.thumbnails.push(t);added.push(t.asset)}
   return added;
 }
-function thumbsWire(){
-  if(tab!=='thumbnails')return;
-  document.querySelectorAll('.thumbnail-grid article').forEach(card=>{const id=card.querySelector('[data-remove-thumb]')?.dataset.removeThumb;if(id){card.draggable=true;card.dataset.thumbAsset=id}});
-  const tabBody=document.querySelector('.top-three');if(tabBody&&!document.querySelector('.drop-hint'))tabBody.insertAdjacentHTML('beforebegin','<p class="drop-hint">Drag images from your computer or from the library below onto 1, 2 or 3.</p>');
+// Thumbnails workspace (16 Nov 2026, Josh's brief). The video's thumbnail library and three positions, Main, B and C,
+// each shown as the YouTube card a viewer would see. Placing a thumbnail in a position is the confirmation. Those three
+// are the confirmed set, saved with the project like any other edit, so there is no separate creator or lock-in step.
+// That is not approval to publish. The release check keeps its own byte-exact thumbnail approval.
+// The channel name is Josh's own, as saved in Data/youtube-comments/settings.json (channel_title). Nothing here invents
+// views, dates or durations. A line appears only when real saved data exists, and no saved data has durations.
+const TW_CHANNEL='Josh Brindley',TW_POS=['Main','B','C'];
+let twRefs=null,twHome=null;
+function thumbsToSlot(asset,i){twPlace(current,asset,i)}
+function twTop(p){return (p.top_three||[]).filter((a,i,arr)=>a&&arr.indexOf(a)===i&&(p.thumbnails||[]).some(t=>t.asset===a)).slice(0,3)}
+// Put a thumbnail in position i. One already in the three swaps places with whatever is there. A new one replaces it,
+// and the replaced one stays in the library.
+function twPlace(p,asset,i){
+  const arr=twTop(p),from=arr.indexOf(asset);
+  if(from>=0){const to=Math.min(i,arr.length-1);arr[from]=arr[to];arr[to]=asset}
+  else if(i<arr.length)arr[i]=asset;else arr.push(asset);
+  p.top_three=arr.slice(0,3);
 }
+// Every change to the three goes through here, one at a time, for the video that was open when it started.
+// - The change is worked out on a copy and sent as a save of only top_three, thumbnails and locks for that video's id.
+//   Nothing on screen changes until the server answers, and the screen then shows what the server saved. A failed save
+//   leaves the three exactly as they were saved, so nothing looks confirmed that wasn't.
+// - Other edits to the video waiting to autosave are saved first, so this starts from the newest revision.
+// - The store refuses a save that changes the main thumbnail while it stays locked, so a locked video is saved
+//   unlocked first and locked again in a second save. The lock follows Main: set when Main holds a thumbnail, cleared
+//   when it is empty. Being placed is the confirmation, and the lock only keeps Packaging in step.
+// - If Josh opens another video meanwhile, the saved result goes to the video it belongs to and the open one is left alone.
+let twBusy=null;
+function twLock(on){document.querySelector('.tw')?.classList.toggle('busy',on);
+  document.querySelectorAll('.tw [data-tw-place],.tw [data-tw-move],.tw [data-tw-unpick],.tw [data-tw-remove],.tw [data-action="upload"]').forEach(b=>{
+    if(on){b.dataset.twWas=b.disabled?'1':'';b.disabled=true}else if('twWas' in b.dataset){b.disabled=b.dataset.twWas==='1';delete b.dataset.twWas}})}
+function twApply(pid,saved){
+  const keys=['top_three','thumbnails','locks','revision','updated_at'];
+  for(const p of [current?.id===pid?current:null,typeof autoDrafts!=='undefined'?autoDrafts[pid]:null,state.projects.find(x=>x.id===pid)])
+    if(p)for(const k of keys)if(k in saved)p[k]=structuredClone(saved[k]);
+  if(current?.id===pid&&tab==='thumbnails')renderDetail();
+}
+async function twCommit(change,msg){
+  if(twBusy||!current)return;
+  const pid=current.id;
+  twBusy=(async()=>{
+    twLock(true);let saved=null;
+    try{
+      if(typeof autosaveProject==='function'){clearTimeout(autoTimer);if(dirty&&current?.id===pid)await autosaveProject(pid);while(autoBusy)await autoBusy}
+      const live=(current?.id===pid&&current)||state.projects.find(x=>x.id===pid);
+      if(!live)throw Error('That video is no longer open.');
+      const next={top_three:structuredClone(live.top_three||[]),thumbnails:structuredClone(live.thumbnails||[]),locks:{...(live.locks||{})}};
+      change(next);next.top_three=twTop(next);
+      const main=next.top_three[0],wasLocked=!!(live.locks||{}).thumbnail,moved=main!==twTop(live)[0];
+      let rev=live.revision;
+      const put=async changes=>{saved=await api('/api/projects/'+encodeURIComponent(pid),{revision:rev,changes},'PUT');rev=saved.revision;return saved};
+      const L={...next.locks};
+      if(!main||(wasLocked&&moved))delete L.thumbnail;else if(!L.thumbnail)L.thumbnail=new Date().toISOString().slice(0,19);
+      await put({top_three:next.top_three,thumbnails:next.thumbnails,locks:L});
+      if(main&&wasLocked&&moved)await put({locks:{...(saved.locks||{}),thumbnail:new Date().toISOString().slice(0,19)}});
+      twApply(pid,saved);if(msg)toast(msg);
+    }catch(err){if(saved)twApply(pid,saved);toast(err.message,true)}
+    finally{twBusy=null;twLock(false)}
+  })();
+  return twBusy;
+}
+function twTitleFor(p,t){return (t&&p.titles.find(x=>x.id===t.title_id)?.text)||(typeof vpTitle==='function'&&vpTitle(p))||chosen(p)||p.name}
+function twAvatar(name,mine){const n=String(name||'').trim();return `<span class="yc-av ${mine?'mine':''}" aria-hidden="true">${n?esc(n[0].toUpperCase()):''}</span>`}
+// Preview values on Josh's own cards (his request, 16 Nov 2026), so he can see how a views line and a duration badge
+// sit against the thumbnail's text. They are fixed constants in this file, the same on every card, never saved and
+// never read from any data. Josh asked for no on-screen explanation of them.
+const TW_EXAMPLE={stats:'123K views • 3 days ago',duration:'12:38'};
+function twCard({img,title,channel,stats,duration,mine,alt,example}){
+  if(example){stats={text:TW_EXAMPLE.stats};duration=TW_EXAMPLE.duration}
+  const ex=example?' data-example':'',sr='';
+  return `<div class="yc ${mine?'mine':''}"><div class="yc-thumb">${img?`<img src="${img}" alt="${esc(alt||title)}" loading="lazy" decoding="async">`:''}${duration?`<span class="yc-dur"${ex}>${esc(duration)}${sr}</span>`:''}</div>
+    <div class="yc-meta">${twAvatar(channel,mine)}<div class="yc-text"><h3 class="yc-title">${esc(title)}</h3>${channel?`<p class="yc-line">${esc(channel)}</p>`:''}${stats?`<p class="yc-line"${ex||(stats.note?` title="${esc(stats.note)}"`:'')}>${esc(stats.text)}${sr}</p>`:''}</div></div></div>`;
+}
+thumbnails=function(){
+  const p=current,top=twTop(p);
+  const slot=i=>{const aid=top[i],t=aid&&p.thumbnails.find(x=>x.asset===aid);
+    return `<article class="thumb-preview tw-slot ${t?'':'empty'}" data-rank="${i}">
+      <div class="tw-pos"><b>${TW_POS[i]}</b>${t?`<details class="tw-menu"><summary aria-label="Options for ${TW_POS[i]}">⋯</summary><div class="tw-pop">
+        ${i>0?`<button data-tw-move="${i}" data-dir="-1">Move left</button>`:''}${i<top.length-1?`<button data-tw-move="${i}" data-dir="1">Move right</button>`:''}
+        <button data-tw-home="${i}">View on homepage</button>
+        <label>Title on this card<select data-thumb-title="${esc(aid)}">${titleOptions(t)}</select></label>
+        <button data-tw-unpick="${esc(aid)}">Take out of ${TW_POS[i]}</button></div></details>`:''}</div>
+      ${t?twCard({img:`/assets/${encodeURIComponent(aid)}?w=960`,title:twTitleFor(p,t),channel:TW_CHANNEL,mine:true,example:true,alt:`${TW_POS[i]} thumbnail`})
+        :'<div class="yc"><div class="yc-thumb tw-hole"><span>Empty</span></div></div>'}
+    </article>`};
+  const lib=p.thumbnails.map(t=>{const at=top.indexOf(t.asset);
+    return `<article class="thumb-small tw-item ${at>=0?'selected':''}" data-thumb-asset="${esc(t.asset)}" draggable="true">
+      <span hidden data-remove-thumb="${esc(t.asset)}"></span>
+      <div class="tw-img"><img src="/assets/${encodeURIComponent(t.asset)}?w=480" alt="${esc(t.name)}" loading="lazy" decoding="async">${at>=0?`<span class="tw-badge">${TW_POS[at]}</span>`:''}</div>
+      <div class="tw-place" role="group" aria-label="Place this thumbnail">${TW_POS.map((n,i)=>`<button data-tw-place="${i}" data-asset="${esc(t.asset)}" ${top[i]===t.asset?'disabled aria-pressed="true"':''} aria-label="Place in ${n}">${n}</button>`).join('')}
+        <details class="tw-menu"><summary aria-label="More for this thumbnail">⋯</summary><div class="tw-pop">${t.candidate_status?`<p>${esc(t.candidate_status)}</p>`:''}<button data-tw-remove="${esc(t.asset)}">Remove from this video</button></div></details></div>
+    </article>`}).join('');
+  return `<div class="tw">
+    <div class="tw-head"><h2>Thumbnails</h2><button class="primary" data-tw-home="0" ${top.length?'':'disabled'}>View on homepage</button></div>
+    <div class="top-three tw-three">${[0,1,2].map(slot).join('')}</div>
+    <section class="tw-lib" aria-label="Thumbnail library"><div class="tw-lib-head"><h3>Library <span class="count">${p.thumbnails.length}</span></h3><button class="subtle small" data-action="upload">Import</button></div>
+      <div class="thumbnail-grid tw-grid">${lib}</div>${p.thumbnails.length?'':'<div class="empty tw-none"><p>No thumbnails for this video yet.</p><button data-action="upload">Import thumbnails</button></div>'}</section>
+  </div>`;
+};
+function thumbsWire(){}
 document.addEventListener('dragstart',e=>{const c=e.target.closest?.('[data-thumb-asset]');if(c){e.dataTransfer.setData('application/x-thumb',c.dataset.thumbAsset);e.dataTransfer.effectAllowed='copy'}});
 document.addEventListener('dragover',e=>{if(!current||tab!=='thumbnails')return;const slot=e.target.closest('.thumb-preview');if(slot||e.dataTransfer.types.includes('Files')){e.preventDefault();document.querySelectorAll('.thumb-preview.over').forEach(x=>x!==slot&&x.classList.remove('over'));slot?.classList.add('over')}});
+document.addEventListener('dragleave',e=>{const s=e.target.closest?.('.thumb-preview');if(s&&!s.contains(e.relatedTarget))s.classList.remove('over')});
 document.addEventListener('drop',async e=>{
   if(!current||tab!=='thumbnails')return;const slot=e.target.closest('.thumb-preview');
   const asset=e.dataTransfer.getData('application/x-thumb'),files=[...e.dataTransfer.files];
   if(!slot&&!files.length)return;e.preventDefault();document.querySelectorAll('.thumb-preview.over').forEach(x=>x.classList.remove('over'));
   const i=slot?Number(slot.dataset.rank):null;
   try{
-    if(asset&&i!==null)thumbsToSlot(asset,i);
-    else if(files.length){const added=await thumbsImport(files);if(i!==null)added.slice(0,3-i).forEach((a,k)=>thumbsToSlot(a,i+k))}
-    else return;
-    const first=asset||current.thumbnails.at(-1)?.asset,at=current.top_three.indexOf(first);
-    mark();await save();toast(at>=0?`Set as option ${at+1}`:'Added to the library');
+    if(asset&&i!==null)return twCommit(p=>twPlace(p,asset,i),`Now in ${TW_POS[Math.min(i,twTop(current).length)]}`);
+    if(!files.length)return;
+    const added=await thumbsImport(files);
+    return twCommit(p=>{if(i!==null)added.slice(0,3-i).forEach((a,k)=>twPlace(p,a,i+k))},i!==null&&added.length?`Now in ${TW_POS[i]}`:'Added to the library');
   }catch(err){toast(err.message,true)}
 });
+document.addEventListener('click',e=>{
+  if(!current||tab!=='thumbnails')return;
+  const b=e.target.closest('[data-tw-place],[data-tw-move],[data-tw-unpick],[data-tw-remove],[data-tw-home]');if(!b||b.disabled)return;
+  b.closest('details')?.removeAttribute('open');
+  if(b.dataset.twHome!==undefined)return twHomeOpen(Number(b.dataset.twHome));
+  if(b.dataset.twPlace!==undefined){const i=Number(b.dataset.twPlace),n=twTop(current).length;return twCommit(p=>twPlace(p,b.dataset.asset,i),`Now in ${TW_POS[Math.min(i,n)]}`)}
+  if(b.dataset.twMove!==undefined){const i=Number(b.dataset.twMove),j=i+Number(b.dataset.dir);return twCommit(p=>{const a=twTop(p);[a[i],a[j]]=[a[j],a[i]];p.top_three=a},`Now in ${TW_POS[j]}`)}
+  if(b.dataset.twUnpick!==undefined)return twCommit(p=>{p.top_three=twTop(p).filter(a=>a!==b.dataset.twUnpick)},'Taken out of the three');
+  if(b.dataset.twRemove!==undefined){const t=current.thumbnails.find(x=>x.asset===b.dataset.twRemove);
+    if(!t||!confirm(`Remove ${t.name} from this video? The image file stays on this PC.`))return;
+    return twCommit(p=>{p.top_three=twTop(p).filter(a=>a!==t.asset);p.thumbnails=p.thumbnails.filter(x=>x.asset!==t.asset)},'Removed from this video')}
+});
+
+// View on homepage: a preview of a YouTube home feed made from Josh's saved inspiration videos and his thumbnail-format
+// references, with one of his three in the first row. It only draws on this page. Nothing is sent or published.
+function twRand(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296}}
+function twViews(n){return n<1e3?String(n):n<1e6?(n<1e4?(n/1e3).toFixed(1).replace(/\.0$/,''):Math.round(n/1e3))+'K':(n<1e7?(n/1e6).toFixed(1).replace(/\.0$/,''):Math.round(n/1e6))+'M'}
+function twAgo(day){const d=Math.floor((Date.now()-new Date(day+'T00:00:00Z'))/864e5);if(!(d>=0))return '';
+  const u=d<1?['today',0]:d<7?[d,'day']:d<31?[Math.floor(d/7),'week']:d<365?[Math.floor(d/30.4),'month']:[Math.floor(d/365),'year'];
+  return u[1]===0?'today':`${u[0]} ${u[1]}${u[0]===1?'':'s'} ago`}
+// Saved inspiration videos keep their publish date and the views they had when saved in the catalogue's description.
+function twStats(r){if(r.kind!=='videos')return null;const d=r.description||'';
+  const v=/([\d,]+) views when saved/.exec(d),pub=/Published (\d{4}-\d{2}-\d{2})/.exec(d),saved=/Saved (\d{4}-\d{2}-\d{2})/.exec(d);
+  const parts=[];if(v)parts.push(twViews(Number(v[1].replace(/,/g,'')))+' views');if(pub)parts.push(twAgo(pub[1]));
+  return parts.length?{text:parts.join(' • '),note:v&&saved?`Views when it was saved on ${saved[1]}`:''}:null}
+function twChannel(r){const c=String(r.credit||'');return /^original creator/i.test(c)?'':c}
+async function twHomeOpen(rank){
+  if(!twRefs){try{twRefs=(await api('/api/inspiration')).filter(r=>(r.kind==='videos'||r.kind==='formats')&&r.image)}catch(err){toast(err.message,true);return}}
+  twHome={rank,seed:twHome?.seed||[...current.id].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)};twHomeRender();
+}
+function twHomeRender(){
+  const p=current,top=twTop(p);if(!p||!top.length){document.querySelector('dialog.yh')?.remove();return}
+  const rank=Math.min(twHome.rank,top.length-1),aid=top[rank],t=p.thumbnails.find(x=>x.asset===aid),r=twRand(twHome.seed);
+  const vids=twRefs.filter(x=>x.kind==='videos'),fmts=twRefs.filter(x=>x.kind==='formats').map(x=>[r(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  const others=[...vids,...fmts].slice(0,11).map(x=>[r(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  const mine=`<article class="yh-card mine">${twCard({img:`/assets/${encodeURIComponent(aid)}?w=960`,title:twTitleFor(p,t),channel:TW_CHANNEL,mine:true,example:true,alt:`${TW_POS[rank]} thumbnail`})}</article>`;
+  const cards=others.map(x=>`<article class="yh-card">${twCard({img:`${x.image}?w=640`,title:x.title,channel:twChannel(x),stats:twStats(x)})}</article>`);
+  cards.splice(1,0,mine);
+  const icon=d=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  let d=document.querySelector('dialog.yh');
+  if(!d){d=document.createElement('dialog');d.className='yh';d.setAttribute('aria-label','Homepage preview');document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal()}
+  d.innerHTML=`<header class="yh-top"><span class="yh-ico">${icon('M3 6h18M3 12h18M3 18h18')}</span><span class="yh-logo"><i aria-hidden="true"></i>Home</span>
+      <div class="yh-search"><input readonly tabindex="-1" placeholder="Search" aria-label="Search, preview only"><span class="yh-ico">${icon('M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.5 15.5 20 20')}</span></div>
+      ${twAvatar(TW_CHANNEL,true)}</header>
+    <div class="yh-body"><nav class="yh-side" aria-hidden="true">${[['Home','M4 11 12 4l8 7v9h-5v-6H9v6H4z'],['Shorts','M9 7l7 5-7 5z'],['Subscriptions','M4 7h16v12H4zM7 4h10'],['You','M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c1-4 5-5 8-5s7 1 8 5']].map(([n,pth],i)=>`<span class="${i?'':'on'}">${icon(pth)}<small>${n}</small></span>`).join('')}</nav>
+      <main class="yh-main"><div class="yh-chips" aria-hidden="true">${['All','Careers','Leadership','Communication','Presentations','Recently uploaded','New to you'].map((c,i)=>`<span class="${i?'':'on'}">${c}</span>`).join('')}</div>
+        <div class="yh-grid">${cards.join('')}</div></main></div>
+    <div class="yh-bar" role="toolbar" aria-label="Preview controls">
+      <div class="yh-pick" role="group" aria-label="Which thumbnail">${top.map((a,i)=>`<button data-yh-rank="${i}" aria-pressed="${i===rank}" class="${i===rank?'on':''}">${TW_POS[i]}</button>`).join('')}</div>
+      <button data-yh-shuffle>Shuffle</button><button data-yh-close>Close</button></div>`;
+}
+document.addEventListener('click',e=>{const d=e.target.closest('dialog.yh');if(!d||!twHome)return;
+  const k=e.target.closest('[data-yh-rank],[data-yh-shuffle],[data-yh-close]');if(!k)return;
+  if(k.dataset.yhClose!==undefined)return d.close();
+  if(k.dataset.yhShuffle!==undefined)twHome.seed=(twHome.seed*48271)%2147483647||1;else twHome.rank=Number(k.dataset.yhRank);
+  twHomeRender()});
 
 // Header: the phase bar replaces guessing which stage comes next.
 const studioBaseDetail=renderDetail;

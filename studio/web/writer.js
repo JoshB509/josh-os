@@ -1,4 +1,75 @@
 'use strict';
+// Load guard (16 Nov 2026). This is the first script on the page, so it sees every later script that fails to arrive.
+// What was measured on 16 Nov: the server (Python's ThreadingHTTPServer, 5 waiting connections, HTTP/1.0 so one
+// connection per file) refused 16 to 58 of 54 to 100 connections opened at once on this PC. A browser on the PC opens
+// at most 6 at a time, so it never sees this. Through Cloudflare the browser sends all ~54 files at once over HTTP/2,
+// Cloudflare opens about that many connections to the server, and some files come back as a Cloudflare 502 page. From
+// the real remote address, 3 of 324 credential-free burst requests got a 502, one of them youtube.js. Signed in,
+// a real page load lost 7 of 54 files (3 stylesheets, 4 scripts), a different set on every reload, and bursts of 54
+// lost about 20, while each file fetched on its own came back 200 with the right type. A stylesheet that gets a 502
+// page is ignored, so the page shows unstyled text, and a script that gets one never runs ("ytChecks is not defined").
+// The lasting fix is on the server (more waiting connections), which needs a restart. Until then:
+// - A stylesheet that fails is fetched again in its own place, up to three times, a few seconds apart. Adding a
+//   stylesheet changes nothing Josh has typed, so this is safe at any time.
+// - A script that fails is not run again, because the app's scripts must run in order. A banner names it with a
+//   Reload button. The page never reloads by itself, because Josh may already be typing.
+// Its styles are inline because the stylesheets may be what failed.
+(function(){
+  const failed=new Set(),retrying=new Set(),name=u=>{try{return new URL(u,location.href).pathname.replace(/^\//,'')}catch{return String(u)}};
+  const WAIT=[400,1500,4000];
+  let loaded=false;
+  function status(url){const e=performance.getEntriesByName(url).at(-1);return e?e.responseStatus:null}
+  // Only CareerOS's own top-level styles and scripts count, served from this address (for example /scorecard.css).
+  // Anything else is optional and ignored entirely, such as Cloudflare's injected analytics (beacon.min.js from
+  // static.cloudflareinsights.com or anything under /cdn-cgi/). It gets no retry, no banner and no reload.
+  function ours(u){try{const x=new URL(u,location.href);return x.origin===location.origin&&/^\/[a-z0-9-]+\.(css|js)$/i.test(x.pathname)}catch{return false}}
+  function badEntry(e){return e.responseStatus>=400||(e.responseStatus===0&&!e.decodedBodySize)}
+  function show(){
+    window.careerosLoadFailed=[...failed].sort();window.careerosRetrying=[...retrying].sort();
+    if(!document.body)return;
+    let bar=document.getElementById('load-failed'),msg;
+    if(!failed.size){if(bar)bar.parentNode.remove();return}
+    if(!bar){
+      bar=document.createElement('div');bar.id='load-failed';bar.setAttribute('role','alert');
+      bar.style.cssText='position:relative;max-width:640px;margin:8px auto;box-sizing:border-box;z-index:10000;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;background:#A8362C;color:#fff;font:500 14px/1.4 Manrope,system-ui,sans-serif;box-shadow:0 1px 2px rgba(0,0,0,.2),0 6px 20px rgba(0,0,0,.18)';
+      msg=document.createElement('span');
+      const btn=document.createElement('button');btn.type='button';btn.textContent='Reload';
+      btn.style.cssText='flex:none;min-height:32px;padding:0 12px;border:0;border-radius:6px;background:#fff;color:#A8362C;font:600 14px Manrope,system-ui,sans-serif;cursor:pointer';
+      btn.onclick=()=>location.reload();bar.append(msg,btn);
+      // In the page flow rather than fixed, so it keeps the screen's width even when missing styles make the page overflow.
+      const wrap=document.createElement('div');wrap.style.cssText='position:sticky;top:0;z-index:10000;padding:0 16px;height:0;overflow:visible';
+      wrap.append(bar);document.body.prepend(wrap);
+    }else msg=bar.querySelector('span');
+    msg.textContent=`Part of CareerOS didn't load (${window.careerosLoadFailed.join(', ')}), so some pages may look broken or fail. Copy anything you've typed and not saved, then reload the page.`;
+  }
+  function retryCss(link,n=0){
+    const file=name(link.href);if(retrying.has(file)&&n===0)return;
+    retrying.add(file);show();
+    setTimeout(()=>{
+      const again=document.createElement('link');again.rel='stylesheet';again.dataset.retry=String(n+1);
+      const u=new URL(link.href,location.href);u.searchParams.set('retry',String(n+1));u.searchParams.set('t',String(Date.now()));again.href=u.href;
+      const done=ok=>{
+        if(ok){retrying.delete(file);failed.delete(file);link.remove();show();return}
+        again.remove();
+        if(n+1<WAIT.length)retryCss(link,n+1);else{retrying.delete(file);failed.add(file);show()}
+      };
+      again.onload=()=>{const s=status(again.href);done(s===null||(s>=200&&s<300))};
+      again.onerror=()=>done(false);
+      link.after(again);  // same place in the cascade as the one that failed
+    },WAIT[n]);
+  }
+  addEventListener('error',e=>{const t=e.target;
+    if(t&&t.tagName==='SCRIPT'&&t.src&&ours(t.src)){failed.add(name(t.src));if(loaded)show()}
+    else if(t&&t.tagName==='LINK'&&t.rel==='stylesheet'&&!t.dataset.retry&&ours(t.href))retryCss(t)},true);
+  addEventListener('load',()=>{
+    // A refused stylesheet still gets an empty sheet object, so the HTTP status the browser recorded is the real test.
+    // Stylesheets and scripts that failed before this script ran are only visible this way.
+    const bad=new Set(performance.getEntriesByType('resource').filter(e=>['link','script'].includes(e.initiatorType)&&ours(e.name)&&badEntry(e)).map(e=>e.name));
+    for(const l of document.querySelectorAll('link[rel="stylesheet"]:not([data-retry])'))if(ours(l.href)&&(bad.has(l.href)||!l.sheet))retryCss(l);
+    for(const u of bad)if(/\.js$/.test(name(u)))failed.add(name(u));
+    loaded=true;show();
+  });
+})();
 const writingCache=new Map();
 function writingMarkup(p){return `<div class="writing-toolbar"><div><div class="eyebrow">YOUR CURRENT SCRIPT</div><h2>Script</h2></div><div class="row"><button class="subtle small" data-writing="import">Import draft</button><button class="subtle small" data-writing="download">Download</button></div></div><section class="document-panel simple-document"><div class="document-bar"><span id="script-approval" class="approval-chip">Loading version…</span><span class="count" id="word-count">${(n=>n+(n===1?' word':' words'))(p.script.trim()?p.script.trim().split(/\s+/).length:0)}</span></div><p class="script-tip">Optional headings: # Hook · # Signpost · # Section · # CTA. Your existing text stays exactly as written.</p><textarea id="script-document" class="script-document" data-field="script" aria-label="Video script" placeholder="# Hook\nStart with the one thing your viewer needs.\n\n# Section 1\n\n# CTA">${esc(p.script)}</textarea><div class="document-footer"><span>Ctrl+S saves a version. Highlight a passage to include it in your video context.</span><button class="subtle small" data-writing="approve">Approve saved version</button></div></section><details class="quiet-details"><summary>Previous versions</summary><div id="script-versions" class="version-list">Loading…</div></details><details class="quiet-details"><summary>Proposed changes & writing tools</summary><div id="script-proposals"></div><div class="row"><label>Pass<select id="writing-pass"><option value="structure">Structure</option><option value="hook">Hook</option><option value="signposts">Signposts</option><option value="draft">Draft</option><option value="final_flow">Final flow</option></select></label><label>Scope<select id="writing-scope"><option value="selection">Selected passage</option><option value="full_script">Whole script</option></select></label><label>Job<select id="rhetorical-job"><option value="section_open">Section entrance</option><option value="transition">Transition</option><option value="close">Close</option></select></label><button class="subtle small" data-writing="context">Export writing context</button></div><p id="guidance-state" class="hint"></p><details><summary>Packaging & resource context</summary>${[['thumbnail_concept','Thumbnail concept'],['thumbnail_reference','Thumbnail reference'],['curiosity_question','Curiosity question'],['concrete_payoff','Concrete payoff']].map(([k,l])=>`<label>${l}<textarea rows="2" data-packaging="${k}">${esc(p.packaging?.[k]||'')}</textarea></label>`).join('')}<label>Lead magnet<select data-magnet="decision">${[['unknown','Not decided'],['none','No lead magnet'],['yes','Yes']].map(([v,l])=>`<option value="${v}" ${(p.lead_magnet?.decision||'unknown')===v?'selected':''}>${l}</option>`).join('')}</select></label>${[['name','Name'],['contents','Contents'],['result','Result'],['free_status','Free or paid'],['destination','Destination'],['evidence','Evidence']].map(([k,l])=>`<label>${l}<textarea rows="2" data-magnet="${k}">${esc(p.lead_magnet?.[k]||'')}</textarea></label>`).join('')}</details><div id="writing-readiness" hidden></div></details><input id="script-import-file" type="file" accept=".txt,.md" hidden><dialog id="script-version-dialog"><div id="script-version-content"></div><div class="dialog-actions"><button class="subtle" data-writing="close-version">Close</button><button class="primary" id="restore-version">Restore as draft</button></div></dialog>`}
 async function loadWriting(id){if(!id||current?.id!==id||tab!=='script')return;try{const w=await api(`/api/projects/${id}/writing`);writingCache.set(id,w);if(current?.id!==id||tab!=='script')return;const v=w.current_version;$('#script-approval').textContent=dirty?'Unsaved draft':v?.approval==='approved'?'Approved version':'Draft';$('#script-approval').classList.toggle('approved',!dirty&&v?.approval==='approved');$('#script-versions').innerHTML=w.versions.slice(0,25).map(v=>`<button class="version-item" data-version="${v.id}"><b>${esc(v.label)}</b><span>${new Date(v.created_at).toLocaleString()} · ${esc(v.approval)}</span></button>`).join('')||'<p class="hint">Save your first draft to start its history.</p>';$('#guidance-state').textContent=`${w.guidance.sources?.length||0} preserved source references. Examples are references, not individually approved claims. Specialist-pass package: ${w.guidance.pass_configuration_status||'pending'}.`;$('#script-proposals').innerHTML=w.proposals.filter(p=>p.status==='pending').map(p=>`<div class="proposal"><p class="hint">${esc(p.reason||'Scoped change from main chat')}</p><details><summary>Compare selected text</summary><b>Current</b><pre>${esc(p.original)}</pre><b>Proposed</b><pre>${esc(p.replacement)}</pre></details><div class="row"><button class="small primary" data-proposal="${p.proposal_id}" data-accept="true">Accept</button><button class="small subtle" data-proposal="${p.proposal_id}" data-accept="false">Reject</button></div></div>`).join('')||'<p class="hint">Scoped suggestions from your main chat will appear here for review.</p>';const statuses=await api('/api/project-status');const s=statuses.find(x=>x.project_id===id);if(current?.id!==id||tab!=='script'||!s)return;writingCache.get(id).status=s;$('#writing-readiness').innerHTML=[['Inputs',s.raw_inputs.state],['Clean cut',s.clean_cut.state],['Greenscreen',s.greenscreen.state],['HTML',s.html.state],['Animations',s.animations.state],['Timing',s.timing_assembly.state],['Edit job',s.edit_job.state],['XML',s.xml.state]].map(([k,v])=>`<div class="readiness-row"><span>${k}</span><b>${esc(v.replaceAll('_',' '))}</b></div>`).join('')+`<p>${s.pending_decisions.length} pending decision(s). Readiness is evidence-specific; workflow approvals appear in Editing.</p>`}catch(e){if($('#script-versions'))$('#script-versions').textContent='Workspace update unavailable. Reopen the updated app.';toast(e.message,true)}}

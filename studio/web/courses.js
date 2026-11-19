@@ -95,7 +95,7 @@ function courseBody(l){
   if(courseTab==='publish'){const f=l.files,rec=l.recording;return `<div class="ls-files">
     ${COURSE_FILES.map(([k,n])=>`<div class="ls-file ${f[k]?'':'missing'}"><span>${esc(n)}</span><code>${f[k]?esc(f[k].path):'Not there yet'}</code>${f[k]?`<button class="link" data-course-open-file="${k}">Open</button>`:''}</div>`).join('')}
     <p class="hint">${rec?(rec.take?`The recording page has ${rec.takes} take${rec.takes===1?'':'s'}, and ${esc(rec.take.name)} is the one chosen.`:rec.takes?`The recording page has ${rec.takes} take${rec.takes===1?'':'s'} and none is chosen yet.`:'Nothing has been recorded on the recording page yet.'):''} <a href="/lessons?lesson=${encodeURIComponent(l.id)}">Open the recording page</a></p>
-    <label class="ls-notes"><small>Video file, if it wasn't recorded through Josh OS</small><input data-course-field="video" value="${esc(l.video||'')}" placeholder="Full path of the MP4"></label>
+    <label class="ls-notes"><small>Video file, if it wasn't recorded through CareerOS</small><input data-course-field="video" value="${esc(l.video||'')}" placeholder="Full path of the MP4"></label>
     <h3>Publishing</h3>
     ${l.destination?`<p>The video and lesson guide PDF go to <code>${esc(l.destination)}</code>, and the thumbnail goes to the Thumbnails folder beside it. An older version of either moves to an archive folder there.</p>`:'<p class="ls-warn">Google Drive isn’t open on this PC, so there is nowhere to publish yet.</p>'}
     ${l.blockers['Ready to publish']?`<p class="ls-warn">${esc(l.blockers['Ready to publish'])}</p>`:''}
@@ -107,7 +107,7 @@ function courseBody(l){
 }
 function courseWords(t){return ((t||'').split('---').slice(-1)[0].match(/[A-Za-z0-9’']+/g)||[]).length}
 
-// Saving: typing autosaves shortly after you stop, like the rest of Josh OS.
+// Saving: typing autosaves shortly after you stop, like the rest of CareerOS.
 function courseQueue(field,value){
   courseOpen[field]=value;const n=$('#course-saved');if(n)n.textContent='Saving…';
   clearTimeout(courseTimer);courseTimer=setTimeout(()=>courseSave(),800);
@@ -182,5 +182,5 @@ const coursesBaseRender=render;
 render=function(){if(!current&&view==='courses')return renderCourses();if(view!=='courses'){courseOpen=null;clearInterval(coursePoll)}return coursesBaseRender()};
 if(typeof initialView==='string'&&initialView==='lessons-board'){view='courses';refresh().then(render).catch(()=>{})}
 
-// Lessons saved from a chat open their page from anywhere in Josh OS.
+// Lessons saved from a chat open their page from anywhere in CareerOS.
 document.addEventListener('click',async e=>{const t=e.target.closest?.('[data-lesson-go]');if(!t)return;e.preventDefault();try{if(typeof current!=='undefined')current=null;if(typeof teamOpen!=='undefined')teamOpen=null;view='courses';history.replaceState(null,'','/#lessons-board');courses=null;await courseFetch(t.dataset.lessonGo);courseTab='script';await render();scrollTo(0,0)}catch(err){toast(err.message,true)}});

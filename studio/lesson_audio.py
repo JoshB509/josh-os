@@ -104,6 +104,7 @@ class AudioChecks:
         self.store, self.ffmpeg = store, ffmpeg
         self.lock = threading.RLock(); self.jobs = queue.Queue(); self.queued = set()
         self.closed = threading.Event()
+        self.worker_error = None
         with store.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS lesson_audio_checks(take_id TEXT PRIMARY KEY, body TEXT NOT NULL)')
             c.execute('INSERT OR IGNORE INTO lesson_migrations VALUES(4,?)', (now(),))
@@ -111,7 +112,10 @@ class AudioChecks:
         self.worker.start()
 
     def close(self):
-        self.closed.set(); self.jobs.put(None); self.worker.join(timeout=10)
+        with self.lock:
+            if not self.closed.is_set():
+                self.closed.set(); self.jobs.put(None)
+        self.worker.join(timeout=10)
 
     def _read(self, tid):
         with self.store.connect() as c: row=c.execute('SELECT body FROM lesson_audio_checks WHERE take_id=?',(tid,)).fetchone()
@@ -130,6 +134,9 @@ class AudioChecks:
 
     def ensure(self, take, retry=False):
         with self.lock:
+            if self.closed.is_set():
+                return self.present(dict(status='failed',reason='worker_closed',
+                    message='Audio validation is closed. Reopen the recording service before checking this take.',version=VERSION))
             try: current=identity(take['path'])
             except OSError:
                 return self.present(dict(status='failed',reason='missing_file',message='Saved take is missing or inaccessible.',version=VERSION))
@@ -167,10 +174,26 @@ class AudioChecks:
             return self.present(value)
 
     def _loop(self):
-        while not self.closed.is_set():
+        # Drain bookkeeping on shutdown so queue.join() cannot hang on abandoned
+        # jobs. No queued file is inspected after shutdown has been requested.
+        while True:
             take=self.jobs.get()
             if take is None: self.jobs.task_done();break
-            try: self._check(take)
+            try:
+                if not self.closed.is_set():self._check(take)
+            except Exception as error:
+                # A failed persistence operation must not kill the only worker
+                # and leave every later take permanently pending. Fail closed,
+                # attempt one failure write, and continue to the next job.
+                self.worker_error=dict(take_id=take['id'],message=str(error)[:250])
+                failure=dict(status='failed',reason='worker_error',
+                    message='Audio check could not be saved. Retry this take after resolving the storage error.',
+                    version=VERSION,checked_at=now())
+                try:
+                    failure['identity']=identity(take['path'])
+                except (OSError,KeyError):pass
+                try:self._save(take['id'],failure)
+                except Exception:pass  # storage may remain unavailable; never mark it passed
             finally:
                 with self.lock:self.queued.discard(take['id'])
                 self.jobs.task_done()

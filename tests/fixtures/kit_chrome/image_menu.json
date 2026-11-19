@@ -1,0 +1,5 @@
+{
+  "note": "Actual supported read_page menu subtree, shortened to non-personal controls. Button metadata is the exact observed plus icon and geometry. No upload/gallery transition is represented.",
+  "menu": "generic [ref_199]\n heading \"Media\" [ref_263]\n button [ref_264]\n  button [ref_265]\n   generic \"Image\" [ref_266]\n   generic \"Upload or add from a 3rd party\" [ref_267]\n button [ref_268]\n  button [ref_269]\n   generic \"File\" [ref_270]\n   generic \"Upload a file to share\" [ref_271]\n button [ref_276]\n  button [ref_277]\n   generic \"Gallery\" [ref_278]\n   generic \"Add a collection of images\" [ref_279]",
+  "button_metadata": [{"tag":"BUTTON","type":"submit","title":null,"haspopup":null,"expanded":null,"disabled":false,"bounds":{"x":46.640625,"y":416.328125,"width":20,"height":20},"paths":["M11 13H6a1 1 0 0 1-.71-.29A1 1 0 0 1 5 12q0-.42.29-.71A1 1 0 0 1 6 11h5V6q0-.42.29-.71A1 1 0 0 1 12 5a.97.97 0 0 1 1 1v5h5q.42 0 .71.29.3.29.29.71c-.01.42-.1.52-.29.71A1 1 0 0 1 18 13h-5v5q0 .42-.29.71A1 1 0 0 1 12 19a1 1 0 0 1-.71-.29A1 1 0 0 1 11 18z"],"lines":[]}]
+}

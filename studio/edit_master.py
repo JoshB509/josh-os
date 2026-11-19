@@ -231,10 +231,63 @@ def copy_steps(seq, track, have, want):
     return steps
 
 
-def project_path(flow, pid):
+def default_project_path(flow, pid):
     base = Path(flow.folders.path(pid))
     title = ''.join(c for c in str(flow.store.get(pid).get('name') or 'video') if c.isalnum() or c in ' -_').strip()[:60] or 'video'
     return base / 'video' / 'Tariq' / f'{title} - Tariq.prproj'
+
+
+def project_path(flow, pid):
+    active = flow.folder(pid) / 'active-edit-run.json'
+    if active.is_file():
+        run = json.loads(active.read_text(encoding='utf-8'))
+        path = Path(run['project'])
+        base = default_project_path(flow, pid).parent.resolve()
+        if path.parent.resolve() != base or path.suffix.lower() != '.prproj':
+            raise MasterError('The active edit project is outside this video folder.')
+        return path
+    return default_project_path(flow, pid)
+
+
+def prepare_run(flow, pid, src, fresh=False):
+    """Each new source pair gets a new project; explicit fresh runs retain all previous projects."""
+    from .edit_flow import write_atomic
+    import uuid
+    active = flow.folder(pid) / 'active-edit-run.json'
+    previous = json.loads(active.read_text(encoding='utf-8')) if active.is_file() else None
+    if previous and previous['sources_digest'] == src['digest'] and not fresh:
+        return previous
+    # Save the open document before creating another project. Never reopen an older on-disk copy first.
+    from .edit_flow import wake_premiere
+    wake_premiere(flow, say=lambda message: flow._setup_step(pid, 'project', 'running', message))
+    # tq_ops intentionally rejects every operation, including 'project', until an owned project exists.
+    # The read-only probe works on an empty Premiere session and does not weaken that editing guard.
+    opened = flow.bridge_call('tq_probe', dict(master=MASTER))
+    current = str(opened.get('project', '')).replace('\\\\?\\', '').replace('\\', '/').casefold()
+    default = default_project_path(flow, pid)
+    allowed = {str(default).replace('\\', '/').casefold()}
+    if previous:
+        allowed.add(str(previous['project']).replace('\\', '/').casefold())
+    if current and current not in allowed:
+        raise MasterError('Another Premiere project is open. Save and close it before starting this video.')
+    if current:
+        ops(flow, [dict(op='save')])
+    run_id = uuid.uuid4().hex[:12]
+    path = default.with_name(default.stem + ' - run ' + run_id + '.prproj')
+    if path.exists():
+        raise MasterError('The fresh project path already exists; nothing was overwritten.')
+    run = dict(id=run_id, project=str(path), sources_id=src['id'], sources_digest=src['digest'], created_at=now())
+    archive = flow.folder(pid) / 'edit-runs' / run_id
+    archive.mkdir(parents=True, exist_ok=False)
+    if previous:
+        write_atomic(archive / 'previous-active.json', previous)
+    for name in ('clean-edit.json',):
+        old = flow.folder(pid) / name
+        if old.is_file():
+            shutil.copy2(old, archive / name)
+    write_atomic(archive / 'run.json', run)
+    write_atomic(active, run)
+    return run
 
 
 def open_project(flow, pid):
@@ -271,7 +324,14 @@ def build_master(flow, pid, camera, mic, look=None, background=None, say=_print)
     else:
         path.parent.mkdir(parents=True, exist_ok=True)
         say('project', 'Making my Premiere project for this video')
-        ops(flow, [dict(op='create_project', path=str(path))])
+        created = ops(flow, [dict(op='create_project', path=str(path))])[0]
+        actual = str(created.get('project', '')).replace('\\\\?\\', '').replace('\\', '/').casefold()
+        expected = str(path).replace('\\', '/').casefold()
+        if actual != expected:
+            raise MasterError('Premiere did not create the requested fresh project. No media was imported.')
+        opened = ops(flow, [dict(op='project')])[0]
+        if str(opened.get('project', '')).replace('\\\\?\\', '').replace('\\', '/').casefold() != expected:
+            raise MasterError('The fresh project is not active. No media was imported.')
         if MASTER in ops(flow, [dict(op='project')])[0]['sequences']:
             return dict(project=str(path), master=MASTER, state='exists')
     say('mask', 'Drawing your mask and painting the room outside it green')

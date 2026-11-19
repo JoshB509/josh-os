@@ -1,0 +1,17 @@
+{
+  "tool": "mcp__claude-in-chrome__read_page",
+  "args": {
+    "tabId": 1340484144,
+    "max_chars": 30000
+  },
+  "response": [
+    {
+      "type": "text",
+      "text": "navigation [ref_1]\n generic \"Main\" [ref_2]\n button [ref_3] type=\"button\"\n  generic \"Expand sidebar\" [ref_4]\n button [ref_5] type=\"button\"\n  generic \"Search Kit\" [ref_6]\n list [ref_7]\n  listitem [ref_8]\n   link [ref_9] href=\"/dashboard\"\n    generic \"Dashboard\" [ref_10]\n  listitem [ref_11]\n   link [ref_12] href=\"/subscribers\"\n    generic \"Subscribers\" [ref_13]\n  listitem [ref_14]\n   link [ref_15] href=\"/campaigns\"\n    generic \"Broadcasts\" [ref_16]\n  listitem [ref_17]\n   button [ref_18] type=\"button\"\n    generic \"Audience growth\" [ref_19]\n  listitem [ref_20]\n   button [ref_21] type=\"button\"\n    generic \"Monetization\" [ref_22]\n  listitem [ref_23]\n   button [ref_24] type=\"button\"\n    generic \"Automation\" [ref_25]\n  listitem [ref_26]\n   link [ref_27] href=\"/apps\"\n    generic \"Apps\" [ref_28]\n list [ref_29]\n  listitem [ref_30]\n   link [ref_31] href=\"/signals\"\n    generic \"Subscriber Signals\" [ref_32]\n  listitem [ref_33]\n   button [ref_34] type=\"button\"\n    generic \"Notifications\" [ref_35]\n  listitem [ref_36]\n   link [ref_37] href=\"/account_settings\"\n    generic \"Settings\" [ref_38]\n button [ref_39] type=\"button\"\n  image \"Career Engine\" [ref_40]\n  generic \"Career Engine account\" [ref_41]\ngeneric \"Subscribers\" [ref_42]\ngeneric \"Browse all your subscribers and customers\" [ref_43]\ngeneric \"Apps\" [ref_44]\ngeneric \"Connect your favorite creator tools to Kit\" [ref_45]\ngeneric \"Subscriber Signals\" [ref_46]\ngeneric \"See your subscribers' demographics and social influence\" [ref_47]\ngeneric \"Pro feature\" [ref_48]\nregion \"Notifications\" [ref_49]\n generic \"Hints\" [ref_50]\npresentation [ref_51]\n dialog [ref_52]\n  list [ref_53]\ngeneric [ref_54]\ngeneric [ref_55]\ndialog \"This broadcast is locked\" [ref_56]\n heading \"This broadcast is locked\" [ref_57]\n button [ref_58] type=\"button\"\n  generic \"Close\" [ref_59]\n generic \"You are currently editing this broadcast in another tab or window, so it's been locked to prevent ov\" [ref_60]\n generic \"With Pro, you can edit simultaneously without losing work.\" [ref_61]\n region [ref_62]\n  generic \"Safely edit in real time with your whole team\" [ref_63]\n  button \"Upgrade now\" [ref_64] type=\"button\"\n button \"Take over editing\" [ref_65]\n button \"Go back\" [ref_66]\ngeneric [ref_67]\ngeneric \"Intercom\" [ref_68]\nbutton \"Open Intercom Messenger\" [ref_69]\n\nViewport: 1064x1245"
+    },
+    {
+      "type": "text",
+      "text": "\n\nTab Context:\n- Executed on tabId: 1340484144\n- Available tabs:\n  \u00e2\u20ac\u00a2 tabId 1340484144: \"Kit\" (\"https://app.kit.com/campaigns/26402091/draft\")"
+    }
+  ]
+}

@@ -122,6 +122,7 @@ body.rec #side{visibility:hidden;overflow:hidden}
 .state{display:flex;align-items:center;gap:9px;font-weight:600}
 .state b{width:10px;height:10px;border-radius:50%;background:var(--faint)}
 .state.ready b{background:#4dab72}
+.state.unknown{color:var(--muted)}.state.unknown b{background:#d6a531}
 .state.live{color:var(--red)}.state.live b{background:var(--red);animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 .recbar .what{color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1;min-width:0}
@@ -185,7 +186,7 @@ body.rec .takes{font-size:13px}body.rec .takes td{padding-top:7px;padding-bottom
 .audio-check.passed{background:#f4faf7;border-color:#cde2d7}.audio-check .linkish{font-size:12px;margin-right:9px}
 .listening-check{display:flex;align-items:center;gap:6px;margin:8px 0;color:#526174}.audio-summary{margin:10px 0}
 .takes td:has(.audio-check){min-width:260px}.takes{table-layout:auto}
-/* Josh OS record view: low-reflection surfaces, independent of the OS theme.
+/* CareerOS record view: low-reflection surfaces, independent of the OS theme.
    Scope tokens to .rec so leaving the prompter restores the workspace theme. */
 body.rec{
   --bg:#191919;--side:#202020;--text:#d9d9d9;--muted:#a6a6a6;--faint:#929292;

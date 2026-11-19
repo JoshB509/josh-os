@@ -6,7 +6,7 @@ const emailOldRefresh=refresh,emailOldRender=render,emailOldLeave=leave,emailOld
 // app.js captures its initial render callback before extensions load. A slow
 // video-state response must not replace the selected Email page with the board.
 const emailOldBoard=renderBoard;renderBoard=function(){if(!current&&view==='email')return renderEmail();return emailOldBoard();};
-const emailFields=['subject','preview','body','planned_date','audience','status','tags','source_ids','notes','archived'];
+const emailFields=['images','subject','preview','body','links','planned_date','audience','status','tags','source_ids','notes','archived'];
 refresh=async function(){await Promise.all([emailOldRefresh(),api('/api/emails').then(r=>emailRows=r)]);};
 leave=function(){if(!emailOldLeave())return false;emailCurrent=null;return true;};
 render=function(){const b=$('#new-project');b.textContent=view==='email'?'New email':'New video';if(!current&&view==='email'){renderEmail();return;}emailOldRender();};
@@ -73,13 +73,17 @@ api('/api/emails').then(rows=>{emailRows=rows;if(!current&&(view==='email'||view
 
 /* Explicit CTA links: retain the literal Kit merge expression in quoted hrefs. */
 
+function emailValidHref(href){
+ if(typeof href!=='string'||href.length>4096||!/^https:\/\/(?:\{\{\s*subscriber\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}|[^\s<>"{}])+$/.test(href))return false;
+ try{return !!new URL(href.replace(/\{\{\s*subscriber\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}/g,'subscriber')).hostname}catch{return false}
+}
 function emailLinkedBody(p){
 
  const links=p.links||[],spans=[],issues=[];
 
  for(const link of links){
 
-  if(!/^https:\/\/linklr\.app\/r\/[A-Za-z0-9_-]+\?ksid=\{\{ subscriber\.id \}\}$/.test(link.href||'')){issues.push('Review the tracked URL before export.');continue;}
+  if(!emailValidHref(link.href)){issues.push('Review the tracked URL before export.');continue;}
 
   const first=p.body.indexOf(link.label||'');
 
@@ -93,19 +97,31 @@ function emailLinkedBody(p){
 
  for(const span of spans){if(span.start<cursor){issues.push('CTA links overlap.');continue;}html+=esc(p.body.slice(cursor,span.start))+`<a href="${esc(span.link.href)}" target="_blank" rel="noopener noreferrer">${esc(span.link.label)}</a>`;cursor=span.end;}
 
- html+=esc(p.body.slice(cursor));return {html:html.replace(/\n/g,'<br>'),issues,valid:!issues.length};
+ html+=esc(p.body.slice(cursor));
+ const lines=html.split('\n');
+ const at=n=>(p.images||[]).filter(v=>v.after_line===n).map(v=>emailVisualFigure(p,v)).join('');
+ html=at(0)+lines.map((line,i)=>line+(i<lines.length-1?'<br>':'')+at(i+1)).join('');
+ if((p.images||[]).some(v=>v.after_line>lines.length))issues.push('A visual placement is outside this body. Review it before saving.');
+ return {html,issues,valid:!issues.length};
 
 }
 
 function emailCopyApproval(p){const approval=p.provenance?.copy_approval;if(!approval)return 'Body approval pending';return p.body===approval.approved_body?'Body copy approved · revision '+approval.app_revision:'Body changed since approval · review required';}
 
-function emailExportHTML(p){const content=emailLinkedBody(p);if(!content.valid)throw Error(content.issues.join(' '));return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(p.subject)}</title></head><body><div style="display:none;max-height:0;overflow:hidden">${esc(p.preview)}</div><div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6">${content.html}</div></body></html>`;}
+function emailExportHTML(p){if(p.images?.length)throw Error('This email has local visuals. Download the PNGs individually; HTML export needs approved hosted images.');const content=emailLinkedBody(p);if(!content.valid)throw Error(content.issues.join(' '));return `<!doctype html>\n<html><head><meta charset="utf-8"><title>${esc(p.subject)}</title></head><body><div style="display:none;max-height:0;overflow:hidden">${esc(p.preview)}</div><div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6">${content.html}</div></body></html>`;}
+
+function emailVisualURL(p,v){return '/api/emails/'+encodeURIComponent(p.id)+'/visuals/'+encodeURIComponent(v.version)+'/'+encodeURIComponent(v.index);}
+function emailVisualFigure(p,v){return `<figure class="email-visual"><img src="${esc(emailVisualURL(p,v))}" alt="${esc(v.alt)}" loading="lazy" style="max-width:100%;height:auto"></figure>`;}
+function emailVisualControls(p){return `<details class="ev-card email-visual-controls"><summary>Email visuals</summary><p class="hint">${p.images?.length?'Local preview only. Kit draft preparation and HTML export are blocked until approved image hosting is available.':'Ask Laia for up to 16 visuals: wide slide cards, text layouts or a custom SVG canvas. Dimensions are flexible; footers default off.'}</p>${(p.images||[]).map((v,i)=>`<div><label>Alt text <textarea data-email-visual-alt="${i}" maxlength="1000">${esc(v.alt)}</textarea></label><label>After body line (0 = before body) <input type="number" min="0" max="${p.body.split('\n').length}" data-email-visual-position="${i}" value="${v.after_line}"></label><a href="${esc(emailVisualURL(p,v))}" download="email-visual-${i+1}.png">Download PNG ${i+1}</a> <button class="small subtle" data-email-visual-remove="${i}">Remove visual</button></div>`).join('')}<button class="small" data-dock-ask="Create visuals for this saved email using email_visuals. Choose suitable dimensions and a layout, with descriptive alt text and body line placement. Use separate wide before and after cards for slide examples, with a small badge and one-line note, and no footer. Keep its wording and links.">Ask Laia for visuals</button><p class="hint">Save text edits before asking for a visual. Changes to images, alt text or placement require fresh review.</p></details>`;}
 
 function emailSubjectAlternatives(p){if(!(p.subject_alternatives||[]).length)return '';return `<section><h3>Subject alternatives</h3><p class="hint">A is the current subject above. B is proposed for final review; no test is active or performance proven. Both use the same CTA URL.</p>${p.subject_alternatives.map(s=>`<label>Proposed ${esc(s.variant)}<textarea readonly rows="3" data-email-subject-alternative>${esc(s.subject)}</textarea></label><details><summary>Source wording & attribution</summary><p>${esc(s.source_subject)}</p><p class="hint"><a href="${esc(s.source_url)}" target="_blank" rel="noopener noreferrer">${esc(s.source_title)}</a> · ${esc(s.source_location)} · ${esc(s.adaptation)}</p></details>`).join('')}</section>`;}
 
-function emailLinkControls(p){if(!(p.links||[]).length)return '';return `<section id="email-link-controls"><h3>CTA links & copy approval</h3><p id="email-copy-approval">${esc(emailCopyApproval(p))}</p><p class="hint">Links and subject variants still need final review. Delivery is not approved.</p>${p.links.map((link,i)=>`<label>${esc(link.label)}<textarea class="email-literal-url" data-email-url="${i}" readonly rows="2" spellcheck="false">${esc(link.href)}</textarea></label><button class="small" data-email-copy-url="${i}">Copy exact URL</button><p class="hint">${esc(link.linklr.attribution.campaign)} · ${esc(link.linklr.attribution.placement)}</p>`).join('')}<p class="hint">The complete subscriber placeholder is preserved. Kit personalization has not been tested.</p><p id="email-link-warning" class="hint"></p><div class="row"><button class="small" data-email-export="html">Export linked HTML</button><button class="small" data-email-export="json">Export draft + link metadata</button></div></section>`;}
+function emailLinkControls(p){if(!(p.links||[]).length)return '';return `<section id="email-link-controls"><h3>CTA links & copy approval</h3><p id="email-copy-approval">${esc(emailCopyApproval(p))}</p><p class="hint">Links and subject variants still need final review. Delivery is not approved.</p>${p.links.map((link,i)=>`<label>${esc(link.label)}<textarea class="email-literal-url" data-email-url="${i}" readonly rows="2" spellcheck="false">${esc(link.href)}</textarea></label><button class="small" data-email-copy-url="${i}">Copy exact URL</button><p class="hint">${esc(link.linklr?.attribution?.campaign||'')} · ${esc(link.linklr?.attribution?.placement||'')}</p>`).join('')}<p class="hint">The complete subscriber placeholder is preserved. Kit personalization has not been tested.</p><p id="email-link-warning" class="hint"></p><div class="row"><button class="small" data-email-export="html">Export linked HTML</button><button class="small" data-email-export="json">Export draft + link metadata</button></div></section>`;}
 
 function refreshEmailLinkPreview(){if(!emailCurrent)return;const content=emailLinkedBody(emailCurrent),preview=$('#email-preview-body');if(preview)preview.innerHTML=content.html;const warning=$('#email-link-warning');if(warning)warning.textContent=content.issues.join(' ');const approval=$('#email-copy-approval');if(approval)approval.textContent=emailCopyApproval(emailCurrent);document.querySelectorAll('[data-email-export]').forEach(b=>b.disabled=dirty||!content.valid);}
+
+document.addEventListener('input',e=>{if(!emailCurrent)return;const a=e.target.dataset.emailVisualAlt,n=e.target.dataset.emailVisualPosition;if(a===undefined&&n===undefined)return;const i=Number(a??n),images=structuredClone(emailCurrent.images||[]);if(!images[i])return;if(a!==undefined)images[i].alt=e.target.value;else images[i].after_line=Number(e.target.value);emailCurrent.images=images;dirty=true;refreshEmailLinkPreview();const note=$('#email-save-note');if(note)note.textContent='Unsaved changes';});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-email-visual-remove]');if(!b||!emailCurrent)return;emailCurrent.images.splice(Number(b.dataset.emailVisualRemove),1);dirty=true;renderEmailEditor();});
 
 const emailBeforeLinkEditor=renderEmailEditor;renderEmailEditor=function(){emailBeforeLinkEditor();document.querySelector('.email-details').insertAdjacentHTML('afterbegin',emailLinkControls(emailCurrent)+emailSubjectAlternatives(emailCurrent));refreshEmailLinkPreview();};
 

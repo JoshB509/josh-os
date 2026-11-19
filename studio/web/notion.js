@@ -10,7 +10,7 @@ page=function(title,subtitle){
   $('#page-title').parentElement.hidden=!!current;
   $('#page-title').textContent=name;
   $('#page-subtitle').textContent='';
-  document.title=(current?current.name:name)+' · Josh OS';
+  document.title=(current?current.name:name)+' · CareerOS';
   $('#crumbs').innerHTML=current
     ?`<button data-action="back">${esc(name)}</button><i>/</i><span>${esc(current.name||'Untitled')}</span>`
     :`<span>${esc(name)}</span>`;

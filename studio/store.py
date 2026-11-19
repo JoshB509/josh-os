@@ -6,11 +6,23 @@ from contextlib import contextmanager
 from PIL import Image
 
 STAGES=['Idea','Scripting','Ready to record','Recording','Recorded','Editing','Review','Scheduled','Published']
-FIELDS=['name','stage','publish_date','notes','script','titles','chosen_title','thumbnails','top_three','media','archived','packaging','lead_magnet','keying','locks']
+FIELDS=['name','stage','publish_date','notes','script','titles','chosen_title','thumbnails','top_three','media','archived','packaging','lead_magnet','keying','locks','release']
 # Pieces of a video Josh has locked in on the video page, each with when it was locked.
 LOCKS={'title','thumbnail','script','recording','edit','animations','publish'}
 def now():return datetime.now(timezone.utc).isoformat()
 class Conflict(ValueError):pass
+
+def guard_locked(before,after):
+    """A locked-in title or thumbnail can't be changed by a save. Unlocking it first (in the same save or an earlier
+    one) is how Josh changes his mind, so approved packaging is never overwritten by a stray star, edit or removal."""
+    lb,la=before.get('locks') or {},after.get('locks') or {}
+    text=lambda p:next((t.get('text') for t in p.get('titles') or [] if t.get('id')==p.get('chosen_title')),'')
+    if lb.get('title') and la.get('title') and (before.get('chosen_title')!=after.get('chosen_title') or text(before)!=text(after)):
+        raise Conflict('The title is locked in. Unlock it before choosing or changing it.')
+    if lb.get('thumbnail') and la.get('thumbnail'):
+        first=lambda p:(p.get('top_three') or [None])[0]
+        if first(before)!=first(after):
+            raise Conflict('The thumbnail is locked in. Unlock it before changing the main thumbnail.')
 
 class Store:
     def __init__(self,root):
@@ -37,9 +49,13 @@ class Store:
         with self.connect() as c:r=c.execute('SELECT body FROM projects WHERE id=?',(pid,)).fetchone()
         if not r:raise KeyError('Project not found')
         p=json.loads(r['body']);p.setdefault('packaging',{});return p
-    def create(self,name,pid=None):
+    def create(self,name,pid=None,initial=None):
         pid=pid or str(uuid.uuid4());uuid.UUID(pid)
         p=dict(id=pid,revision=1,name=name,stage='Idea',publish_date='',notes='',script='',titles=[],chosen_title='',thumbnails=[],top_three=[],media={},archived=False,packaging={},lead_magnet={'decision':'unknown'},created_at=now(),updated_at=now())
+        if initial is not None:
+            if not isinstance(initial,dict) or set(initial)-{'notes','script','titles','publish_date'}:
+                raise ValueError('Invalid initial project fields')
+            p.update(initial)
         self.validate(p)
         with self.connect() as c:
             c.execute('BEGIN IMMEDIATE')
@@ -58,6 +74,9 @@ class Store:
         locks=p.get('locks') or {}
         if not isinstance(locks,dict) or set(locks)-LOCKS or any(not isinstance(v,str) or len(v)>40 for v in locks.values()):raise ValueError('Invalid locked-in pieces')
         if 'locks' in p:p['locks']=locks
+        if 'release' in p:
+            from .release_ready import validate as _release_ok
+            _release_ok(p['release'])
         for field,limit in [('notes',50000),('script',200000)]:
             if not isinstance(p[field],str) or len(p[field])>limit:raise ValueError(field+' is too long')
         packaging=p.get('packaging',{})
@@ -94,7 +113,7 @@ class Store:
             previous=json.loads(row['body'])
             if self.folders:changes=self.folders.rebase_save(c,pid,changes,revision,previous)
             elif row['revision']!=revision:raise Conflict('This project changed in another window. Reload before saving.')
-            p=dict(previous);p.update(changes);self.validate(p);p['name']=p['name'].strip();p['revision']+=1;p['updated_at']=now()
+            p=dict(previous);p.update(changes);self.validate(p);guard_locked(previous,p);p['name']=p['name'].strip();p['revision']+=1;p['updated_at']=now()
             if self.folders:self.folders.track_dismissals(c,pid,previous,p)
             latest=c.execute('SELECT body FROM script_versions WHERE project_id=? ORDER BY project_revision DESC,rowid DESC LIMIT 1',(pid,)).fetchone()
             if p['script']!=previous['script'] or not latest or json.loads(latest['body'])['content']!=p['script']:

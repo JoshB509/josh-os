@@ -28,7 +28,7 @@ class ThumbnailOptionTests(unittest.TestCase):
 
     def test_anything_outside_the_limits_is_refused(self):
         bad = [dict(format='middle', pose='../../secrets', words='Hi'),
-               dict(format='middle', pose='seated-13-palm-present-neutral', words='Hi', bar_right=1900),
+               dict(format='middle', pose='seated-13-palm-present-neutral', words='Hi', bar_right=float('inf')),
                dict(format='whiteboard', pose='seated-13-palm-present-neutral', words='Hi'),
                dict(format='middle', pose='seated-13-palm-present-neutral', words='a; rm -rf /'),
                dict(format='middle', pose='no-such-pose', words='Hi'),
@@ -53,8 +53,8 @@ class TextStyleTests(unittest.TestCase):
 
     def test_bad_styles_are_refused(self):
         bad = [dict(font='comic-sans'), dict(font=r'C:\Windows\Fonts\arial.ttf'), dict(font=r'..\..\x'), dict(font='anton', weight='thin'),
-               dict(color='rgb(1,2,3)'), dict(color='#FFF'), dict(size=900), dict(size='big'), dict(outline=50), dict(bolden=-1),
-               dict(color='yellow', bar=True), dict(case='lower'), dict(fit='stretch'), dict(bar='yes')]
+               dict(color='rgb(1,2,3)'), dict(color='#FFF'), dict(size=4096), dict(size='big'), dict(outline=500), dict(bolden=-1),
+               dict(size=float('nan')), dict(case='lower'), dict(fit='stretch'), dict(bar='yes')]
         for style in bad:
             with self.assertRaises(ValueError, msg=str(style)):
                 check_style(style)

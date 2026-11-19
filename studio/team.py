@@ -25,6 +25,48 @@ PROFILE_FIELDS = {'name', 'role', 'color', 'photo', 'mission', 'personality', 'r
                   'workflows', 'skills', 'check_in', 'status'}
 LEARNING_FIELDS = {'agent_id', 'workflow', 'lesson', 'evidence'}
 PHOTOS = Path(__file__).parent / 'team_photos'
+# The approved office image for each person's desk, added as team/offices/<id>.jpg (or .png, .webp) once transferred
+OFFICES = Path(__file__).resolve().parents[1] / 'team' / 'offices'
+OFFICE_TYPES = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
+# Max joined (7 Nov 2026) before Josh approved his portrait (11 Nov 2026), so it is added to his existing profile once.
+# The exact approved original is kept at team/originals/max-profile.png; team_photos/max.jpg is the 512px display copy.
+PHOTO_BACKFILL = ('max',)
+# The approved team group picture for the top of the Team page. team.png is the exact original Josh approved on
+# 11 Nov 2026; team.jpg is the same full frame as a lighter display copy. Neither is cropped.
+GROUP = Path(__file__).resolve().parents[1] / 'team' / 'group'
+
+
+def group_file():
+    for name in ('team.jpg', 'team.png'):
+        f = GROUP / name
+        if f.is_file():
+            return f
+    return None
+
+
+def office_file(agent_id):
+    if not str(agent_id).isalnum():
+        return None
+    for ext in OFFICE_TYPES:
+        f = OFFICES / f'{agent_id}{ext}'
+        if f.is_file():
+            return f
+    return None
+
+
+def offices(ids):
+    """Whether each office image is in place, and what's waiting, from team/offices/offices.json."""
+    try:
+        manifest = json.loads((OFFICES / 'offices.json').read_text(encoding='utf-8')).get('offices', {})
+    except (OSError, ValueError):
+        manifest = {}
+    out = {}
+    for i in ids:
+        f = office_file(i)
+        m = manifest.get(i) or {}
+        out[i] = dict(ready=bool(f), version=int(f.stat().st_mtime) if f else None, approved=bool(m.get('library_id')),
+                      status='ready' if f else m.get('status') or 'no approved office image yet')
+    return out
 # The first draft of the team used other names. Old rows move to the new ids.
 RENAMED = {'bob': 'sam', 'eddie': 'tariq', 'vera': 'laia'}
 # Earlier default roles and personalities. Profiles still on these move to the ones in
@@ -34,6 +76,15 @@ OLD_DEFAULTS = {
     'tariq': {'personality': ['Calm and precise. Reports what changed and flags anything that needs Josh\'s eye.']},
     'laia': {'role': ['Email Writer'], 'personality': ['Warm, sharp with words, and honest about weak subject lines.']},
     'saskia': {'role': ['L&D Content Lead'], 'personality': ['Warm, structured and practical. Thinks in learning outcomes and what the learner does next.']},
+    # Max's first draft (7 Nov 2026), replaced only while untouched when the daily brief was added (11 Nov 2026).
+    'max': {'mission': ['Sell the courses and programmes, and track the business numbers against the '
+                        'goal of USD 15,000 a month from courses and upsells.'],
+            'personality': ['Commercial and numbers-first. Keeps every conversation tied to revenue.'],
+            'responsibilities': [['Track revenue, sales and customer numbers', 'Spot which content leads to sales',
+                                  'Suggest offers, launches and follow-ups']],
+            'skills': [['Stripe', 'Calendly', 'Kit']],
+            'check_in': ['Weekly, once the business metrics are added.'],
+            'status': ['Coming later']},
 }
 
 SEEDS = [
@@ -108,16 +159,19 @@ SEEDS = [
          check_in='Weekly, with who has stalled, who is stuck and any wins worth sharing.',
          status='Draft'),
     dict(id='max', name='Max', role='Business Manager', color='#0f7b6c',
-         mission='Sell the courses and programmes, and track the business numbers against the '
-                 'goal of USD 15,000 a month from courses and upsells.',
-         personality='Commercial and numbers-first. Keeps every conversation tied to revenue.',
-         responsibilities=['Track revenue, sales and customer numbers',
+         mission='Sell the courses and programmes, and track the business numbers against the monthly course '
+                 'and upsell goal Josh confirms in Tasks & Goals.',
+         personality='Commercial, numbers-first and on Josh\'s side. Friendly and direct, like a mate who has his back. '
+                     'Calls out what is slipping with a "Bro" or a "my guy", always with the next step, never rude.',
+         responsibilities=['Send the daily business brief at 07:00 Dubai time with dated, sourced numbers',
+                           'Answer questions about the business numbers and say where each one comes from',
+                           'Keep Josh\'s projects and to-dos current, and nudge him when something is past due',
                            'Spot which content leads to sales',
-                           'Suggest offers, launches and follow-ups'],
+                           'Suggest offers, launches and improvements as ideas for Josh to decide on'],
          workflows=['business', 'clients'],
-         skills=['Stripe', 'Calendly', 'Kit'],
-         check_in='Weekly, once the business metrics are added.',
-         status='Coming later'),
+         skills=['Linklr (read only)', 'Kit (read only)', 'YouTube Analytics (read only)', 'Tasks & Goals'],
+         check_in='Daily at 07:00 Dubai time, with the business brief and anything past due.',
+         status='Draft'),
 ]
 
 
@@ -150,6 +204,20 @@ class Team:
                     c.execute('UPDATE team_agents SET position=position+1 WHERE position>=?', (i,))
                     agent = dict(seed, revision=1, photo=photos[seed['id']], created_at=now(), updated_at=now())
                     c.execute('INSERT INTO team_agents VALUES(?,?,?,?)', (seed['id'], 1, i, json.dumps(agent)))
+            self._backfill_photos(c, photos)
+
+    def _backfill_photos(self, c, photos):
+        """Give a team member who joined before their approved portrait existed that portrait, once. Only while their
+        photo is still empty, and never again after that, so a photo Josh changes or removes stays as he left it."""
+        for aid in PHOTO_BACKFILL:
+            row = c.execute('SELECT revision,body FROM team_agents WHERE id=?', (aid,)).fetchone()
+            if not row or not photos.get(aid):
+                continue
+            agent = json.loads(row['body'])
+            if agent.get('photo') or agent.get('photo_backfilled'):
+                continue
+            agent.update(photo=photos[aid], photo_backfilled=now(), revision=row['revision'] + 1, updated_at=now())
+            c.execute('UPDATE team_agents SET revision=?,body=? WHERE id=?', (agent['revision'], json.dumps(agent), aid))
 
     def _refresh_defaults(self, c):
         seeds = {s['id']: s for s in SEEDS}
@@ -197,7 +265,9 @@ class Team:
         with self.store.connect() as c:
             agents = [json.loads(r['body']) for r in c.execute('SELECT body FROM team_agents ORDER BY position')]
             learnings = [json.loads(r['body']) for r in c.execute('SELECT body FROM team_learnings ORDER BY rowid DESC')]
-        return dict(agents=agents, learnings=learnings, workflows=WORKFLOWS, statuses=STATUSES)
+        g = group_file()
+        return dict(agents=agents, learnings=learnings, workflows=WORKFLOWS, statuses=STATUSES, offices=offices([a['id'] for a in agents]),
+                    group=dict(ready=bool(g), version=int(g.stat().st_mtime) if g else None))
 
     def validate(self, a):
         a['name'] = _text(a['name'], 60, 'Name')

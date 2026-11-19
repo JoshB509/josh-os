@@ -22,6 +22,7 @@ import uuid
 from pathlib import Path
 
 from .store import now
+from . import gmail_access
 
 SKILLS = {'sam': ['script-touch-up'], 'tariq': ['video-editing-prep'], 'laia': [], 'saskia': ['lesson-slides', 'careeros-playbook', 'written-guides'], 'anouk': [], 'max': []}
 REFERENCES = 'reference_sources'
@@ -45,6 +46,35 @@ LINKLR_READ = ('get_data_status', 'get_business_summary', 'get_daily_metrics', '
                'preview_tracked_link')
 LINKLR_MAKE = ('register_video', 'create_tracked_link')
 LINKLR = {'sam': LINKLR_READ + LINKLR_MAKE, 'laia': LINKLR_READ + LINKLR_MAKE, 'max': LINKLR_READ, 'anouk': LINKLR_READ}
+
+# Guidance only: the connector/backend must validate and persist actual attribution.
+LINK_ATTRIBUTION_RULES = """
+Tracked-link source attribution (all agents):
+Use lookup_link_context and preview_tracked_link before creation, using only fields the installed tool schema supports.
+For youtube_video and video pinned_comment sources, resolve and verify the intended video's Linklr video_id using
+lookup_link_context or register_video. A local project ID or video title is not a Linklr video_id. For channel-wide links,
+use youtube_channel; channel-wide reuse can be intentional and does not identify an individual post.
+For sequence emails, supply and verify both sequence_name and sequence_position for the intended sequence step.
+For broadcasts, use a stable per-email email_key when the installed schema supports it. If it does not, report that
+per-broadcast identity cannot be supplied through that schema; never send an unsupported field or substitute a label.
+A preview reuse match is not sufficient proof of source identity. A different post label does not make a distinct source.
+Reuse only after checking the same intended source, asset/destination, placement, campaign and applicable video/email
+identity. Never silently reuse another post's URL or accept an ambiguous match. Keep caption and QR placements separate.
+The currently inspected MCP schema lacks creative_id, posted_at, carousel_instance_id and independent saved-link readback.
+For community/carousel requests, report this structured-association gap honestly. Do not claim that a label, date,
+placement name or locally saved URL establishes creative/post association. Do not invent unsupported fields, change
+campaigns/destinations to force uniqueness, or use legacy planning endpoints to repair history. Existing published URLs
+and event history must remain unchanged. Creation/import timestamps are not proof of publication.
+Use the actual tool result when reporting creation or reuse. Where supported, read back the saved source and destination;
+when readback or required association is unavailable, state exactly what remains unverified. These instructions are
+workflow guidance, not proof that the connector enforces attribution or that a link has been correctly associated.
+"""
+# CareerOS is authenticated in this project's private Claude MCP configuration.
+# Explicitly authorized learner-support reads are independent of the other integration setup gate.
+CAREEROS_READ = tuple('mcp__careeros__' + t for t in (
+    'find_learners', 'get_learner', 'get_learner_admin_history', 'get_learner_progress',
+    'get_learner_timeline', 'list_questions', 'list_reviews'))
+CAREEROS = {'anouk': CAREEROS_READ}
 CHROME_DEVICE = 'd791a792-0ea7-4d51-90d5-a9fbf4144b3a'  # Chrome on DESKTOP-A4TRTK5
 CHROME_TOOLS = ','.join('mcp__claude-in-chrome__' + t for t in (
     'list_connected_browsers', 'select_browser', 'switch_browser', 'tabs_context_mcp', 'tabs_create_mcp',
@@ -56,7 +86,17 @@ DESK_SCHEMA = {
     'required': ['reply'],
 }
 # Team members who write the emails can save drafts and send dates from chat.
-EMAIL_WRITE = ('subject', 'preview', 'body', 'planned_date', 'send_time', 'notes', 'description')
+EMAIL_WRITE = ('subject', 'preview', 'body', 'planned_date', 'send_time', 'notes', 'description', 'audience', 'type')
+MCP_STARTUP_WAIT_MS = '30000'
+
+
+def show_only(answer):
+    """An answer that shows an email keeps only its reply and the email to show. Everything else in it (email saves,
+    a new draft rebuilt from the chat, a Kit draft, any other change) is held back. Returns (answer, held field names)."""
+    if not str((answer or {}).get('show_email') or '').strip():
+        return answer, []
+    held = sorted(k for k, v in answer.items() if k not in ('reply', 'show_email', 'replacement') and v not in (None, [], {}, '', False))
+    return {k: answer[k] for k in ('reply', 'show_email') if k in answer}, held
 # Reading Kit through the Kit connector linked to Claude on this PC. Laia reads, she doesn't send.
 KIT_READ = tuple('mcp__claude_ai_Kit__' + t for t in (
     'list_broadcasts', 'get_broadcast', 'get_stats_for_a_broadcast', 'get_stats_for_a_list_of_broadcasts',
@@ -67,27 +107,48 @@ KIT = {'laia': KIT_READ, 'max': KIT_READ, 'anouk': KIT_READ}
 GMAIL_READ = tuple('mcp__claude_ai_Gmail__' + t for t in ('search_threads', 'get_thread', 'get_message', 'list_labels'))
 # Anouk reads Gmail and saves replies as drafts for Josh to send. Nothing that sends, labels or deletes.
 GMAIL_DRAFT = tuple('mcp__claude_ai_Gmail__' + t for t in ('create_draft', 'list_drafts', 'get_draft', 'update_draft'))
-GMAIL = {'laia': GMAIL_READ, 'anouk': GMAIL_READ + GMAIL_DRAFT}
+GMAIL = {'laia': GMAIL_READ}
+# Anouk uses the independent read-only Gmail gate below, never the broad activation switch.
 # Calendly through the connector linked to Claude on this PC: reading calls, and single-use links to book a meeting.
 CALENDLY_READ = tuple('mcp__claude_ai_Calendly__' + t for t in (
     'users-get_current_user', 'meetings-list_events', 'meetings-get_event', 'meetings-list_event_invitees',
     'event_types-list_event_types', 'availability-list_user_busy_times', 'scheduling_links-create_single_use_scheduling_link'))
 CALENDLY = {'anouk': CALENDLY_READ}
 # Team members still being set up. They get none of their outside tools (Gmail, Calendly, Kit, Linklr, Chrome)
-# until Josh adds their id to "team_live" in settings.json. Until then they plan and draft in chat only.
+# until Josh adds their id to "team_live" in settings.json. CareerOS-only reads are explicitly authorized separately.
 SETUP_MODE = {'anouk'}
+from .email_visuals import VISUAL_PROPS
+
 EMAIL_PROPS = {
+    'email_visuals': VISUAL_PROPS,
     'emails': {
         'type': 'array',
         'description': 'Emails to add or change in Josh OS. Leave empty when nothing needs saving.',
         'items': {'type': 'object', 'properties': {
-            'id': {'type': 'string', 'description': 'Id of an existing email to change. Leave out to add a new draft.'},
+            'id': {'type': 'string', 'description': 'Id of an existing email to change. Leave out to add a new draft. Only when Josh asked for a change.'},
             **{k: {'type': 'string'} for k in EMAIL_WRITE},
-            'sent': {'type': 'boolean', 'description': 'True only when Kit shows this email has gone out.'},
+            'tags': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Local planner tags only, not Kit subscriber tags.'},
+            'archived': {'type': 'boolean', 'description': 'Archive/restore this local planner record only when Josh requests it. Never deletes from Kit.'},
+            'links': {'type': 'array', 'description': 'Explicit links attached to natural words in body: [{label, href}]. '
+                      'Use only the exact provided or verified URL, preserving Liquid. The label must appear once in body. '
+                      'For a CTA, write a natural sentence and link its descriptive words; do not append a colon and bare URL. '
+                      'Preserve existing links unless Josh requests a change; update label and body together.',
+                      'items': {'type': 'object', 'required': ['label','href'],
+                                'properties': {'label': {'type':'string'}, 'href': {'type':'string'}}}},
+            'sent': {'type': 'boolean', 'description': (
+                'True only when Kit shows this email went out, with kit_broadcast_id. Josh OS checks that id against Kit and '
+                'refuses otherwise. False to undo a Sent that was wrong. Never set it from a planned date or from a chat '
+                'message alone. Leave it out otherwise.')},
+            'kit_broadcast_id': {'type': 'string', 'description': 'With sent true: the Kit broadcast id that went out.'},
             'source_ids': {'type': 'array', 'items': {'type': 'string'},
                            'description': 'Library emails this one is based on, as JonBrosio:<id> or EdLawrence:<message_id>.'},
             'results': {'type': 'object', 'description': 'How it did in Kit: recipients, opens, open_rate, clicks, click_rate, unsubscribes, new_people, kit_broadcast_id, checked_at.'}}},
     },
+    'show_email': {
+        'type': ['string', 'null'],
+        'description': ('When Josh asks to see an email: its id from the snapshot. Josh OS adds the saved email, word for word, '
+                        'to your reply. Read only. Never rebuild an email from the chat to show it, and never save it when '
+                        'showing it. Leave null otherwise.')},
     'library': {
         'type': 'array',
         'description': 'New emails from Ed Lawrence or Jon Brosio to save to the email library. Full body text, one entry per email.',
@@ -203,7 +264,7 @@ document is organised around the writing task the reader is doing now, and a com
    section of the BENS Dictionary, {bens}, the practical style reference. Read 08_Strategy\\audience.md and the voice notes
    your training files point to. Read the real lessons the topic comes from, and say in your reply which files you used.
 2. Save the body to {work}\\guide.html. Its first line is <!-- title: The title | slug: the-slug -->. The cover eyebrow is
-   "CareerOS · Guide" for a companion and "CareerOS · Working document" for a working document.
+   "CareerOS Â· Guide" for a companion and "CareerOS Â· Working document" for a working document.
 3. Build it with
        "{python}" -m studio.written_guide "{work}\\guide.html" "{out}"
    run from {root}. It prints the HTML and PDF paths, the page count and a picture of the guide in print layout. Read the
@@ -276,10 +337,46 @@ EDIT_PROPS = {
                                                           'up Premiere, transcribe and propose the cut. Josh OS runs it on this PC and you post back when '
                                                           'it is ready for his review. Leave it out when he is only asking about the edit or which video '
                                                           'he means is unclear (ask him instead).'},
+            'frameio': {'type': 'string', 'enum': ['send', 'feedback'], 'description': (
+                'Optional Frame.io review, only when Josh asks in this message. "send" uploads the newest checked export to his '
+                'private Frame.io review folder (never public, never YouTube). "feedback" reads the comments on the exact version '
+                'that was sent. Josh OS does it and tells you what happened. Leave it out otherwise.')},
+            'finish': {'type': 'boolean', 'description': 'True when Josh asks you to put the video together, render the animations, '
+                                                        'assemble the edit or finish it, and says he is happy with the animations, however he puts it. '
+                                                        'Josh OS does it all on this PC, with no shell or terminal needed: it opens Premiere and your '
+                                                        'project, builds and saves the cut if there is no good cut yet, approves the storyboard on his words '
+                                                        'in this message, renders and places the animations, exports and checks the file, and you post back '
+                                                        'at each step. Never tell Josh to run anything himself or to open a terminal. Leave it out when he '
+                                                        'has not said the animations are good, and ask him instead.'},
         },
     },
 }
+CAN_CREATE_PROJECT = {'sam', 'tariq'}
+CAN_EDIT_COURSE = {'saskia'}
+
+def requests_new_project(message):
+    """New-card creation needs a direct request, not a suggestion or historical context."""
+    import re
+    text = str(message or '').lower()
+    if re.search(r"\b(?:don't|do not|never|stop|cancel)\b.{0,40}\b(?:create|make|add|start|save|card|video|project)\b", text):
+        return False
+    return bool(re.search(r'\b(?:create|make|add|start|save|put|set up)\b.{0,160}\bnew (?:video |idea )?(?:card|video|project)\b', text)
+                or re.search(r'\b(?:create|make|add|start|set up)\s+(?:me\s+)?(?:a|an)\s+(?:new\s+)?(?:video |idea )?(?:card|video|project)\b', text)
+                or re.search(r'\bcreate\s+(?:card|video|project)\b', text)
+                or re.search(r'\bnew (?:card|video|project)\b.{0,100}\bplease\b', text))
+
 PROJECT_PROPS = {
+    'new_projects': {
+        'type': 'array', 'maxItems': 20,
+        'description': 'Create NEW video cards when Josh asks. Never reuse or overwrite another card. New cards start at Idea; dates are planning only, never publishing or scheduling.',
+        'items': {'type': 'object', 'additionalProperties': False, 'required': ['name'], 'properties': {
+            'name': {'type': 'string', 'minLength': 1, 'maxLength': 240},
+            'notes': {'type': 'string', 'maxLength': 50000},
+            'script': {'type': 'string', 'maxLength': 200000},
+            'publish_date': {'type': 'string', 'description': 'Optional planned YYYY-MM-DD, never a real scheduled send.'},
+            'add_titles': {'type': 'array', 'items': {'type': 'string', 'maxLength': 500}, 'maxItems': 200}
+        }}
+    },
     'projects': {
         'type': 'array',
         'description': 'Changes to video cards in Josh OS. Leave empty when nothing needs saving. Only include the fields you change.',
@@ -291,7 +388,14 @@ PROJECT_PROPS = {
             'publish_date': {'type': 'string', 'description': 'YYYY-MM-DD.'},
             'notes': {'type': 'string', 'description': 'The whole angle and notes field, when you change it.'},
             'script': {'type': 'string', 'description': 'The whole script, when Josh asks you to change it directly. Never a part of it.'},
-            'add_titles': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Title ideas to add to the video.'}},
+            'add_titles': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Title ideas to add to the video.'},
+            'remove_title_ids': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Exact saved title IDs to remove, only when Josh asks.'},
+            'chosen_title': {'type': 'string', 'description': 'Exact saved title ID to choose, or empty to clear. Existing lock is enforced.'},
+            'top_three': {'type': 'array', 'maxItems': 3, 'items': {'type': 'string'}, 'description': 'Ordered existing thumbnail asset IDs; empty clears selection. Existing lock is enforced.'},
+            'remove_thumbnail_assets': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Remove these saved thumbnail references from the card only. Original files remain.'},
+            'packaging': {'type': 'object', 'description': 'Partial local packaging brief: thumbnail_concept, thumbnail_reference, curiosity_question, concrete_payoff. Merged with existing.'},
+            'lead_magnet': {'type': 'object', 'description': 'Partial local lead-magnet brief: decision unknown/none/yes, name, contents, result, free_status, destination, evidence. Does not upload or publish.'},
+            'archived': {'type': 'boolean', 'description': 'Archive or restore the local video card; does not delete files or change YouTube.'}},
             'required': ['project_id']},
     },
     'replacement': {'type': ['string', 'null'],
@@ -321,7 +425,10 @@ THUMB_PROPS = {
         'description': 'Start a thumbnail job for a video. It runs on this PC after your reply and posts the images back here.',
         'items': {'type': 'object', 'properties': {
             'project_id': {'type': 'string', 'description': 'Id of the video from the snapshot, or the one Josh has open.'},
-            'note': {'type': 'string', 'description': 'What Josh asked for: words, formats, poses, how many, anything to copy.'}},
+            'note': {'type': 'string', 'description': 'What Josh asked for: words, formats, poses, how many, anything to copy.'},
+            'provider': {'type': 'string', 'enum': ['gpt-image', 'local'], 'description': 'Default gpt-image. Use local only when Josh explicitly requests the local compositor.'},
+            'reference_assets': {'type': 'array', 'maxItems': 6, 'items': {'type': 'string'},
+                                 'description': 'Exact image asset IDs from this conversation or video to use/edit. Never paths or URLs.'}},
             'required': ['project_id']},
     },
 }
@@ -340,12 +447,13 @@ THUMB_JOB_SCHEMA = {
                 'font': {'type': 'string', 'description': 'A font name from the list in the brief.'},
                 'weight': {'type': 'string', 'description': 'One of the weights listed for that font. Leave out for its heaviest.'},
                 'color': {'type': 'string', 'description': 'Words colour, a name from the list or a hex code like #FFE500.'},
-                'size': {'type': 'number', 'description': 'Font size in pixels on the 1920 wide frame, 60 to 360.'},
-                'fit': {'type': 'string', 'enum': ['size', 'fill'], 'description': 'size uses the size (shrunk if it would not fit). fill makes the words fill the bar width.'},
+                'size': {'type': 'number', 'description': 'Font size in pixels on the 1920 wide frame; default 200, technical range 8 to 1080.'},
+                'fit': {'type': 'string', 'enum': ['size', 'fill', 'none'], 'description': 'size shrinks to fit; fill fills the box; none preserves size/placement and allows intentional cropping.'},
+                'margin': {'type': 'number', 'description': 'Automatic fitting margin, default 40. Use 0 for edge placement, or fit none for cropping.'},
                 'bar': {'type': 'boolean', 'description': 'A coloured bar behind the words.'},
                 'bar_color': {'type': 'string'},
-                'bolden': {'type': 'number', 'description': '0 to 6. Thickens the letters.'},
-                'outline': {'type': 'number', 'description': '0 to 14. An outline round the letters.'},
+                'bolden': {'type': 'number', 'description': 'Thickens letters; normally 0 to 6, maximum 64.'},
+                'outline': {'type': 'number', 'description': 'Outline width; normally 0 to 14, maximum 128.'},
                 'outline_color': {'type': 'string'},
                 'shadow': {'type': 'boolean', 'description': 'The house glow and drop shadow. On unless you turn it off.'},
                 'case': {'type': 'string', 'enum': ['as-is', 'upper']}}},
@@ -353,35 +461,71 @@ THUMB_JOB_SCHEMA = {
             'face_cx': {'type': 'number'}, 'face_cy': {'type': 'number'}, 'face_w': {'type': 'number'},
             'head_top': {'type': 'number'}, 'body_bottom': {'type': 'number'}, 'desk_top': {'type': 'number'},
             'baseline': {'type': 'number'}, 'bar_left': {'type': 'number'}, 'bar_right': {'type': 'number'},
+            'text_cx': {'type': 'number', 'description': 'Text centre on the 1920x1080 canvas.'},
+            'line_gap': {'type': 'number', 'description': 'Baseline spacing as a multiple of font size; default 0.92.'},
+            'text_behind': {'type': 'boolean', 'description': 'Place the catalogue cutout over the text, including hands where they overlap.'},
+            'shade': {'type': 'boolean', 'description': 'Use the bottom shade; default true.'},
+            'scene': {'type': 'string', 'enum': ['seated', 'standing', 'close']},
             'shade_start': {'type': 'number'}},
             'required': ['label', 'format', 'pose']}},
     },
     'required': ['reply', 'options'],
 }
-THUMB_BRIEF = """Make a round of YouTube thumbnail options for this video, following 05_thumbnails.md. You can read files but you
+GPT_THUMB_JOB_SCHEMA = {
+    'type': 'object', 'properties': {
+        'reply': {'type': 'string'},
+        'options': {'type': 'array', 'maxItems': 3, 'items': {
+            'type': 'object', 'properties': {
+                'label': {'type': 'string'}, 'words': {'type': 'string'},
+                'prompt': {'type': 'string', 'description': 'Complete desired composition, exact lettering, reference roles and details to preserve. User instructions override design defaults.'},
+                'pose': {'type': 'string', 'description': 'Optional catalogue pose name, used as a likeness reference, not fixed geometry.'},
+                'scene': {'type': 'string', 'enum': ['seated', 'standing', 'close'], 'description': 'Optional existing background reference.'}},
+            'required': ['label', 'prompt']}}}, 'required': ['reply', 'options']}
+GPT_THUMB_BRIEF = """Plan a GPT Image thumbnail job for Josh. You only propose prompts; the host calls OpenAI and reports
+actual results. Return one option unless Josh requests alternatives, at most three. Never claim an image already exists.
+Use the user's exact words and composition instructions ahead of house-style advice. There are no template baseline,
+placement, font or scene-geometry rules for this provider. Describe overlaps, hands, lettering, background and likeness
+in the prompt. The host supplies selected reference images, in listed order. Identify their intended roles in the prompt.
+For Josh's subject/background, optionally select an existing catalogue pose by name and scene seated, standing or close;
+these become image references, not a deterministic render. Do not add them when the user requests a different subject or
+background. With no selected references, pose or scene, the provider generates from text; otherwise it edits from references.
+An edit of an earlier image needs its exact asset ID in the outer thumbnail request. Do not invent file paths, URLs or IDs.
+House defaults such as yellow bars or lower text placement are optional. The user's own instructions always win.
+No automatic local fallback is allowed. Provider access/errors are reported by the host, and only a successful API image
+can be called GPT output. The finished image still needs Josh to review text accuracy and likeness before use."""
+THUMB_BRIEF = """Make a round of YouTube thumbnail options for this video. Use 05_thumbnails.md as design defaults;
+Josh's explicit directions and reference style override its composition and styling advice. You can read files but you
 do not run anything or save anything yourself. Answer with up to three options in "options". Josh OS checks each one and
 builds it with Josh's approved scripts (oneline.py for "middle", close_unit.py for "close"), in the house text treatment.
 
 The two formats you can use:
 - "middle": Josh seated at the desk, one line of words across the bottom (the current A/B winner). Settings and defaults:
   pose (a Seated cutout, seated-13-palm-present-neutral is the approved one), face_cx 960, head_top 22, body_bottom 1100,
-  desk_top 1008, words (two to four words), baseline 975, bar_left 130, bar_right 1790 (never past 1790, the badge corner),
+  desk_top 1008, words (two to four words), baseline 975, bar_left 130, bar_right 1790 (normally avoids the badge corner),
   shade_start 400. Leave a number out to use its default.
 - "close": Josh close on the left, one or two lines of words on the right. pose (finger up, chin or side point work, like
   seated-06-side-point-neutral), face_cx 483, face_cy 350, face_w 432, lines (one or two, short), size about 142, shade_start 325.
-  The line positions are fixed by the format.
+  Default text centre is 1297, first baseline 470, text box 737 to 1857.
+These are starting points, not mandatory geometry. Explicit baseline, text_cx, bar_left/bar_right, face position and
+head_top/body_bottom override them. Coordinates use a fixed 1920x1080 canvas. A middle baseline below 850 is valid.
+With style, middle lines stack upward from baseline; close lines stack downward. line_gap defaults to 0.92 times size.
+Set text_behind true to put the whole catalogue cutout over the text (hands overlap where the cutout overlaps).
+Set shade false to omit bottom shading; scene may be seated, standing or close. A separate hands-only mask is not available.
 Read the approved specs in the tools folder (spec_make-them-explain_desk-bottom_v01.json, spec_close_never-go-blank_v03.json)
 and the thumb-notes files the training names. Look at the pose previews in the Pose Catalogue before you pick a pose.
 Text style. Leave "style" out for the house look (Josh Thumbnail V2, white words on the yellow bar). When Josh asks for
 another font, colour, size or weight, set "style" and give the words in "lines" (one or two). Josh OS shrinks words that
-would run off the frame and tells Josh it did. Three or more big words stay bigger split over two lines. Fonts you can use, as font: weights:
+would run off the frame and tells Josh it did. For intentional cropping or exact size/placement, use style fit none;
+margin controls the automatic fitting inset (default 40). Positive sizes and bounded finite coordinates still apply.
+Three or more big words stay bigger split over two lines. Fonts you can use, as font: weights:
 {fonts}
 Colours by name: {colours}, or any hex code. Big bold yellow words, for example, are style font anton (or impact, chivo,
 gotham black), color bright-yellow, bar false, size 220 to 300, case upper, with the shadow on and outline 0 to 6 in black.
 If Josh asks for a font that isn't in this list, say it isn't available and pick the closest one from the list.
 Pick words that name the outcome and add to the title rather than repeat it. The other formats in the training (boardroom,
 whiteboard, before and after, close face) can't be built from chat yet, so say so if Josh asks for one.
-Your reply is posted together with the finished images, so describe the options as made, not as on the way."""
+This job uses a local compositor, not GPT image generation or editing. Do not claim generative editing happened.
+Describe your proposed options; the host reports which images actually built and saved."""
 # Tariq's editorial pass on a recording (see edit_flow.py). Josh OS validates every id before using it.
 EDIT_JOB_SCHEMA = {
     'type': 'object',
@@ -432,6 +576,7 @@ PEOPLE_PROPS = {
         'items': {'type': 'object', 'properties': {
             'id': {'type': 'string', 'description': 'Id from the snapshot to update someone. Leave out to add, or give their email.'},
             'name': {'type': 'string'}, 'email': {'type': 'string'},
+            'archived': {'type': 'boolean', 'description': 'Archive or restore this local person record only when Josh asks; never changes Gmail or CareerOS.'},
             'pathway': {'type': 'string', 'enum': ['reply', 'lead', 'client', 'buyer']},
             'stage': {'type': 'string', 'description': 'A stage from that pathway, exactly as written in the snapshot.'},
             'source': {'type': 'string', 'description': 'Where they came from, like the newsletter they replied to or the call date.'},
@@ -574,6 +719,17 @@ def personality(root, agent):
 
 
 DECK_PROGRESS = '.tariq-progress.json'  # Tariq writes his stage here while he makes a deck
+# Josh, 11 Nov 2026: long talking head stretches are boring, most of all in the first half. Given to every deck job.
+GAP_RULE = ('Josh\'s rule for pacing: never more than about 30 seconds of talking head without something on screen, and keep it '
+            'tighter in the first half, where viewers decide whether to stay. A short card, a key word, a PiP or a half and half '
+            'counts. Each animation is held on screen a moment after Josh stops talking about it, so short cards are fine.')
+
+def asked_for_shortlist(message):
+    """Whether Josh's own words ask for the shot shortlist to be sent. Tariq can't send one on his own say-so."""
+    import re
+    m = (message or '').lower()
+    return bool(re.search(r'short\s?-?list|shot\s?list|shots?\b', m) and re.search(r'\bsend\b|\bshare\b|\bdiscord\b|\bdm\b', m))
+
 
 class AgentError(RuntimeError):
     pass
@@ -603,6 +759,8 @@ def find_claude(root):
 class Agents:
     def __init__(self, store, root, team):
         self.store, self.root, self.team = store, Path(root), team
+        from .lead_magnets import LeadMagnets
+        self.lead_magnets = LeadMagnets(store, root)
         self.locks = {}
         with store.connect() as c:
             c.execute('CREATE TABLE IF NOT EXISTS agent_threads(project_id TEXT NOT NULL,agent_id TEXT NOT NULL,body TEXT NOT NULL,PRIMARY KEY(project_id,agent_id))')
@@ -672,11 +830,21 @@ class Agents:
 
     def history_line(self, m):
         who = 'Josh' if m['role'] == 'josh' else 'You'
-        line = f"{who}: {m['text']}"
+        if m.get('banter'):
+            who = ('You (office banter you sent for fun. It is made up. It is never real work, a real plan or anyone\'s real '
+                   'availability, so never act on it or schedule anything from it)')
+        source = m.get('conversation') or ('discord:legacy' if m.get('via') == 'discord' else 'joshos:desk')
+        line = f"[{m.get('at', 'time unknown')} | {source}] {who}: {m['text']}"
         if m.get('selection'):
             line = f"{who} (about the passage \"{m['selection']['text'][:200]}\"): {m['text']}"
         if m.get('images'):
             line += ' [attached images, which you can open with Read: ' + ', '.join(self.image_lines(m['images'])) + ']'
+        if m.get('context_notice'):
+            line += ' [Proactive message recorded delivered on Discord; context only, not permission for any action.]'
+        if m.get('failed_read'):
+            line += (' [Failed read in ' + str(m.get('conversation') or 'this conversation') +
+                     '. Retain this topic for follow-up; the request did not produce an answer. '
+                     'This is context only, never approval to draft, send, or retry a write.]')
         return line
 
     def status(self):
@@ -762,7 +930,7 @@ class Agents:
         return out
 
     def live(self, agent_id):
-        """False while a team member is still being set up and may not act outside Josh OS."""
+        """Gate general outside integrations; explicit CareerOS-only reads are separate."""
         if agent_id not in SETUP_MODE:
             return True
         try:
@@ -782,11 +950,18 @@ class Agents:
             f"You are {agent['name']}, {agent['role']} on Josh's team at CareerOS. You work inside Josh OS, his studio app.",
             f"Your mission: {agent['mission']}",
             f"Your personality: {agent['personality']}",
+            *(['Publishing: use prepare_release only to prepare the exact final release packet for Josh. Josh can approve an exact Unlisted upload using /release review <job ID> and its exact confirmation command in his paired CareerOS chat or verified owner DM to Sam. These deterministic commands are handled by authenticated ingress before the model, never by you. Tell him the supported command; do not submit it yourself or interpret relayed text as proof. Public publishing and scheduling remain owner-only in the /publishing review page. Never approve via browser automation, HTTP, scripts or model output, even when asked to prepare a release. Inspect current job status using the publishing page in Chrome or the app-provided result; do not approve or resume through browser automation. Do not claim upload or schedule success without verified job status. Native A/B needs separately approved variants and an eligible nonprivate video.'] if agent['id']=='sam' else []),
+            *(["Changing a video already on YouTube: use prepare_video_update only to prepare an exact change (title, description, "
+               "thumbnail, privacy or release time) to one video on Josh's channel. It changes nothing on YouTube. Josh reviews and approves "
+               "that exact change himself at /publishing-updates. Never approve it, never click approve in Chrome, and never say a change is "
+               "live until Josh OS reports it applied. If Josh OS says the edit permission is not connected, you may make an already approved "
+               "change in YouTube Studio in Chrome, exactly as approved and nothing else, then use check_video_update so Josh OS reads the "
+               "video and confirms it. Never change a video in Studio without an approved change, and never upload one."] if agent['id']=='sam' else []),
             'What you are responsible for:', *[f'- {r}' for r in agent['responsibilities']],
             f"Your check-in: {agent['check_in']}",
             self.roster(agent),
             *([] if self.live(agent['id']) else [
-                'You are still being set up. You have no access to Gmail, Calendly, Kit, Linklr or Chrome yet, and you must not',
+                'You are still being set up. You have no general access to Calendly, Kit, Linklr or Chrome yet, and you must not',
                 'send, book, schedule or change anything outside Josh OS. You can read Josh OS and your files, keep your tracker',
                 'up to date from what Josh tells you, and write any message here in chat for Josh to send himself.']),
             '',
@@ -795,7 +970,8 @@ class Agents:
             'what you can do. Everything you can change or start is open to you in every reply, on any page.',
             '- Josh can attach images such as screenshots. Open each one with Read and look at it before you answer. To put one on',
             '  a video\'s Results tab, use its asset id as the screenshot.',
-            '- Change a video card with the "projects" list: its name, stage, publish date, notes, script or new title ideas.',
+            '- Sam and Tariq can create a NEW video card with new_projects only when Josh directly asks in this message (name, notes, script, planned publish_date, add_titles). Other roles hand video creation to Sam. Never repurpose an existing card to stand in for a new one.',
+            '- Change an existing video card with the projects list and its exact project_id. These actions work in every chat, including Discord, without opening a particular page.',
             *([f'- Your skills are in .claude/skills ({", ".join(n + "/SKILL.md" for n in SKILLS.get(agent["id"], []))}). Read the one that',
                '  fits before you write, unless it is already in the prompt.'] if SKILLS.get(agent['id']) else []),
             '- Be yourself, as described in "Who you are" below. Keep replies short and plain, and give your view.',
@@ -814,10 +990,20 @@ class Agents:
             *(['- You have Linklr through its tools (mcp__linklr__...). Use them for stats such as clicks, new subscribers by source,',
                '  sequence funnels and the business summary. Check get_data_status when freshness matters.',
                *(['- Make tracked links with create_tracked_link, after lookup_link_context and preview_tracked_link.',
-                  '  Use an existing link when preview finds one. Register a video with register_video before making its links.']
+                  '  Check the intended source before reusing a preview match; follow the shared attribution guidance.']
                  if 'create_tracked_link' in LINKLR.get(agent['id'], ()) else []),
                '- If a Linklr tool says it needs authentication, tell Josh to sign in to Linklr in Claude Code once.']
               if agent['id'] in LINKLR else []),
+            *(['- CareerOS learner support is available through mcp__careeros__ read-only tools. Resolve the learner with',
+               '  find_learners first; do not guess between ambiguous matches. Read access grants and their provenance rather',
+               '  than inferring current entitlement from legacy membership labels. Keep the 47 core lessons separate from',
+               '  Data Storytelling and course downloads. Lesson opens are not completions or evidence of watching.',
+               '  Preserve tracking coverage and backfill labels: missing history means not tracked, never zero.',
+               '  Email handoff or queued reply notifications do not prove delivery. Respect private question visibility',
+               '  and avoid unnecessary personal details. Never change learners, access, questions, reviews or messages.',
+               '  If authentication fails, say the connection needs reconnecting; never request or expose tokens.']
+              if agent['id'] in CAREEROS else []),
+            *gmail_access.prompt_rules(agent['id'], self.root),
             *(self.carousel_rules() if 'carousels' in (agent.get('workflows') or []) else []),
             *(self.thumbnail_rules() if agent['id'] in CAN_THUMB and getattr(self, 'video_thumbs', None) is not None else []),
             *(["- You can work on any video's animation deck from any chat, including Discord. When Josh asks for the slides or",
@@ -836,7 +1022,24 @@ class Agents:
             *(['- The Email page in Josh OS is the record for every email. Save to it with the "emails" list in your answer. Each',
                '  entry changes an email when you give its id from the snapshot, or adds a new draft without one. You can change the',
                '  subject, preview, body, planned_date (YYYY-MM-DD), send_time (HH:MM, Dubai), notes and description. Josh approves',
-               '  emails himself, so never change their status, except setting sent when Kit shows one has gone out. Keep {{ subscriber.first_name }} and link wording as they are.',
+               '  emails himself, so never change their status, except setting sent true with its kit_broadcast_id when Kit shows',
+               '  that broadcast completed, or sent false to undo a Sent that was wrong. A planned date passing, or Josh saying',
+               '  something was sent, is never enough: if he does, find the broadcast in Kit first and ask which email he means.',
+               '  When a planned date has passed with no send, ask Josh whether to replan or retire it. Keep {{ subscriber.first_name }} and link wording as they are.',
+               '  When Josh asks to see an email, put its id in show_email and say nothing more about its text. Never rebuild an',
+               '  email from the chat, and never save one just because he asked to see it. Only say a change is saved when',
+               '  Josh OS reports it under your reply; if a save fails, say so plainly.',
+               '- When Josh asks for visual explanations, use email_visuals for this saved email id and revision. Supply short',
+               '  text lines or safe static SVG, alt text and after_line (count blank body lines). Up to 16 visuals are supported.',
+               '  Templates are optional starting points. Choose width/height or aspect_ratio, layout (text/card/standalone),',
+               '  background, optional BEFORE/AFTER badge and one-line note. Footer defaults off. Use standalone SVG for unique',
+               '  designs, or slide-card for wide example slides. Keep text readable; shorten notes that do not fit. Never force',
+               '  before/after examples into square carousel frames. Keep source content and numbers faithful.',
+               '  Save body changes first in a separate turn. These are local PNGs shown in the email preview; never HTML or file paths.',
+               '  This replaces the entire visual set. No carousel permissions, upload, Kit proposal or delivery is included.',
+               '  Only report success when the save result confirms it. Kit proposals are blocked until approved hosting is supported.',
+               '- Kit through its tools may still be connecting when you start. If its tools are missing, say Kit is still',
+               '  connecting, not that it is unavailable, and use Kit\'s last complete read in your snapshot.',
                '  When you re-plan dates, spread the emails across open days from tomorrow and tell Josh the new plan.',
                '- You can read Kit through its tools (mcp__claude_ai_Kit__..., find them with ToolSearch). Use them to see what has',
                '  actually gone out and how each email did: opens, clicks, link clicks and unsubscribes. Josh sometimes sends drafts',
@@ -916,13 +1119,31 @@ class Agents:
         return '\n'.join(lines)
 
     def thumbnail_rules(self):
-        return ['- You make the YouTube thumbnails. When Josh asks for thumbnails (new ones, changes, other words or poses), put',
-                '  the video in "thumbnails" with what he asked in "note". Josh OS starts the job after your reply and posts the',
-                '  images back here, usually within a few minutes, so tell him they are on the way. Do not describe options you',
-                '  have not made. The middle shot and close portrait formats can be built from chat, in the house look or with',
-                '  another font, colour, size or bar (fourteen local fonts, including Anton, Impact, Gotham and Franie). Put the',
-                '  style Josh wants in the note. Boardroom, whiteboard, before',
-                '  and after and close face can not yet, so say so if he asks for one.']
+        from .gpt_images import GPTImages
+        status = GPTImages().status()
+        return ['- For a requested thumbnail, put the video in "thumbnails", with the full design request in "note".',
+                '  Use provider "gpt-image" by default for generation and reference-image editing. Use "local" only if Josh',
+                '  explicitly asks for the local compositor. Never substitute local output for a failed GPT request.',
+                '  Include exact reference_assets IDs for attached or earlier images he wants used/edited; current attachments',
+                '  are included by default. Never invent IDs, paths or URLs. His composition instructions override style defaults.',
+                '  The host reports whether the job started and whether an image was saved. Do not claim success before that.',
+                '  GPT provider status: ' + status['message'],
+                '  Local middle/close formats remain available with flexible font, colour, position and overlap settings.']
+
+    def start_thumbnail_request(self, thumbs, request, message, images, via):
+        if not isinstance(request, dict):
+            raise ValueError('Invalid thumbnail request.')
+        pid = str(request.get('project_id') or '')
+        project = self.store.get(pid)
+        known = set(images)
+        known.update(t['asset'] for t in project.get('thumbnails', []) if t.get('asset'))
+        for entry in self.thread(DESK, 'sam')[-20:]:
+            known.update(entry.get('images') or [])
+        refs = thumbs.reference_ids(request.get('reference_assets', images))
+        if not set(refs) <= known:
+            raise ValueError('Use reference image IDs already attached to this conversation or video.')
+        return thumbs.start(pid, str(request.get('note') or message)[:8000], via,
+                            provider=request.get('provider', 'gpt-image'), reference_assets=refs, user_note=message)
 
     def carousel_rules(self):
         from .carousels import TAG_OPTIONS, TAG_TEXT, TAG_FLAGS, RESULT_NUMBERS, STAGES
@@ -936,7 +1157,8 @@ class Agents:
             '  Tags use these exact values: ' + '; '.join(f"{k} = {' / '.join(v)}" for k, v in TAG_OPTIONS.items()) + '.',
             f"  Free text tags: {', '.join(sorted(TAG_TEXT))} (post_time like 21:00). True or false tags: {', '.join(sorted(TAG_FLAGS))}. slide_count is a whole number.",
             f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
-            '  Tags and results you send are merged into what is already saved. Tell Josh in your reply what you saved.',
+            '  Tags and results you send are merged into what is already saved. Describe proposed changes, not a successful save.',
+            '  The host saves after your answer and supplies the verified receipt. Never say saved, changed or redrawn before that receipt.',
             '- To make or redo a Paper post\'s slide images, set make_design true on that carousel (with any slide changes in the',
             '  same entry). Josh OS draws them with the house template. When you change the words of a post that already has a',
             '  Paper design, Josh OS makes the design again by itself, so Josh always sees the new slides.',
@@ -951,8 +1173,14 @@ class Agents:
             '  image file on this PC, such as E:\\CareerOS\\03_Community_Posts\\_shared-assets. Every slide still needs its headline.',
             '  The drawing or picture shrinks to fit, so keep the words short on those slides. The images are made after your',
             '  reply, so to check them later open the slide files in the post\'s folder with Read and fix anything that reads badly.',
-            '  If Josh wants the look itself changed (colours, sizes, layout), say what should change and that it needs a change',
-            '  to the template in Josh OS, which Josh can ask Claude Code to make.',
+            '- Paper is a default, not a restriction. Sam can use carousel_slide_override to replace one existing slide with',
+            '  a custom composition or Sam-owned local_asset_id, preserving all other slide images byte-for-byte.',
+            '  Josh must ask to replace/redesign a slide and select or name the carousel. Use its current revision and',
+            '  1-based slide_number. Supply visual (structured static layers) OR local_asset_id; optional slide_text changes',
+            '  only that slide text. Use listed authorized upload/slide image IDs or your own LocalAssets IDs for pictures.',
+            '  Dimensions, layout, colours and branding are overridable. Cover/photo and QR images can be composed with text.',
+            '  This action accepts no arbitrary paths or SVG. Do not also send carousels/make_design in the same reply.',
+            '  Scheduled/posted carousels are blocked; a successful override requires review again. It never sends or publishes.',
             '- The Creators tab on the same page holds the carousels we learn from (Ali Abdaal and Alex Hormozi). Save to it with',
             '  the "inspo" list. Each entry adds a post, or changes one when you give its id from the snapshot.',
             '  To add new posts, open the creator\'s Posts tab in Chrome (youtube.com/@aliabdaal/posts, youtube.com/@AlexHormozi/posts),',
@@ -989,29 +1217,56 @@ class Agents:
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), {})
         if mails is not None and 'email' in (agent.get('workflows') or []):
             from datetime import date as _d
+            from .emails import proven_send
             today = _d.today().isoformat()
             rows = [e for e in mails.all() if not e.get('archived')]
             upcoming = sorted([e for e in rows if e.get('status') != 'Sent'], key=lambda e: e.get('planned_date') or '9999')
             sent = sorted([e for e in rows if e.get('status') == 'Sent'], key=lambda e: e.get('planned_date') or '', reverse=True)[:8]
-            lines += ['', 'Emails in Josh OS. id | send date | time | status | subject (Draft = being written or waiting for Josh,',
-                      'Ready = Josh approved it, Scheduled or Published = in Kit, Sent = gone out). A Draft dated before today missed its date:']
+            lines += ['', 'Emails in Josh OS. id | planned date | time | status | subject. The planned date is only the plan, never',
+                      'proof of a send. Draft = being written or waiting for Josh, Ready = Josh approved it, Scheduled or Published =',
+                      'in Kit, Sent = Kit shows it went out. To show Josh an email, put its id in show_email; Josh OS adds the saved text.']
             for e in upcoming + sent:
+                k = e.get('kit') or {}
+                proven = proven_send(self.store, e, getattr(self, 'kit_drafts', None))
+                proof = proven['broadcast_id'] if proven else None
+                flag = ''
+                if e['status'] != 'Sent' and e.get('planned_date') and e['planned_date'] < today:
+                    flag = ' (planned date passed and Kit shows no send: ask Josh to replan it or retire it, never mark it sent)'
+                elif e['status'] == 'Sent' and not proof:
+                    flag = ' (Sent, with no Kit link in Josh OS. Leave it as it is unless Josh asks)'
                 lines.append(f"- {e['id']} | {e.get('planned_date') or 'no date'} | {e.get('send_time') or ''} | {e['status']}"
-                             + (' (missed its date)' if e['status'] == 'Draft' and e.get('planned_date') and e['planned_date'] < today else '')
-                             + f" | {e.get('subject', '')[:90]}")
+                             + (f" | Kit {proof}" if proof else '') + flag + f" | {e.get('subject', '')[:90]} | revision {e['revision']} | {len(e.get('images', []))} local visuals")
+            try:
+                with self.store.connect() as c:
+                    snaps = [json.loads(r[0]) for r in c.execute("SELECT body FROM business_counters WHERE key LIKE 'kit:%' ORDER BY key DESC LIMIT 5")]
+            except Exception:  # noqa: BLE001 - the list above still stands
+                snaps = []
+            snap = next((s for s in snaps if s.get('complete')), None)
+            if snap:
+                newest = sorted(((v.get('send_at') or ''), bid, v.get('recipients')) for bid, v in snap['items'].items())[-5:]
+                lines += [f"Kit's last complete read of sent broadcasts ({str(snap['taken_at'])[:16]} UTC, {len(snap['items'])} broadcasts). "
+                          'Newest sends, broadcast id | sent at UTC | recipients:']
+                lines += [f'- {bid} | {at[:16]} | {n}' for at, bid, n in reversed(newest)]
         people = getattr(self, 'people', None)
         if people is not None and 'customers' in (agent.get('workflows') or []):
             from .people import PATHWAYS
             lines += ['', 'Your customer success tracker. id | name <email> | pathway | stage | next step | open promises | last touchpoint | summary.',
                       'Stages by pathway: ' + '; '.join(f"{k} ({v[0]}): {', '.join(v[1])}" for k, v in PATHWAYS.items())]
             lines += people.describe() or ['- nobody yet']
+            archived_people = [p for p in people.all()['items'] if p.get('archived')][:40]
+            if archived_people:
+                lines += ['Archived local people (may restore only if Josh asks): ' + json.dumps([{k:p.get(k) for k in ('id','name','email','revision')} for p in archived_people], ensure_ascii=False)]
             lines += self.admin_people(people)
+        if agent_id in CAN_CREATE_PROJECT:
+            lines += ['', 'Local video card editing IDs (no approval; locks stay enforced):']
+            for item in self.store.projects()[:60]:
+                lines.append(json.dumps({k:item.get(k) for k in ('id','name','revision','archived','titles','chosen_title','thumbnails','top_three','packaging','lead_magnet','locks')},ensure_ascii=False))
         lines += ['', 'Videos in Josh OS:']
         videos = [p for p in self.store.projects() if not p.get('archived')]
         results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
         if results is None:
             for p in sorted(videos, key=lambda p: p.get('publish_date') or '9999')[:40]:
-                lines.append(f"- {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']}")
+                lines.append(f"- {p['id']} | {p.get('publish_date') or 'no date'} | {p['stage']} | {p.get('chosen_title') or p['name']}")
             return '\n'.join(lines)
         lines[-1] = ('Videos in Josh OS and their results. id | date | stage | title | funnel | numbers | thumbnail tests | retention. '
                      'Screenshot paths are image files you can open with Read:')
@@ -1060,7 +1315,7 @@ class Agents:
                     done.append(dict(id=lid, title=f"{made['number']} {made['title']}", action='added', kind='lesson'))
                     fields = ('script', 'prep', 'notes')
                 current = courses.get(lid)
-                changes = {k: u[k] for k in fields if k in u and u[k] not in (None, '') and (k == 'minutes' or (isinstance(u[k], str) and u[k].strip()))}
+                changes = {k: u[k] for k in fields if k in u and u[k] is not None and (k == 'minutes' or isinstance(u[k], str))}
                 if changes:
                     current = courses.save(lid, changes, current['revision'])
                 title = f"{current['number']} {current['title']}"
@@ -1082,7 +1337,7 @@ class Agents:
                 done.append(dict(id=lid, title=title, action='failed', kind='lesson', error=str(e).strip("'\"")[:200]))
         return done
 
-    def thumbnail_job(self, project, note, folder):
+    def thumbnail_job(self, project, note, folder, provider='local', reference_assets=(), user_note=''):
         """Sam picks up to three thumbnail options for a video. Read-only tools: Josh OS builds what he sends back."""
         from .video_thumbnails import POSES, TOOLS
         agent = next((a for a in self.team.all()['agents'] if a['id'] == 'sam'), None)
@@ -1098,13 +1353,18 @@ class Agents:
         fonts = '\n'.join(f"- {k}: {', '.join(v['weights'])} ({v['label']})" + ('' if all(f.is_file() for f in v['weights'].values())
                                                                                     else ', some files missing on this PC') for k, v in FONTS.items())
         brief = THUMB_BRIEF.replace('{fonts}', fonts).replace('{colours}', ', '.join(COLOURS))
+        schema = THUMB_JOB_SCHEMA
+        if provider == 'gpt-image':
+            brief, schema = GPT_THUMB_BRIEF, GPT_THUMB_JOB_SCHEMA
+            facts['reference_assets'] = list(reference_assets)
+            facts['user_composition_instructions'] = user_note or note
         parts = [brief, '', f'Your training files are in {self.training_dir()}. The tools folder is {TOOLS}. '
                  f'The Pose Catalogue is {POSES}. This video\'s folder is {folder}, and its thumbnails folder shows earlier rounds.',
                  '', 'The video:', json.dumps(facts, ensure_ascii=False, indent=1)]
         if note.strip():
             parts += ['', "Josh's note: " + note.strip()]
         system = self.desk_system_prompt(agent, learnings) + '\n\nYou are making one round of thumbnails that Josh asked for in chat.'
-        return self.run(system, '\n'.join(parts), THUMB_JOB_SCHEMA, list(dirs) + [str(folder), str(TOOLS), str(POSES)],
+        return self.run(system, '\n'.join(parts), schema, list(dirs) + [str(folder), str(TOOLS), str(POSES)],
                         tools=ALLOWED_TOOLS, timeout=1200, full=True)
 
     def edit_proposal_job(self, project, transcript, candidates):
@@ -1121,9 +1381,14 @@ class Agents:
         system = self.desk_system_prompt(agent, learnings) + '\n\nYou are proposing one clean cut that Josh will review word by word.'
         return self.run(system, '\n'.join(parts), EDIT_JOB_SCHEMA, [], tools=ALLOWED_TOOLS, timeout=1800, full=True)
 
-    def post(self, agent_id, text, images=(), saved=(), via='', files=()):
-        """A message from a team member that arrives on its own, like the result of a job."""
+    def post(self, agent_id, text, images=(), saved=(), via='', files=(), notice=True, banter=False):
+        """A message from a team member that arrives on its own, like the result of a job. With notice, it is also
+        offered to studio/notices.py, which decides whether and when it goes to Josh on Discord. Callers that already
+        sent it to Discord pass notice=False. Banter is made-up office chat, marked so the team member never mistakes it
+        for real work later."""
         m = dict(id=str(uuid.uuid4()), role='agent', text=text, at=now())
+        if banter:
+            m['banter'] = True
         if images:
             m['images'] = list(images)
         if saved:
@@ -1132,7 +1397,14 @@ class Agents:
             m['files'] = [str(f) for f in files]
         if via:
             m['via'] = via
-        return self._append(DESK, agent_id, m)
+        out = self._append(DESK, agent_id, m)
+        hook = getattr(self, 'on_post', None)
+        if notice and not banter and hook is not None:
+            try:
+                hook(agent_id, m)
+            except Exception:  # noqa: BLE001 - the message is on the desk either way
+                pass
+        return out
 
     def course_job(self, lesson, task, note, content_dir):
         """One piece of lesson work for Saskia, with the tools and time it needs. Josh OS checks what comes back."""
@@ -1166,7 +1438,9 @@ class Agents:
                         tools=JOB_TOOLS[task], timeout=JOB_TIMEOUT[task], full=True)
 
     # Running ----------------------------------------------------------------
-    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None, allow=None):
+    def run(self, system, prompt, schema=SCHEMA, dirs=(), chrome=False, extra_tools=(), full=False, tools=None, timeout=None, cwd=None, allow=None, read_only=False, guard=None):
+        system += LINK_ATTRIBUTION_RULES + self.lead_magnets.agent_context()
+        kit_receipts = []
         claude = find_claude(self.root)
         if not claude:
             raise AgentError('I can\'t reach Claude on this PC yet. Install Claude Code and sign in, then try again.')
@@ -1177,6 +1451,50 @@ class Agents:
             cmd = [claude, '-p', '--output-format', 'json', '--no-session-persistence',
                    '--append-system-prompt-file', str(sys_file),
                    '--tools', tools or ALLOWED_TOOLS, '--allowedTools', ','.join([allow or tools or ALLOWED_TOOLS] + ([CHROME_TOOLS] if chrome else []) + list(extra_tools))]
+            from .kit_drafts import KIT_WRITES
+            # Kit writes are never available to a chat, whatever other permissions this PC has. Only a guarded draft run
+            # (kit_drafts.py) may make its one approved create or update, checked field by field by kit_draft_guard.py.
+            allowed_write = (guard or {}).get('write', {}).get('tool')
+            # Gmail writes likewise. Only one guarded run for an action Josh approved exactly (studio/replies.py) may make one.
+            from .frameio_review import ALL_WRITES as FRAMEIO_WRITES
+            # Frame.io writes too: only a guarded Frame.io run (studio/frameio_review.py) can make one approved upload or stack.
+            cmd += ['--disallowedTools', ','.join(t for t in KIT_WRITES + gmail_access.ALL_WRITES + FRAMEIO_WRITES if t != allowed_write)]
+            if guard and guard.get('kind') == 'gmail':
+                policy = Path(tmp) / 'gmail-action.json'
+                policy.write_text(json.dumps(guard), encoding='utf-8')
+                hook = subprocess.list2cmdline([Path(sys.executable).as_posix(), Path(__file__).with_name('gmail_action_guard.py').resolve().as_posix(), policy.as_posix()])
+                cmd[cmd.index('--tools') + 1] = ALLOWED_TOOLS + ',ToolSearch'  # the guard still denies every one but the approved call
+                cmd += ['--permission-mode', 'dontAsk', '--settings', json.dumps({**gmail_access.session_restrictions(), 'hooks': {
+                    'PreToolUse': [{'matcher': '*', 'hooks': [{'type': 'command', 'command': hook}]}]}})]
+            elif guard:
+                policy = Path(tmp) / 'kit-draft.json'
+                runtime_policy = dict(guard, reads=list(guard.get('reads') or []) + ALLOWED_TOOLS.split(',') + ['ToolSearch', 'StructuredOutput'])
+                if guard.get('kind') == 'kit_draft' and guard.get('audit_id'):
+                    import uuid
+                    from .kit_draft_guard import audit
+                    audit_id = str(uuid.UUID(guard['audit_id']))
+                    audit_dir = self.root / 'Data' / 'kit-draft-audit'
+                    audit_dir.mkdir(parents=True, exist_ok=True)
+                    runtime_policy.update(audit_path=str(audit_dir / (audit_id + '.jsonl')), run_id=str(uuid.uuid4()))
+                    audit(runtime_policy, dict(event='RunStarted', write=guard['write'], authorization=guard.get('authorization')))
+                policy.write_text(json.dumps(runtime_policy), encoding='utf-8')
+                hook = subprocess.list2cmdline([Path(sys.executable).as_posix(), Path(__file__).with_name('kit_draft_guard.py').resolve().as_posix(), policy.as_posix()])
+                cmd[cmd.index('--tools') + 1] = ALLOWED_TOOLS + ',ToolSearch'
+                cmd += ['--permission-mode', 'dontAsk', '--settings', json.dumps({'hooks': {
+                    'PreToolUse': [{'matcher': '*', 'hooks': [{'type': 'command', 'command': hook}]}],
+                    'PostToolUse': [{'matcher': '*', 'hooks': [{'type': 'command', 'command': hook}]}]}})]
+            elif read_only:
+                # Exact-name hook prevents inherited broad permissions or newly discovered MCP
+                # tools from turning this read-only request into an external write.
+                policy = Path(tmp) / 'read-tools.json'
+                policy.write_text(json.dumps(list(dict.fromkeys(
+                    ALLOWED_TOOLS.split(',') + ['ToolSearch', 'StructuredOutput'] + [name for name in extra_tools
+                    if name in CAREEROS_READ or name in gmail_access.READ_TOOLS]))), encoding='utf-8')
+                read_guard_path = Path(__file__).with_name('read_tools_guard.py').resolve()
+                hook = subprocess.list2cmdline([Path(sys.executable).as_posix(), read_guard_path.as_posix(), policy.as_posix()])
+                cmd[cmd.index('--tools') + 1] = ALLOWED_TOOLS + ',ToolSearch'
+                cmd += ['--permission-mode', 'dontAsk', '--settings', json.dumps({**gmail_access.session_restrictions(), 'hooks': {
+                    'PreToolUse': [{'matcher': '*', 'hooks': [{'type': 'command', 'command': hook}]}]}})]
             if chrome:
                 cmd.append('--chrome')
             for d in dirs:
@@ -1187,11 +1505,23 @@ class Agents:
             else:
                 prompt += '\n\nAnswer with only a JSON object: {"reply": "...", "replacement": "..." or null}.'
             try:
+                # A one-shot run doesn't wait for claude.ai connectors (Kit, Calendly and others) before its first turn, so
+                # they were often still "pending" and their tools missing. Wait up to 30 seconds for them, as the Kit and
+                # CareerOS reads do (studio/counters.py). Changes no settings or permissions.
+                env = dict(os.environ, CLAUDE_CODE_MCP_STARTUP_WAIT_MS=MCP_STARTUP_WAIT_MS) if any(
+                    str(t).startswith('mcp__') for t in extra_tools) else None
                 out = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding='utf-8',
                                      cwd=str(cwd or self.root), timeout=timeout or (TIMEOUT * 2 if chrome else TIMEOUT),
-                                     creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                                     creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), env=env)
             except subprocess.TimeoutExpired:
                 raise AgentError('That took too long, so I stopped. Try a smaller selection.') from None
+            if guard and guard.get('kind') == 'kit_draft':
+                receipts_file = policy.with_suffix('.receipts.json')
+                if receipts_file.exists():
+                    kit_receipts = json.loads(receipts_file.read_text(encoding='utf-8'))
+                if runtime_policy.get('audit_path'):
+                    audit(runtime_policy, dict(event='RunCompleted', reserved=policy.with_suffix('.used').exists(),
+                                               returncode=out.returncode))
         try:
             result = json.loads(out.stdout)
         except ValueError:
@@ -1209,6 +1539,8 @@ class Agents:
                 answer = json.loads(text[start:end + 1]) if start >= 0 else {'reply': text, 'replacement': None}
             except ValueError:
                 answer = {'reply': text, 'replacement': None}
+        if guard and guard.get('kind') == 'kit_draft':
+            answer['_kit_receipts'] = kit_receipts
         reply = str(answer.get('reply') or '').strip()
         replacement = answer.get('replacement')
         if replacement is not None and not isinstance(replacement, str):
@@ -1240,7 +1572,33 @@ class Agents:
             raise ValueError('The script changed since you selected that passage. Select it again.')
         return dict(start=start, end=end, text=text)
 
-    def apply_projects(self, updates):
+    def create_projects(self, entries, operation_id=None):
+        """Create cards atomically, without renaming existing work or invoking any remote action."""
+        operation_id = operation_id or str(uuid.uuid4())
+        done = []
+        for index, item in enumerate((entries or [])[:20]):
+            pid, title = '', ''
+            try:
+                if not isinstance(item, dict) or set(item) - {'name', 'notes', 'script', 'publish_date', 'add_titles'}:
+                    raise ValueError('Invalid new video fields. Existing card IDs cannot be used for creation.')
+                title = item.get('name')
+                if not isinstance(title, str) or not title.strip():
+                    raise ValueError('Give the new video a name.')
+                title = title.strip()
+                initial = {k: item[k] for k in ('notes', 'script', 'publish_date') if k in item}
+                titles = item.get('add_titles', [])
+                if not isinstance(titles, list) or any(not isinstance(t, str) or not t.strip() for t in titles):
+                    raise ValueError('Title ideas must be nonempty text.')
+                initial['titles'] = [dict(id=str(uuid.uuid4()), text=t.strip()) for t in dict.fromkeys(titles)]
+                # Stable within one delivered Discord/request ID. A replay returns the original card, never overwrites it.
+                pid = str(uuid.uuid5(uuid.NAMESPACE_URL, 'joshos:chat-card:' + str(operation_id) + ':' + str(index)))
+                p = self.store.create(title, pid=pid, initial=initial)
+                done.append(dict(id=p['id'], title=p['name'], action='added', kind='project'))
+            except (ValueError, TypeError, KeyError) as e:
+                done.append(dict(id=pid, title=title or '', action='failed', kind='project', error=str(e).strip("'\"")[:200]))
+        return done
+
+    def apply_projects(self, updates, expected_revisions=None):
         """Video card changes a team member made from chat."""
         done = []
         for u in (updates or [])[:20]:
@@ -1250,11 +1608,35 @@ class Agents:
             try:
                 p = self.store.get(pid)
                 title = p['name']
-                changes = {k: u[k] for k in ('name', 'stage', 'publish_date', 'notes', 'script') if isinstance(u.get(k), str) and u[k].strip()}
+                if expected_revisions is not None and expected_revisions.get(pid) != p['revision']:
+                    raise ValueError('This video changed while I was working, or was not in my snapshot. Nothing was overwritten; ask again using its current card.')
+                changes = {k: u[k] for k in ('name', 'stage', 'publish_date', 'notes', 'script', 'chosen_title') if isinstance(u.get(k), str)}
+                for key in ('archived', 'top_three'):
+                    if key in u:
+                        changes[key] = u[key]
+                for key in ('packaging', 'lead_magnet'):
+                    if key in u:
+                        if not isinstance(u[key], dict):
+                            raise ValueError(key + ' must be an object.')
+                        changes[key] = dict(p.get(key) or {}, **u[key])
+                if 'remove_title_ids' in u:
+                    removed = u['remove_title_ids']
+                    if not isinstance(removed, list) or set(removed) - {t['id'] for t in p['titles']}:
+                        raise ValueError('Use exact existing title IDs to remove titles.')
+                    changes['titles'] = [t for t in p['titles'] if t['id'] not in removed]
+                    if p.get('chosen_title') in removed:
+                        changes.setdefault('chosen_title', '')
+                if 'remove_thumbnail_assets' in u:
+                    removed = u['remove_thumbnail_assets']
+                    if not isinstance(removed, list) or set(removed) - {t['asset'] for t in p['thumbnails']}:
+                        raise ValueError('Use exact existing thumbnail asset IDs.')
+                    changes['thumbnails'] = [t for t in p['thumbnails'] if t['asset'] not in removed]
+                    changes.setdefault('top_three', [a for a in p['top_three'] if a not in removed])
                 ideas = [t.strip() for t in (u.get('add_titles') or []) if isinstance(t, str) and t.strip()]
                 if ideas:
-                    have = {t['text'] for t in p['titles']}
-                    changes['titles'] = p['titles'] + [dict(id=str(uuid.uuid4()), text=t) for t in dict.fromkeys(ideas) if t not in have]
+                    current_titles = changes.get('titles', p['titles'])
+                    have = {t['text'] for t in current_titles}
+                    changes['titles'] = current_titles + [dict(id=str(uuid.uuid4()), text=t) for t in dict.fromkeys(ideas) if t not in have]
                 if changes:
                     p = self.store.save(pid, changes, p['revision'])
                 done.append(dict(id=pid, title=p['name'], action='updated', kind='project'))
@@ -1353,7 +1735,7 @@ class Agents:
                 e = self.emails.get(cid)
             except KeyError:
                 return ''
-            body = keep(e, ('id', 'subject', 'preview', 'body', 'planned_date', 'send_time', 'status', 'type', 'notes', 'links'))
+            body = keep(e, ('id', 'revision', 'subject', 'preview', 'body', 'planned_date', 'send_time', 'status', 'type', 'notes', 'links', 'images'))
             return ('Josh has this email open right now, so "this" and "it" mean this one. To change it, send it in the "emails" '
                     'list with this id. Keep any link wording exactly as it is unless he asks, since the tracked link is attached to '
                     'those words.\n' + json.dumps(body, ensure_ascii=False, indent=1))
@@ -1374,12 +1756,47 @@ class Agents:
         images = [] if proactive else self.chat_images(data)
         files = [] if proactive else self.chat_files(data)
         via = 'discord' if data.get('via') == 'discord' else ''
+        from .conversation_context import origin, recent
+        chat_origin = origin(data)
         sel = None if proactive else self.selection(data)
         if not proactive and (not (message or images or files) or len(message) > 4000):
             raise ValueError('Write a message, up to 4,000 characters.')
         agent = next((a for a in self.team.all()['agents'] if a['id'] == agent_id), None)
         if not agent:
             raise KeyError('Team member not found.')
+        # Josh approving one exact email action with its code ("send K7Q2PX") is handled by Josh OS itself, never the model.
+        approvals = getattr(self, 'replies', None) if agent_id == 'anouk' and not proactive else None
+        natural_note = None
+        if approvals is not None and message:
+            said = approvals.act_on_text(message, self.run, via=via or 'joshos')
+            import re as _re
+            yc = getattr(self, 'youtube_comments', None)
+            pc = _re.match(r'\s*post\s+([A-Za-z0-9]{6})\b', message or '')
+            if said is None and yc is not None and pc:
+                # Josh approving one exact YouTube reply with its code ("post K7Q2PX"). Handled here, never by the model.
+                hit = next((c for c in yc.items().values() if c.get('state') == 'needs_josh' and c.get('code') == pc.group(1).upper()), None)
+                if hit is None:
+                    said = "That code isn't for a YouTube reply that's waiting, so nothing was posted."
+                else:
+                    try:
+                        out = yc.approve(hit['id'], pc.group(1), by='Josh')
+                        said = (f"Posted your reply to {hit['author']} on YouTube." if out['state'] == 'replied' else
+                                f"I couldn't tell if the reply posted: {out.get('reason', '')} I won't send it again on my own.")
+                    except ValueError as e:
+                        said = str(e)
+            if said is None and approvals.is_natural(message):
+                # "Send that" in Josh's own words. It answers only the message he replied to, or the newest Anouk message in
+                # this same conversation, never the shared desk thread (studio/approval_lineage.py). Fails closed.
+                last = next((m for m in reversed(self.thread(DESK, agent_id)) if m.get('role') == 'agent'), None)
+                said = approvals.natural_from_chat(agent_id, message, data.get('discord') if via == 'discord' else None, via,
+                                                   self.run, desk_last=(last or {}).get('id', ''))
+                if said is not None and '\n'.join(message.split('\n')[1:]).strip():
+                    # The approval was handled; the rest of his message still goes to Anouk, told what happened.
+                    natural_note, said = said, None
+            if said is not None:
+                mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now(), **chat_origin, **({'via': via} if via else {}))
+                theirs = dict(id=str(uuid.uuid4()), role='agent', text=said, at=now(), **chat_origin, **({'via': via} if via else {}))
+                return dict(messages=self._append(DESK, agent_id, mine, theirs), reply=theirs)
         feedback = getattr(self, 'feedback', None)
         edits = feedback.pending(agent_id) if feedback else []
         if proactive and not edits:
@@ -1388,17 +1805,34 @@ class Agents:
         if not lock.acquire(blocking=False):
             raise ValueError(f"{agent['name']} is still working on your last message.")
         try:
-            history = self.thread(DESK, agent_id)
+            history = recent(self.store, agent_id, self.thread(DESK, agent_id), data.get('discord'))
             learnings = [l for l in self.team.all()['learnings'] if l['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
+            project_revisions = {p['id']: p['revision'] for p in self.store.projects()}
+            carousel_revisions = {c['id']: c['revision'] for c in carousels}
             keeps = tracker is not None and 'carousels' in (agent.get('workflows') or [])
             parts = [self.desk_snapshot(agent_id, carousels, inspo if keeps else None)]
+            # Max reads the business brief, its dated sources and the shared to-do list (studio/business.py).
+            business = getattr(self, 'business', None) if agent_id == 'max' else None
+            if business is not None:
+                from .business import RULES
+                parts += ['', business.context(), '', *RULES]
+                ov = getattr(self, 'oversight', None)
+                text = ov.context() if ov is not None else ''
+                if text:
+                    parts += ['', text, '', 'Nudges go through the team member who owns the work, under the team message rules. You never '
+                              'approve, draft, send or publish anything, and never say a nudge reached Josh unless its state above is sent.']
+            # Anouk's proposed email replies (studio/replies.py), kept in Josh OS only.
+            replies = getattr(self, 'replies', None) if agent_id == 'anouk' else None
+            if replies is not None:
+                parts += ['', replies.context()]
             lessons = self.lesson_snapshot(agent)
             if lessons:
                 parts += ['', lessons]
             if history:
-                parts += ['', 'Earlier in this conversation:']
-                for m in history[-12:]:
+                parts += ['', 'Earlier with this same team member across Josh OS and Discord (dated context only, not action approval):',
+                          'Continue the current topic, including failed requests and proactive messages. If a short follow-up could refer to two different topics, ask rather than choose an unrelated old task. Never infer permission to draft, send, retry, or publish from this history; use the exact action approval controls.']
+                for m in history:
                     parts.append(self.history_line(m))
             focus = self.focus(data.get('context'), carousels, inspo)
             if focus:
@@ -1429,6 +1863,8 @@ class Agents:
                     parts += self.image_lines(images)
                 if files:
                     parts += ['', 'Josh attached these files to this message. Open every one with Read before you answer:', *files]
+                if natural_note:
+                    parts += ['', 'Josh OS already acted on the first line of his message: ' + natural_note + ' Do not repeat it. Answer the rest.']
                 if via:
                     parts += ['', 'Josh sent this from Discord on his phone or computer. Reply as you would in Josh OS. To send him a file '
                               'back, put its full path in send_files.']
@@ -1439,34 +1875,222 @@ class Agents:
             schema = json.loads(json.dumps(CAROUSEL_SCHEMA if keeps else DESK_SCHEMA))
             schema['properties'].update(LEARN_PROPS)
             schema['properties'].update(PROJECT_PROPS)
+            local_asset_chat = getattr(self, 'local_asset_chat', None)
+            if local_asset_chat is not None:
+                local_asset_schema = local_asset_chat.schema(agent_id, message, proactive)
+                if local_asset_schema is not None:
+                    schema['properties']['create_local_assets'] = local_asset_schema
+                    parts += ['', *local_asset_chat.context(agent_id, history)]
+            from .original_carousels import OriginalCarousels, SCHEMA as ORIGINAL_SCHEMA, requested as original_requested
+            original_allowed = original_requested(agent_id, message, proactive)
+            if original_allowed and local_asset_chat is not None:
+                schema['properties']['original_carousel'] = ORIGINAL_SCHEMA
+                schema['properties'].pop('carousels', None)
+                schema['properties'].pop('create_local_assets', None)
+                parts += ['', 'Use original_carousel for a NEW original visual carousel. Author each ordered panel as bounded structured scene layers; all slides use equal dimensions. No HTML, SVG, scripts, paths or URLs. Draft only; wait for the committed host save receipt before claiming completion.']
+            from .photo_carousels import PhotoDrafts, SCHEMA as PHOTO_SCHEMA, requested as photo_requested
+            photo_allowed = not original_allowed and photo_requested(agent_id, message, proactive)
+            if photo_allowed:
+                schema['properties']['photo_draft'] = PHOTO_SCHEMA
+                schema['properties'].pop('carousels', None)
+                parts += ['', 'Use photo_draft for a NEW full Photo BG1/BG2 carousel. Pick cover-1, cover-2 or cover-3 from existing approved Josh photos. Draft only: plain headline/body slides. For a promotional ending supply only exact post_id and offer_id in promotion; host must obtain authenticated canonical offer and placement links. Never supply or invent URLs. Missing adapter must block, not silently omit QR. Do not claim success before host receipt.']
+            carousel_override = carousel_override_scope = None
+            carousel_override_note = ''
+            carousel_override_requested = False
+            if keeps and local_asset_chat is not None:
+                from .carousel_overrides import CarouselOverrides, SCHEMA as OVERRIDE_SCHEMA, wants_override
+                carousel_override_requested = wants_override(agent_id, message, proactive)
+                carousel_override = CarouselOverrides(tracker, local_asset_chat)
+                try:
+                    carousel_override_scope = carousel_override.prepare(owner=agent_id, message=message,
+                        context=data.get('context'), items=carousels, images=images, proactive=proactive)
+                    if carousel_override_scope is not None:
+                        schema['properties']['carousel_slide_override'] = json.loads(json.dumps(OVERRIDE_SCHEMA))
+                        parts += ['', carousel_override.context(carousel_override_scope)]
+                except (ValueError, KeyError, OSError) as exc:
+                    carousel_override_note = 'Carousel slide override unavailable: ' + str(exc)[:240]
+                    parts += ['', carousel_override_note]
+                if carousel_override_requested:
+                    # This turn may replace one slide, not regenerate/edit the full carousel via the legacy action.
+                    schema['properties'].pop('carousels', None)
+            if agent_id not in CAN_CREATE_PROJECT or proactive:
+                schema['properties'].pop('new_projects', None)
+            if agent_id not in CAN_CREATE_PROJECT:
+                schema['properties'].pop('projects', None)
+            publishing=getattr(self,'publishing',None) if agent_id=='sam' else None
+            updates=getattr(self,'video_updates',None) if agent_id=='sam' else None
+            if updates is not None:
+                schema['properties']['prepare_video_update']={'type':['object','null'],'description':"Only to prepare a change to a video already on Josh's channel, for Josh to review: {\"video_id\": the 11 character id, \"changes\": any of title, description, thumbnail (a JPEG or PNG path), privacy (private, unlisted or public), publish_at (ISO time with its offset, private videos only), \"note\": why}. Changes nothing on YouTube. Leave null otherwise."}
+                schema['properties']['check_video_update']={'type':['string','null'],'description':'Only after you made an approved change in YouTube Studio: that change id, so Josh OS reads the video and confirms it. Leave null otherwise.'}
+                try:
+                    us=updates.status()
+                    how=('Josh OS can make approved changes itself' if us['can_update'] else
+                         'the edit permission is not connected, so an approved change is made by you in YouTube Studio in Chrome and then checked with check_video_update' if us['read_connected'] else
+                         'Josh OS is not connected to YouTube, so no video change can be prepared yet')
+                    waiting=[f"{u['id']} on {u['video_id']} ({u['state']})" for u in us['updates'] if u['state'] not in ('applied',)][:5]
+                    parts+=['',f"Changes to existing YouTube videos on {us['expected_channel']}, right now: {how}."+(' Open changes: '+'; '.join(waiting)+'.' if waiting else '')]
+                except Exception:  # noqa: BLE001 - status is a note, never a reason to fail the reply
+                    pass
+            if publishing is not None:
+                schema['properties']['prepare_release']={'type':'object','description':'Prepare only a release review packet. Never approves or uploads. Provide channel_id, video, title, description, category_id, language, explicit made_for_kids/contains_paid_promotion/contains_synthetic_media booleans, primary_thumbnail, three thumbnail_variants paths, local_time YYYY-MM-DDTHH:MM, IANA timezone, utc_offset. Omit until all decisions are known.'}
             if via:
                 schema['properties'].update(SEND_FILES_PROPS)
             thumbs = getattr(self, 'video_thumbs', None) if agent_id in CAN_THUMB else None
             if thumbs is not None:
                 schema['properties'].update(THUMB_PROPS)
+            drafts = getattr(self, 'kit_drafts', None) if agent_id == 'laia' and not proactive else None
+            visual_dispatch = getattr(self, 'kit_visual_dispatch', None) if agent_id == 'laia' and not proactive else None
+            if visual_dispatch is not None:
+                from .kit_visual_dispatch import PROPS as KIT_VISUAL_JOB_PROPS
+                schema['properties'].update(KIT_VISUAL_JOB_PROPS)
+                parts += ['', 'Existing exact image jobs the owner allowed Laia to run once: '+json.dumps(visual_dispatch.context())]
+            if drafts is not None and getattr(self, 'emails', None) is not None and 'email' in (agent.get('workflows') or []):
+                schema['properties']['kit_draft'] = {'type': ['object', 'null'], 'description': (
+                    'To prepare a Kit draft broadcast for an email in the planner: email_id and audience, where audience is one '
+                    'group, all, any or none, of Kit tags or segments, like {"all": [{"type": "segment", "ids": [123]}]}. Josh OS '
+                    'builds the draft from the saved email and Josh approves it before anything goes to Kit. You can never set a '
+                    'date, schedule, send or publish. This only prepares a local proposal; approval does not write it. '
+                    'Never claim it succeeded before the application validates it, or promise automatic creation. Leave null otherwise.'),
+                    'properties': {'email_id': {'type': 'string'}, 'audience': {'type': 'object'}}}
+            # Tariq sends his shot shortlist to Discord only when Josh asks for it in this message.
+            shortlist = getattr(self, 'send_shortlist', None) if agent_id == 'tariq' and not proactive else None
+            if shortlist is not None:
+                schema['properties']['send_shortlist'] = {'type': ['string', 'null'], 'description': (
+                    "Only when Josh's message asks you to send him the shot shortlist (the finished shots with the script) on "
+                    "Discord: that video's project id. Josh OS sends it from your own Discord bot and tells you what happened. "
+                    'Leave it null otherwise, and never send it on your own.')}
             mails = getattr(self, 'emails', None) if 'email' in (agent.get('workflows') or []) else None
             if mails is not None:
                 schema['properties'].update(EMAIL_PROPS)
+                if agent_id != 'laia' or proactive:
+                    schema['properties'].pop('email_visuals', None)
+                if agent_id != 'laia':
+                    schema['properties'].pop('emails', None)
+                    schema['properties'].pop('library', None)
+            if business is not None and not proactive:
+                from .business import TODO_PROPS
+                schema['properties'].update(TODO_PROPS)
             results = getattr(self, 'results', None) if 'youtube' in (agent.get('workflows') or []) else None
             if results is not None:
                 schema['properties'].update(VIDEO_PROPS)
             people = getattr(self, 'people', None) if 'customers' in (agent.get('workflows') or []) else None
             if people is not None:
                 schema['properties'].update(PEOPLE_PROPS)
+            if replies is not None and not proactive:
+                from .replies import REPLY_PROPS, NEW_REPLY_PROPS
+                schema['properties'].update(REPLY_PROPS)
+                schema['properties'].update(NEW_REPLY_PROPS)
             ideas = getattr(self, 'youtube_ideas', None) if agent_id == 'sam' else None
             if ideas is not None:
                 schema['properties'].update(YOUTUBE_SAVE_PROPS)
-            courses = getattr(self, 'courses', None) if 'courses' in (agent.get('workflows') or []) else None
+            # Saskia delivers a standalone guide Josh approved to the CareerOS Downloads folder (studio/guide_delivery.py).
+            delivery = getattr(self, 'guide_delivery', None) if agent_id == 'saskia' and not proactive else None
+            if delivery is not None:
+                from .guide_delivery import DELIVER_PROPS
+                schema['properties'].update(DELIVER_PROPS)
+            # Read-only connected-source refreshes; no model-generated approvals or external writes.
+            learner_reads = getattr(self, 'learners', None) if agent_id == 'anouk' and not proactive else None
+            score_reads = getattr(self, 'scorecard', None) if agent_id == 'max' and not proactive else None
+            if learner_reads is not None:
+                schema['properties']['lookup_learner'] = {'type': 'object', 'required': ['email'], 'additionalProperties': False,
+                    'properties': {'email': {'type': 'string'}, 'force': {'type': 'boolean'}},
+                    'description': 'Read learner progress by email when Josh asks. force refreshes an old cached result. Never creates accounts or messages learners; running is not complete.'}
+                parts += ['', 'Learner lookup status/cache (read only): ' + json.dumps(learner_reads.all(), ensure_ascii=False)[:20000]]
+            if score_reads is not None:
+                schema['properties']['refresh_scorecard'] = {'type': 'boolean', 'description': 'Only when Josh asks to refresh business numbers. Starts the existing read-only refresh; never claim finished until source status confirms it.'}
+            # Sam gets a video ready to film when Josh says he's ready to record it (studio/filming.py, shared with Film).
+            filming = getattr(self, 'filming', None) if agent_id == 'sam' and not proactive else None
+            if filming is not None:
+                from .filming import FILM_PROPS
+                schema['properties'].update(FILM_PROPS)
+            # Sam says a video is public; Josh OS checks the public feed itself and tells Tariq (studio/archive.py).
+            # Anouk switches her YouTube comment replies on or off, or says how they stand (studio/youtube_comments.py).
+            sam_comments = getattr(self, 'youtube_comments', None) if agent_id == 'sam' and not proactive else None
+            if sam_comments is not None:
+                schema['properties']['post_release_comment'] = {'type': 'string', 'description':
+                    'When Josh asks to post the approved lead-magnet comment, give the exact publishing job ID. '
+                    'Only an approved release confirmed public is eligible. Never invent IDs or comment copy. '
+                    'This posts/reconciles the comment only; desktop pinning is not connected.'}
+                if publishing is not None:
+                    parts += ['', 'Publishing jobs for exact comment targeting: ' + json.dumps([
+                        {'job_id': j['id'], 'video_id': j.get('video_id'), 'title': (j.get('packet') or {}).get('title'),
+                         'state': j.get('state')} for j in publishing.status().get('jobs', [])], ensure_ascii=False)]
+            ycom = getattr(self, 'youtube_comments', None) if agent_id == 'anouk' and not proactive else None
+            if ycom is not None:
+                schema['properties']['youtube_comments'] = {'type': 'string', 'enum': ['on', 'off', 'status'], 'description': (
+                    'Only when Josh asks in this message to switch your YouTube comment replies on or off, or asks how they stand. '
+                    'Josh OS does it and tells you the result. On only counts comments posted from that moment.')}
+                parts += ['', ycom.status_line()]
+            archive = getattr(self, 'archive', None) if agent_id == 'sam' and not proactive else None
+            if archive is not None:
+                from .archive import PUBLIC_PROPS
+                schema['properties'].update(PUBLIC_PROPS)
+            # Workflow membership supplies context, not write authority. Anouk reads learner/course context only.
+            courses = getattr(self, 'courses', None) if agent_id in CAN_EDIT_COURSE and 'courses' in (agent.get('workflows') or []) else None
+            course_contexts = {}
             if courses is not None:
+                from .chat_course_actions import COURSE_ACTION_SCHEMA, course_action_context
+                schema['properties']['course_action'] = COURSE_ACTION_SCHEMA
+                for lesson in courses.all()['items']:
+                    try:
+                        course_contexts[lesson['id']] = dict(course_action_context(courses, lesson['id']), title=lesson['title'])
+                    except (KeyError, ValueError, OSError):
+                        continue
+                parts += ['', 'Current exact course-action versions (model proposals cannot approve anything): ' + json.dumps(course_contexts, ensure_ascii=False)]
                 schema['properties'].update(LESSON_PROPS)
                 schema['properties'].update(GUIDE_PROPS)
                 if str(self.store.root / 'assets') not in dirs:
                     dirs = list(dirs) + [str(self.store.root / 'assets')]
             ctx = data.get('context') or {}
+            local_release = getattr(self, 'chat_release_actions', None) if agent_id == 'sam' and not proactive else None
+            local_release_project = None
+            if local_release is not None:
+                from .chat_release_actions import SCHEMA as RELEASE_ACTION_SCHEMA
+                schema['properties']['local_release_action'] = RELEASE_ACTION_SCHEMA
+                candidates = [p for p in self.store.projects() if p['id'] in message or (p['name'] and p['name'].casefold() in message.casefold())]
+                if len(candidates) == 1:
+                    local_release_project = candidates[0]['id']
+                elif not candidates and ctx.get('kind') in ('project','edit') and ctx.get('id') in project_revisions:
+                    local_release_project = ctx['id']
+                if local_release_project:
+                    parts += ['', 'Local release drafting context (not approval): ' + json.dumps(local_release.context(local_release_project))]
+                else:
+                    parts += ['', 'For local release drafting, ask which exact video title. No unique target is established.']
+            local_edit = getattr(self, 'chat_edit_actions', None) if agent_id == 'tariq' and not proactive else None
+            local_edit_project = None
+            if local_edit is not None:
+                from .chat_edit_actions import TOOL
+                schema['properties']['chat_edit_action'] = TOOL['function']['parameters']
+                candidates = [p for p in self.store.projects() if p['id'] in message or (p['name'] and p['name'].casefold() in message.casefold())]
+                if len(candidates) == 1:
+                    local_edit_project = candidates[0]['id']
+                elif not candidates and ctx.get('kind') in ('project','edit') and ctx.get('id') in project_revisions:
+                    local_edit_project = ctx['id']
+                if local_edit_project:
+                    try:
+                        parts += ['', 'Current bounded editing-action context (revision required, not owner approval): ' + json.dumps(local_edit.context(local_edit_project), ensure_ascii=False)]
+                    except (ValueError, KeyError, OSError) as e:
+                        parts += ['', 'Bounded editing context unavailable: ' + str(e)[:300]]
+                        local_edit_project = None
+                else:
+                    parts += ['', 'For bounded editing actions, ask Josh which exact video title he means. No unique current target was established. He does not need to open a particular page.']
             er = getattr(self, 'edit_review', None) if 'editing' in (agent.get('workflows') or []) else None
             edit_folder, before, run_tools = None, None, None
             if er is not None:
                 schema['properties'].update(EDIT_PROPS)
+            fio_ctx = getattr(self, 'frameio', None) if er is not None and ctx.get('id') else None
+            if fio_ctx is not None:
+                try:
+                    text = fio_ctx.context(str(ctx['id']))
+                    if text:
+                        parts += ['', text]
+                except Exception:  # noqa: BLE001 - review context is extra
+                    pass
+            arc_ctx = getattr(self, 'archive', None) if er is not None and ctx.get('id') else None
+            if arc_ctx is not None and (arc_ctx.record(str(ctx['id'])).get('proof') or {}).get('first_verified_at'):
+                text = arc_ctx.context(str(ctx['id']))
+                if text:
+                    parts += ['', text]
             if er is not None and ctx.get('kind') in ('edit', 'project') and ctx.get('id'):
                 try:
                     edit_folder = er.project_folder(str(ctx['id']))
@@ -1484,34 +2108,265 @@ class Agents:
             live = self.live(agent_id)
             outside = (['mcp__linklr__' + t for t in LINKLR.get(agent_id, ())] + list(KIT.get(agent_id, ())) + list(GMAIL.get(agent_id, ()))
                        + list(CALENDLY.get(agent_id, ()))) if live else []
-            reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
-                                     schema, dirs, chrome=agent_id in CHROME and not proactive and live,
-                                     extra_tools=outside, full=True,
-                                     tools=run_tools, cwd=edit_folder if run_tools else None,
-                                     allow=scoped(run_tools, edit_folder) if run_tools else None)
+            # Only CareerOS learner-support reads were approved independently of full activation.
+            outside += list(CAREEROS.get(agent_id, ()))
+            outside += list(gmail_access.tools_for(agent_id, self.root))
+            try:
+                reply, answer = self.run(self.desk_system_prompt(agent, learnings), '\n'.join(parts),
+                                         schema, dirs, chrome=agent_id in CHROME and not proactive and live,
+                                         extra_tools=outside, full=True, read_only=agent_id == 'anouk',
+                                         tools=run_tools, cwd=edit_folder if run_tools else None,
+                                         allow=scoped(run_tools, edit_folder) if run_tools else None)
+            except Exception as exc:
+                # A failed read still happened in the conversation. Without this, "try again"
+                # resumes the last successful (possibly days-old) email topic instead.
+                # This is context only: no offer, send permission, or replay of a write.
+                if agent_id == 'anouk' and not proactive:
+                    from .approval_lineage import conversation
+                    origin = conversation(data.get('discord')) if via == 'discord' else 'joshos:desk'
+                    meta = dict(failed_read=True, conversation=origin or 'discord:unknown')
+                    if via:
+                        meta['via'] = via
+                    mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now(), **meta)
+                    if images:
+                        mine['images'] = images
+                    if files:
+                        mine['files'] = [Path(f).name for f in files]
+                    if sel:
+                        mine['selection'] = sel
+                    failed = dict(id=str(uuid.uuid4()), role='agent', at=now(), **meta,
+                                  text="I couldn't do that: " + str(exc).strip(chr(39) + chr(34))[:300])
+                    self._append(DESK, agent_id, mine, failed)
+                raise
             answer = answer if isinstance(answer, dict) else {}
-            todo = answer.get('carousels')
-            saved = tracker.apply(agent_id, todo) if keeps and isinstance(todo, list) else []
+            # Showing an email is read only for the whole answer: nothing else in it is saved, sent, prepared or started,
+            # including a new draft rebuilt from the chat. Only the reply and the email to show are kept.
+            answer, held_writes = show_only(answer) if mails is not None else (answer, [])
+            if visual_dispatch is not None and isinstance(answer.get('kit_visual_job'),dict):
+                try:
+                    if any(value for key,value in answer.items() if key not in ('reply','kit_visual_job')):
+                        raise ValueError('Save and review other changes separately before running an approved image job.')
+                    outcome=visual_dispatch.dispatch(answer['kit_visual_job'],role=agent_id,message=message,
+                        context=data.get('context'),proactive=proactive,
+                        request_id=chat_origin.get('request_message_id') or data.get('request_id') or '')
+                    reply=outcome['note']
+                except (ValueError,KeyError,OSError,PermissionError) as exc:
+                    reply='The Kit image job was not completed: '+str(exc)[:500]
+                answer={'reply':reply}
+            release_notice=''
+            if local_release is not None and isinstance(answer.get('local_release_action'),dict):
+                try:
+                    local_release_result=local_release.dispatch(agent_id,answer['local_release_action'],project_id=local_release_project,message=message)
+                    release_notice=local_release_result['note']
+                except (ValueError,KeyError,OSError) as exc:
+                    release_notice='Local release action not completed: '+str(exc)[:300]
+
+            if publishing is not None and isinstance(answer.get('prepare_release'),dict):
+                try:
+                    release=publishing.prepare(answer['prepare_release'])
+                    if release.get('video_id') or release.get('state')!='needs_review':
+                        release_notice='Existing release found with state '+str(release.get('state'))+'. Open /publishing#'+release['id']+' in Josh OS to inspect it. Do not create another upload.'
+                    else:
+                        release_notice='Release prepared for your review. Open /publishing#'+release['id']+' in Josh OS to review and approve upload and scheduling. Nothing has been uploaded yet.'
+                except (ValueError,KeyError,OSError) as exc:
+                    release_notice='Release preparation needs attention: '+str(exc)[:300]
+            if updates is not None and isinstance(answer.get('prepare_video_update'),dict):
+                w=answer['prepare_video_update']
+                try:
+                    job=updates.prepare(w.get('video_id'),w.get('changes'),by='sam',note=w.get('note',''))
+                    msg=('Change prepared for Josh to review at /publishing-updates#'+job['id']+'. Nothing has changed on YouTube.') if job['state']=='needs_review' \
+                        else ('That change was already prepared, and it is '+job['state']+'. Open /publishing-updates#'+job['id']+' to see it.')
+                except (ValueError,KeyError,OSError) as exc:
+                    msg='The video change needs attention: '+str(exc)[:300]
+                release_notice=(release_notice+'\n\n' if release_notice else '')+msg
+            if updates is not None and isinstance(answer.get('check_video_update'),str) and answer['check_video_update']:
+                try:
+                    job=updates.verify_chrome(answer['check_video_update'],by='sam')
+                    msg='Josh OS read the video and the approved change is live.' if job['state']=='applied' \
+                        else 'Josh OS read the video and it does not show the approved change yet: '+str(job.get('error') or '')[:300]
+                except (ValueError,KeyError,OSError) as exc:
+                    msg='The video change could not be checked: '+str(exc)[:300]
+                release_notice=(release_notice+'\n\n' if release_notice else '')+msg
+            if release_notice:reply=(reply or '').rstrip()+'\n\n'+release_notice
+            want = answer.get('kit_draft') if drafts is not None and mails is not None else None
+            if isinstance(want, dict):
+                try:
+                    email = next(e for e in mails.all() if e['id'] == str(want.get('email_id', '')))
+                    if answer.get('email_visuals'):
+                        raise ValueError('Save and review local email visuals first. Kit proposals with local visuals are blocked.')
+                    d = drafts.propose(email, want.get('audience'))
+                    note = (f"The Kit draft for \"{email['subject']}\" is ready for your approval on its Email page. "
+                            "This is a local proposal only. Approval and Save draft to Kit are separate steps. "
+                            + ("After approval, use Save draft to Kit." if drafts.live() else
+                               "Saving drafts to Kit is currently switched off; approval will not create it automatically.")
+                            + " Nothing has been created, scheduled or sent in Kit.")
+                except StopIteration:
+                    note = "I couldn't find that email in the planner, so no Kit draft was prepared."
+                except ValueError as e:
+                    note = f"I couldn't prepare the Kit draft: {str(e)[:200]}"
+                # The operation's verified outcome replaces speculative model success claims.
+                reply = note
+            ask = answer.get('send_shortlist') if shortlist is not None else None
+            if isinstance(ask, str) and ask.strip():
+                if asked_for_shortlist(message):
+                    try:
+                        outcome = shortlist(ask.strip())
+                    except Exception as e:  # noqa: BLE001 - tell Josh rather than fail the whole reply
+                        outcome = f"I couldn't send the shortlist: {str(e)[:200]}"
+                else:
+                    outcome = "I didn't send the shortlist, since you didn't ask me to send it."
+                reply = (reply or '').rstrip() + '\n\n' + outcome
+            saved = []
+            local_asset_note = ''
+            original_attempt = original_allowed or answer.get('original_carousel') is not None
+            if not original_attempt and local_asset_chat is not None and answer.get('create_local_assets') is not None:
+                local_asset_saved, local_asset_note = local_asset_chat.dispatch(
+                    agent_id, answer['create_local_assets'], message=message, proactive=proactive)
+                saved += local_asset_saved
+            if local_edit is not None and isinstance(answer.get('chat_edit_action'), dict):
+                try:
+                    if not local_edit_project:
+                        raise ValueError('Name the exact video for this editing action; no unique target was established.')
+                    result = local_edit.dispatch(answer['chat_edit_action'], role=agent_id, project_id=local_edit_project, current_message=message)
+                    saved.append(dict(id=local_edit_project, title='local edit action', action='updated', kind='edit'))
+                    reply = (reply or '').rstrip() + '\n\nLocal edit action: ' + json.dumps(result, ensure_ascii=False, default=str)
+                except (ValueError, KeyError, RuntimeError, OSError) as e:
+                    reply = (reply or '').rstrip() + '\n\nLocal edit action not applied: ' + str(e)[:500]
+            from .chat_local_requests import requested_read
+            if learner_reads is not None and isinstance(answer.get('lookup_learner'), dict):
+                try:
+                    if not requested_read(message):
+                        raise ValueError('Ask for a learner lookup or refresh in this message.')
+                    lookup = learner_reads.lookup(answer['lookup_learner'])
+                    reply = (reply or '').rstrip() + '\n\nLearner lookup: ' + json.dumps(lookup, ensure_ascii=False)
+                except (ValueError, KeyError) as e:
+                    reply = (reply or '').rstrip() + '\n\nLearner lookup was not started: ' + str(e)
+            if score_reads is not None and answer.get('refresh_scorecard') is True:
+                if requested_read(message):
+                    outcome = score_reads.refresh()
+                    reply = (reply or '').rstrip() + '\n\nScorecard refresh: ' + str(outcome.get('state', 'unknown')) + '. Existing figures keep their original source dates until refreshed.'
+                else:
+                    reply = (reply or '').rstrip() + '\n\nNo refresh started. Ask to refresh the scorecard in this message.'
+            if original_attempt:
+                from .carousels import save_receipt
+                try:
+                    row = OriginalCarousels(tracker, local_asset_chat).apply(answer.get('original_carousel'),
+                        owner=agent_id, message=message, proactive=proactive,
+                        request_id=data.get('request_id') or str(uuid.uuid4()))
+                except (ValueError, KeyError, OSError, RuntimeError):
+                    # Renderer/storage errors may contain local paths; never echo them.
+                    row = dict(kind='carousel', action='failed', title='Original carousel',
+                               error='The original carousel was not saved. Review the request before retrying.')
+                saved.append(row)
+                reply = save_receipt([row])
+            photo_attempt = not original_attempt and (photo_allowed or answer.get('photo_draft') is not None)
+            if photo_attempt:
+                from .carousels import save_receipt
+                try:
+                    from .photo_distinct import DistinctPhotoReceipts
+                    row = PhotoDrafts(tracker, DistinctPhotoReceipts(tracker,self.root)).apply(answer.get('photo_draft'),
+                        owner=agent_id, message=message, proactive=proactive,
+                        request_id=data.get('request_id') or str(uuid.uuid4()))
+                except (ValueError, KeyError, OSError, RuntimeError) as exc:
+                    row = dict(kind='carousel',action='failed',title='Photo carousel',error=str(exc)[:300])
+                saved.append(row)
+                # Only a committed host receipt can report a successful Photo draft.
+                reply = save_receipt([row])
+            todo = [] if photo_attempt or original_attempt else answer.get('carousels')
+            if carousel_override_requested or answer.get('carousel_slide_override') is not None:
+                todo = []
+            if not photo_attempt and not original_attempt and answer.get('carousel_slide_override') is not None:
+                try:
+                    if carousel_override is None:
+                        raise ValueError('Only Sam can replace a carousel slide on a current request.')
+                    row = carousel_override.apply(answer['carousel_slide_override'], scope=carousel_override_scope,
+                        owner=agent_id, message=message, proactive=proactive)
+                    saved.append(row)
+                    carousel_override_note = (f"Replaced slide {row['slide_number']} locally; every other slide image is unchanged. "
+                        'The carousel is ready for review. Nothing was sent, uploaded or published.')
+                except (ValueError, KeyError, OSError) as exc:
+                    carousel_override_note = 'Carousel slide override failed: ' + str(exc)[:240]
+                    saved.append(dict(kind='carousel', action='failed', title='Carousel slide override', error=str(exc)[:240]))
+            if keeps and isinstance(todo, list) and not photo_attempt and not original_attempt:
+                carousel_saved = tracker.apply(agent_id, todo, revisions=carousel_revisions,
+                    request_id=(data.get('request_id') or str(uuid.uuid4())) if agent_id == 'sam' else None)
+                saved += carousel_saved
+                if todo:
+                    from .carousels import save_receipt
+                    # Model prose was written before the save. Replace it with
+                    # committed host outcomes, including partial batch failures.
+                    reply = save_receipt(carousel_saved) or 'No carousel changes were saved.'
             found = answer.get('inspo')
             if keeps and inspo is not None and isinstance(found, list):
                 saved += inspo.apply(found)
-            if mails is not None and isinstance(answer.get('emails'), list):
-                saved += self.apply_emails(mails, answer['emails'])
+            if mails is not None:
+                email_answer = dict(answer) if agent_id == 'laia' else {k:v for k,v in answer.items() if k not in ('emails','library','email_visuals')}
+                if proactive:email_answer.pop('email_visuals', None)
+                done, shown = self.email_answer(mails, email_answer)
+                saved += done
+                from .kit_sent import save_failure_reply
+                reply = save_failure_reply(reply, done)
+                if held_writes:
+                    saved.append(dict(id=str(answer.get('show_email')), title='', action='failed', kind='email',
+                                      error='Nothing saved. Showing an email changes nothing, so ' + ', '.join(held_writes) + ' was not applied. Ask again for a change.'))
+                if shown:
+                    reply = (reply or '').rstrip() + '\n\n' + shown
             if people is not None and isinstance(answer.get('people'), list):
                 saved += people.apply(answer['people'])
+            if replies is not None and not proactive and isinstance(answer.get('reply_proposals'), list):
+                saved += replies.apply(answer['reply_proposals'])
+            nr = answer.get('new_reply_proposal') if replies is not None and not proactive else None
+            if isinstance(nr, dict) and nr.get('body') and nr.get('body', '').strip()[:40] in (reply or ''):
+                try:
+                    b = replies.create_from_chat(nr, source='anouk chat')
+                    saved.append(dict(id=b['id'], title=f"reply to {b['from_name'] or b['from_email']}", action='added', kind='reply'))
+                except ValueError as e:
+                    saved.append(dict(id='', title='a proposed reply', action='failed', kind='reply', error=str(e)[:200]))
             if results is not None and isinstance(answer.get('videos'), list):
                 saved += results.apply(answer['videos'])
+            if courses is not None and isinstance(answer.get('course_action'), dict) and not proactive:
+                from .chat_course_actions import dispatch_course_action, current_request_authorizes
+                from .chat_local_requests import bind_target
+                action = answer['course_action']
+                try:
+                    bound = bind_target(message, action.get('lesson_id'), course_contexts, data.get('context'), noun='lesson')
+                    result = dispatch_course_action(courses, agent_id, action, authorize=lambda a: current_request_authorizes(a, bound))
+                    saved.append(dict(id=action['lesson_id'], title='course action', action='updated', kind='lesson'))
+                    reply = (reply or '').rstrip() + '\n\nCourse action: ' + json.dumps(result, ensure_ascii=False)
+                except (ValueError, KeyError, RuntimeError) as e:
+                    reply = (reply or '').rstrip() + '\n\nCourse action not applied: ' + str(e)[:500]
             if courses is not None and isinstance(answer.get('lessons'), list):
                 saved += self.apply_lessons(courses, answer['lessons'])
-            if isinstance(answer.get('projects'), list):
-                saved += self.apply_projects(answer['projects'])
-            if thumbs is not None and isinstance(answer.get('thumbnails'), list):
+            if isinstance(answer.get('new_projects'), list) and not proactive and agent_id in CAN_CREATE_PROJECT and requests_new_project(message):
+                operation_id = ':'.join((agent_id, chat_origin.get('conversation', ''),
+                                         chat_origin.get('request_message_id') or str(data.get('request_id') or uuid.uuid4())))
+                created = self.create_projects(answer['new_projects'], operation_id)
+                saved += created
+                if created:
+                    outcomes = [('Created video card: ' + c['title'] + ' (' + c['id'] + ').') if c['action'] == 'added'
+                                else ('Could not create video card: ' + c.get('error', 'Unknown error')) for c in created]
+                    reply = (reply or '').rstrip() + '\n\n' + '\n'.join(outcomes)
+            if answer.get('new_projects') and (agent_id not in CAN_CREATE_PROJECT or proactive or not requests_new_project(message)):
+                reply = (reply or '').rstrip() + '\n\nNo new video card was saved. Ask Sam or Tariq directly to create a new video card.'
+            if isinstance(answer.get('projects'), list) and agent_id in CAN_CREATE_PROJECT and not proactive:
+                if requests_new_project(message):
+                    if answer['projects']:
+                        reply = (reply or '').rstrip() + '\n\nExisting cards were left unchanged because you asked for a new card. Changes to an existing card need a separate request.'
+                else:
+                    saved += self.apply_projects(answer['projects'], project_revisions)
+            if business is not None and not proactive and isinstance(answer.get('todos'), list):
+                done, changed = business.apply_todos(answer['todos'])
+                saved += done
+                if changed:
+                    reply = (reply or '').rstrip() + '\n\nUpdated in your list:\n' + '\n'.join('- ' + c for c in changed)
+            if thumbs is not None and not proactive and agent_id == 'sam' and isinstance(answer.get('thumbnails'), list):
                 for t in answer['thumbnails'][:3]:
                     try:
-                        saved.append(thumbs.start(str((t or {}).get('project_id') or ''), str((t or {}).get('note') or message)[:2000], via))
+                        saved.append(self.start_thumbnail_request(thumbs, t, message, images, via))
                     except (ValueError, KeyError) as e:
-                        saved.append(dict(id=str((t or {}).get('project_id') or ''), title='thumbnails', action='failed', kind='thumbnail',
+                        saved.append(dict(id=str((t if isinstance(t, dict) else {}).get('project_id') or ''), title='thumbnails', action='failed', kind='thumbnail',
                                           error=str(e).strip("'\"")[:200]))
+                        reply = 'The thumbnail job did not start. ' + str(e).strip("'\"")[:600]
             if ideas is not None and isinstance(answer.get('save_youtube'), list):
                 confirm = []
                 for item in answer['save_youtube'][:10]:
@@ -1525,18 +2380,100 @@ class Agents:
                         confirm.append(f"I couldn't save {url}: {str(e)[:200]}")
                 if confirm:
                     reply = (reply or '').rstrip() + '\n\n' + '\n'.join(confirm)
+            want_guide = answer.get('deliver_guide') if delivery is not None else None
+            if isinstance(want_guide, dict) and want_guide.get('path'):
+                from .guide_delivery import APPROVE_WORDS
+                if APPROVE_WORDS.search(message or ''):
+                    try:
+                        d = delivery.deliver(want_guide['path'], want_guide.get('title') or Path(str(want_guide['path'])).stem,
+                                             dict(by='josh', said=message[:500], at=now(), via=via or 'joshos'))
+                        outcome = delivery.describe(d)
+                    except (ValueError, OSError) as e:
+                        outcome = f"I didn't deliver it: {str(e)[:250]}"
+                else:
+                    outcome = "I didn't put it in Downloads, since you didn't say you approve it."
+                reply = (reply or '').rstrip() + '\n\n' + outcome
+            want_film = answer.get('prepare_filming') if filming is not None else None
+            if isinstance(want_film, dict) and (want_film.get('project_id') or want_film.get('video_name')):
+                from .filming import FILM_WORDS, describe
+                if FILM_WORDS.search(message or ''):
+                    try:
+                        rec = filming.prepare(pid=str(want_film.get('project_id') or '') or None,
+                                              query=None if want_film.get('project_id') else want_film.get('video_name'), via=via or 'joshos')
+                        outcome = describe(rec)
+                    except Exception as e:  # noqa: BLE001 - tell Josh rather than fail the whole reply
+                        outcome = f"I couldn't get it ready: {str(e)[:200]}"
+                else:
+                    outcome = "I didn't set anything up for filming, since you didn't say you're ready to record."
+                reply = (reply or '').rstrip() + '\n\n' + outcome
+            if sam_comments is not None and answer.get('post_release_comment'):
+                try:
+                    import re as comment_re
+                    if not comment_re.search(r'\b(post|add|pin)\b', message or '', comment_re.I) or not comment_re.search(r'\bcomment\b', message or '', comment_re.I):
+                        raise ValueError('Ask to post the approved comment for this video.')
+                    rec = sam_comments.post_approved_release_comment(answer['post_release_comment'])
+                    outcome = ('The exact approved comment is on YouTube. Pinning is not yet connected.'
+                               if rec.get('state') == 'posted' else
+                               'Comment delivery is uncertain. I did not retry; inspect YouTube first.')
+                except Exception as e:
+                    outcome = "I couldn't post the approved comment: " + str(e)[:200]
+                reply = (reply or '').rstrip() + '\n\n' + outcome
+            want_yc = answer.get('youtube_comments') if ycom is not None else None
+            if want_yc in ('on', 'off', 'status'):
+                try:
+                    if want_yc == 'on':
+                        ycom.enable(by='Josh')
+                    elif want_yc == 'off':
+                        ycom.deactivate(by='Josh')
+                    outcome = ycom.status_line()
+                except ValueError as e:
+                    outcome = str(e)
+                reply = (reply or '').rstrip() + chr(10) * 2 + outcome
+            want_pub = answer.get('youtube_public') if archive is not None else None
+            if isinstance(want_pub, dict) and want_pub.get('project_id') and want_pub.get('video_id'):
+                from .archive import describe_proof
+                try:
+                    outcome = describe_proof(archive.record_public(str(want_pub['project_id']), str(want_pub['video_id']), by='sam'))
+                except Exception as e:  # noqa: BLE001 - tell Josh rather than fail the whole reply
+                    outcome = f"I couldn't confirm it's public: {str(e)[:200]}"
+                reply = (reply or '').rstrip() + '\n\n' + outcome
             if courses is not None and isinstance(answer.get('written_guide'), dict):
                 saved += self.start_guide(agent_id, answer['written_guide'], via)
             action = answer.get('edit') if isinstance(answer.get('edit'), dict) else {}
             if er is not None and edit_folder is not None:
                 saved += self.apply_edit(er, str(ctx['id']), action, before)
                 saved += self.start_go_ahead(str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
+                saved += self.start_finish(str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via,
+                                           dict(text=message, at=now()) if message else None)
                 saved += self.keep_anim_notes(str(ctx['id']), action)
                 saved += self.start_deck_job(agent_id, str(ctx['id']), self.store.get(str(ctx['id'])).get('name', ''), action, via)
             elif er is not None and action.get('project_id'):
-                saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via)
+                saved += self.apply_edit_elsewhere(er, agent_id, str(action['project_id']), action, via,
+                                                   dict(text=message, at=now()) if message else None)
+            if action.get('finish') is True:
+                failed_finish = next((x for x in reversed(saved) if x.get('action') == 'failed'
+                                      and x.get('kind') == 'edit' and str(x.get('title', '')).startswith('putting ')), None)
+                if failed_finish:
+                    reply = 'The edit did not start. ' + str(failed_finish.get('error') or 'The finish request was blocked.')
+            fio = getattr(self, 'frameio', None) if er is not None else None
+            fio_pid = str(ctx.get('id') or '') if ctx.get('kind') in ('edit', 'project') else str(action.get('project_id') or '')
+            if fio is not None and action.get('frameio') == 'send' and fio_pid:
+                from .frameio_progress import send_from_chat
+                receipt = send_from_chat(fio, fio_pid, dict(by='Josh', said=message[:500], via=via or 'joshos'))
+                saved.append(receipt)
+                # The model answered before staging. Only the host can confirm its outcome.
+                reply = receipt['message']
+            elif fio is not None and action.get('frameio') == 'feedback' and fio_pid:
+                try:
+                    if not message:
+                        raise ValueError('It needs your own message asking for it.')
+                    b = fio.import_feedback(fio.latest(fio_pid)['id'])
+                    note = f"Read {len(b['feedback'])} comments from {b['export']['name']} on Frame.io. They're tied to that exact version."
+                except (ValueError, KeyError, RuntimeError) as e:
+                    note = f"Frame.io: {str(e).strip(chr(39))[:250]}"
+                reply = (reply or '').rstrip() + '\n\n' + note
             replacement = answer.get('replacement') if sel and isinstance(answer.get('replacement'), str) else None
-            if mails is not None and isinstance(answer.get('library'), list):
+            if mails is not None and agent_id == 'laia' and isinstance(answer.get('library'), list):
                 saved += mails.add_references(answer['library'][:40])
             if feedback and isinstance(answer.get('edits_noted'), list):
                 known = {e['id'] for e in edits}
@@ -1545,7 +2482,29 @@ class Agents:
             learned = self.keep_lessons(agent, answer.get('learned') if answer.get('learned') else (None if courses is not None else answer.get('lessons')))
         finally:
             lock.release()
-        theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now())
+        if natural_note:
+            reply = natural_note + '\n\n' + (reply or '')
+        # Keep explanations and other verified notices. Append after existing
+        # email-failure sanitization so its safety notice and this receipt survive.
+        if local_asset_note and not (reply or '').rstrip().endswith(local_asset_note):
+            reply = (reply or '').rstrip() + ('\n\n' if reply else '') + local_asset_note
+        if carousel_override_note:
+            reply = (reply or '').rstrip() + ('\n\n' if reply else '') + carousel_override_note
+        theirs = dict(id=str(uuid.uuid4()), role='agent', text=reply, at=now(), **chat_origin)
+        offers_from = getattr(self, 'replies', None) if agent_id == 'anouk' else None
+        if offers_from is not None:
+            try:
+                offered = offers_from.offers_for(reply)
+            except Exception:  # noqa: BLE001 - an offer is extra
+                offered = []
+            if offered:
+                theirs['offers'] = offered
+            if via != 'discord':
+                # Shown on the Josh OS desk. Replies sent on Discord are recorded by the bridge with their message ids.
+                try:
+                    offers_from.lineage.record(agent_id, 'joshos:desk', [theirs['id']], offered, kind='chat', state='sent', at=theirs['at'])
+                except Exception:  # noqa: BLE001 - without a record, "send it" on the desk fails closed
+                    pass
         sending = self.files_to_send(answer.get('send_files')) if via and isinstance(answer, dict) else []
         if sending:
             theirs['files'] = sending
@@ -1560,7 +2519,7 @@ class Agents:
         if proactive:
             theirs['asked'] = True
             return dict(messages=self._append(DESK, agent_id, theirs), reply=theirs)
-        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now())
+        mine = dict(id=str(uuid.uuid4()), role='josh', text=message, at=now(), **chat_origin)
         if images:
             mine['images'] = images
         if files:
@@ -1575,31 +2534,129 @@ class Agents:
         """Josh just edited a team member's work. They look at the changes and write to him first."""
         return self.chat(data, carousels, tracker, inspo, proactive=True)
 
+    def email_answer(self, mails, answer):
+        """The email part of a team member's answer. Returns (saved entries, text to add to the reply). show_email adds the
+        saved email by its stable id and saves nothing; a change to that same email in the same answer is refused."""
+        shown = str(answer.get('show_email') or '').strip()
+        ups = answer.get('emails') if isinstance(answer.get('emails'), list) else []
+        done = []
+        if shown:
+            held = [x for x in ups if isinstance(x, dict) and str(x.get('id') or '') == shown]
+            ups = [x for x in ups if x not in held]
+            if held:
+                done.append(dict(id=shown, title='', action='failed', kind='email',
+                                 error='Not saved. Showing an email never changes it. Ask again if you want a change.'))
+        visual = answer.get('email_visuals')
+        if visual is not None:
+            eid = visual.get('email_id', '') if isinstance(visual, dict) else ''
+            try:
+                if shown:raise ValueError('Showing an email never changes visuals. Ask again for a change.')
+                if any(isinstance(u, dict) and u.get('id') == eid for u in ups):
+                    ups = [u for u in ups if not isinstance(u, dict) or u.get('id') != eid]
+                    raise ValueError('Save body edits and visual changes in separate turns; neither change to this email was saved.')
+                item = mails.visuals.generate(visual)
+                done.append(dict(id=item['id'], title=item['subject'], action='updated', kind='email',
+                                 fields=['images'], revision=item['revision'], note='Local visual preview saved. Nothing uploaded; Kit preparation is blocked.'))
+            except Exception as exc:
+                done.append(dict(id=eid, title='', action='failed', kind='email', error=str(exc).strip("'\"")[:300]))
+        done += self.apply_emails(mails, ups) if ups else []
+        return done, (self.email_text(mails, shown) if shown else '')
+
+    @staticmethod
+    def email_text(mails, eid):
+        """The saved email by its stable id, word for word, for Josh to read in chat. Reads only."""
+        try:
+            e = mails.get(eid)
+        except KeyError:
+            return f"There's no email with id {eid} in Josh OS, so nothing was shown."
+        when = f"planned {e.get('planned_date') or 'no date'}{(' ' + e['send_time']) if e.get('send_time') else ''}"
+        kit = e.get('kit') or {}
+        return '\n'.join([f"**{e['subject']}** Â· {e['status']} Â· {when} Â· saved version {e['revision']}"
+                          + (f" Â· Kit broadcast {kit.get('id')} ({kit.get('status')})" if kit.get('id') else ''),
+                          *([f"Preview: {e['preview']}"] if e.get('preview') else []), '', e.get('body') or '(no body yet)'])
+
     def apply_emails(self, mails, updates):
-        """Email changes a team member asked for from chat. Status is left to Josh."""
+        """Email changes a team member asked for from chat. Status is left to Josh, with two exceptions, both checked here:
+        sent true only when Kit's newest complete snapshot shows that broadcast completed, and sent false to undo a Sent
+        that has no such proof. Every change is read back, and only the fields that really changed are reported."""
+        from .emails import kit_send_proof, proven_send, trusted_broadcasts
+        drafts = getattr(self, 'kit_drafts', None)
         done = []
         for u in updates[:40]:
             if not isinstance(u, dict):
                 continue
             changes = {k: str(v) for k, v in u.items() if k in EMAIL_WRITE and v is not None}
-            if u.get('sent') is True:
-                changes['status'] = 'Sent'
-            if isinstance(u.get('results'), dict):
-                changes['results'] = {k: v for k, v in u['results'].items() if v is not None}
-            if isinstance(u.get('source_ids'), list):
-                known = mails.references()
-                changes['source_ids'] = [str(x) for x in u['source_ids'] if str(x) in known][:5]
+            for key in ('links', 'tags', 'archived'):
+                if key in u:
+                    changes[key] = u[key]
             eid = str(u.get('id') or '')
+            title = changes.get('subject', '')
             try:
-                if eid:
-                    current = mails.get(eid)
-                    item = mails.save(eid, changes, current['revision'])
-                    done.append(dict(id=item['id'], title=item.get('subject', ''), action='updated', kind='email'))
+                current = mails.get(eid) if eid else None
+                title = title or (current or {}).get('subject', '')
+                if isinstance(u.get('results'), dict):
+                    changes['results'] = dict((current or {}).get('results') or {}, **{k: v for k, v in u['results'].items() if v is not None})
+                if isinstance(u.get('source_ids'), list):
+                    known = mails.references()
+                    changes['source_ids'] = [str(x) for x in u['source_ids'] if str(x) in known][:5]
+                if u.get('sent') is True:
+                    if current is None:
+                        raise ValueError('A new email starts as a draft. Mark it sent once it exists and Kit shows it went out.')
+                    # The broadcast must be one Josh OS itself tied to this email. An id from the chat is only a pointer
+                    # to one of those, never proof: any completed broadcast would otherwise fit any email.
+                    trusted = trusted_broadcasts(current, drafts)
+                    asked = str(u.get('kit_broadcast_id') or '').strip()
+                    verified = None
+                    if not trusted:
+                        from .kit_sent import verified_link
+                        verified = verified_link(mails, current, asked)
+                        changes.update(verified)
+                        trusted = [str(verified['kit']['id'])]
+                    if asked and asked not in trusted:
+                        raise ValueError(f'Not marked sent. Kit broadcast {asked} is not the one linked to this email ({", ".join(trusted)}).')
+                    bid = asked or trusted[0]
+                    proof = (dict(sent=True, send_at=verified['kit']['send_at'], snapshot_at=verified['kit']['synced_at'])
+                             if verified else kit_send_proof(mails.store, bid))
+                    if not proof['sent']:
+                        raise ValueError('Not marked sent. ' + proof['reason'] + ' Only a send Kit shows as completed counts, never a planned date or a chat message.')
+                    changes['status'] = 'Sent'
+                    changes['results'] = dict(changes.get('results') or current.get('results') or {}, kit_broadcast_id=bid)
+                    source = 'Kit verified read' if verified else 'Kit snapshot'
+                    changes['notes'] = (current.get('notes') or '') + f"\n[Sent per linked Kit broadcast {bid}, sent {proof['send_at']}, {source} {str(proof['snapshot_at'])[:16]}]"
+                elif u.get('sent') is False:
+                    if not current or current['status'] != 'Sent':
+                        raise ValueError('That email is not marked Sent, so there was nothing to undo.')
+                    proven = proven_send(mails.store, current, drafts)
+                    if proven:
+                        raise ValueError(f"Not changed. Kit shows its linked broadcast {proven['broadcast_id']} went out "
+                                         f"({proven['send_at']}, {proven['source']}), so it stays Sent.")
+                    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+                    today = (_dt.now(_tz.utc) + _td(hours=4)).date().isoformat()     # Dubai, where the planner's dates live
+                    if not current.get('planned_date') or current['planned_date'] < today:
+                        # Older sends were mostly marked before Josh OS kept Kit links, so missing proof isn't proof of no send.
+                        raise ValueError('Not changed. Its planned date has passed (or it has none), and older sends often have '
+                                         'no Kit link in Josh OS. Ask Josh before changing it.')
+                    back = next((v['status'] for v in mails.history(eid) if v.get('status') not in ('Sent', None)), 'Draft')
+                    changes['status'] = back
+                if current is not None:
+                    mails.save(eid, changes, current['revision'], sync_remote=False)
+                    item = mails.get(eid)
+                    applied = [k for k in changes if item.get(k) != current.get(k)]
+                    off = [k for k in changes if item.get(k) != changes[k] and k not in ('results', 'notes')]
+                    if off:
+                        done.append(dict(id=eid, title=title, action='failed', kind='email', error='Saved, but ' + ', '.join(off) + ' did not come back as asked.'))
+                    elif not applied:
+                        done.append(dict(id=eid, title=title, action='unchanged', kind='email'))
+                    else:
+                        done.append(dict(id=item['id'], title=item.get('subject', ''), action='updated', kind='email', fields=applied,
+                                         status=item['status'], revision=item['revision']))
                 else:
+                    if changes.get('status') == 'Sent' or u.get('sent') is False:
+                        raise ValueError('A new email starts as a draft. Mark it sent once it exists and Kit shows it went out.')
                     item = mails.create({'id': str(uuid.uuid4()), 'changes': changes})
-                    done.append(dict(id=item['id'], title=item.get('subject', ''), action='added', kind='email'))
+                    done.append(dict(id=item['id'], title=item.get('subject', ''), action='added', kind='email', revision=item['revision']))
             except Exception as e:  # noqa: BLE001 - report every failure back to Josh in the chat
-                done.append(dict(id=eid, title=changes.get('subject', ''), action='failed', kind='email', error=str(e).strip("'\"")[:200]))
+                done.append(dict(id=eid, title=title, action='failed', kind='email', error=str(e).strip("'\"")[:300]))
         return done
 
     def start_go_ahead(self, pid, name, action, via=''):
@@ -1612,6 +2669,21 @@ class Agents:
             return [dict(id=pid, title='the edit of ' + str(name), action='started', kind='edit')]
         except (ValueError, KeyError) as e:
             return [dict(id=pid, title='the edit of ' + str(name), action='failed', kind='edit', error=str(e)[:200])]
+
+    def start_finish(self, pid, name, action, via='', approval=None):
+        """Josh told Tariq to put the video together: Josh OS builds and saves the cut if needed, approves the storyboard
+        on Josh's own words in this message, renders and places the animations and exports. Tariq posts back."""
+        flow = getattr(self, 'edit_flow', None)
+        if action.get('finish') is not True or flow is None:
+            return []
+        if not approval or not str(approval.get('text') or '').strip():
+            return [dict(id=pid, title='putting ' + str(name) + ' together', action='failed', kind='edit',
+                         error="It needs your own message saying the animations are good to go.")]
+        try:
+            flow.finish(pid, approval, via=via)
+            return [dict(id=pid, title='putting ' + str(name) + ' together (cut, animations, export)', action='started', kind='edit')]
+        except Exception as e:  # noqa: BLE001 - Conflict, ValueError, KeyError all go back to Josh
+            return [dict(id=pid, title='putting ' + str(name) + ' together', action='failed', kind='edit', error=str(e).strip("'\"")[:200])]
 
     def apply_edit(self, er, pid, action, before):
         """Set up the edit folders, and take the review pictures again when the deck changed or Tariq asked."""
@@ -1631,7 +2703,7 @@ class Agents:
             done.append(dict(id=pid, title='the edit review', action='failed', kind='edit', error=str(e)[:200]))
         return done
 
-    def apply_edit_elsewhere(self, er, agent_id, pid, action, via):
+    def apply_edit_elsewhere(self, er, agent_id, pid, action, via, approval=None):
         """Edit actions asked for in a chat that isn't the animation review: folders and pictures now, deck changes as a job."""
         try:
             p = self.store.get(pid)
@@ -1640,6 +2712,7 @@ class Agents:
             return [dict(id=pid, title='the edit', action='failed', kind='edit', error=str(e)[:200])]
         done = self.apply_edit(er, pid, {k: action[k] for k in ('setup', 'rerender') if k in action}, self._deck_state(er, pid))
         done += self.start_go_ahead(pid, p['name'], action, via)
+        done += self.start_finish(pid, p['name'], action, via, approval)
         done += self.keep_anim_notes(pid, action)
         return done + self.start_deck_job(agent_id, pid, p['name'], action, via)
 
@@ -1687,13 +2760,34 @@ class Agents:
         stop = threading.Event()
         try:
             folder = er.project_folder(pid)
+            from . import deck_source
+            authoring_source = deck_source.capture(flow, pid) if flow else None
             if flow:
                 threading.Thread(target=self._deck_progress, args=(Path(folder) / DECK_PROGRESS, mark, stop), daemon=True).start()
             learnings = [x for x in self.team.all()['learnings'] if x['agent_id'] in ('', agent_id)][:80]
             _, dirs = self.training(agent_id)
             parts = [self.focus(dict(kind='edit', id=pid), [], None), '', 'Josh asked: ' + change]
-            if self.anim_notes_text(pid):
+            if authoring_source is not None:
+                parts += ['', deck_source.brief(authoring_source)]
+                parts += ['Write the versioned *_slides_vNN.html and *_shot-list_vNN.md directly in ' + str(folder) +
+                          ', where CareerOS discovers them. Do not put the deliverables under video/sources. '
+                          'Preserve earlier versions, including files already under an edit folder. '
+                          'The shot list must cite the approved clean transcript digest and sequence above as its source.']
+            elif self.anim_notes_text(pid):
                 parts += ['', self.anim_notes_text(pid)]
+            parts += ['', GAP_RULE]
+            # Keep the deck as it was before any change, so an edit never loses the version Josh approved (12 Nov 2026: a
+            # deck change overwrote the 4 Signs v02 slides with no copy kept).
+            import shutil
+            from datetime import datetime, timezone
+            keep = Path(folder) / 'deck-versions' / f"before-deck-change-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
+            for f in [p for p in Path(folder).glob('*_slides_v*.html')] + [p for p in Path(folder).glob('*_shot-list_v*.md')]:
+                keep.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, keep / f.name)
+            gaps = flow.animation_gaps(pid) if flow and authoring_source is None else []
+            if gaps:
+                parts += ['In the current cut these stretches have no animation at all. Fill them unless Josh said otherwise:']
+                parts += [f"- {g['from']} to {g['to']} ({g['seconds']:.0f}s): \"{g['text']}\"" for g in gaps]
             for name in SKILLS.get(agent_id, []):
                 text = self.skill_text(name)
                 if text:
@@ -1708,6 +2802,8 @@ class Agents:
             reply, _ = self.run(system, '\n'.join(parts), DESK_SCHEMA, list(dirs), tools='Read,Grep,Glob,Edit,Write',
                                 allow=scoped('Read,Grep,Glob,Edit,Write', folder), cwd=folder, timeout=1800, full=True)
             stop.set()
+            if authoring_source is not None:
+                deck_source.record(flow, er, pid, authoring_source)
             saved = self.apply_edit(er, pid, {}, before)
             text = reply or 'Done.'
             if flow:
@@ -1722,7 +2818,7 @@ class Agents:
             (Path(er.project_folder(pid)) / DECK_PROGRESS).unlink(missing_ok=True)
         except Exception:  # noqa: BLE001
             pass
-        self.post(agent_id, text, saved=saved, via=via)
+        self.post(agent_id, text, saved=saved, via=via, notice=via != 'discord')
         if via == 'discord' and getattr(self, 'notify', None):
             try:
                 self.notify(agent_id, text, [])
@@ -1815,7 +2911,7 @@ class Agents:
                 text += ' I could not find the PDF in the Guides folder, so check the build.'
         except Exception as e:  # noqa: BLE001 - the failure goes back to Josh in the chat
             text = f"I couldn't finish the guide on {topic}: {str(e)[:300]}"
-        self.post(agent_id, text, files=files, via=via)
+        self.post(agent_id, text, files=files, via=via, notice=via != 'discord')
         if via == 'discord' and getattr(self, 'notify', None):
             try:
                 self.notify(agent_id, text, [str(f) for f in files])

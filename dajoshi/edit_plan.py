@@ -35,6 +35,15 @@ CONFIG = dict(
     tail_keep_ms=300,              # after the last kept word (reference tail kept about 280 to 360 ms)
     pause_min_ms=300,              # pauses this long appear in the transcript
     pause_review_ms=700,           # report's conservative review gate; NOT a cut rule
+    # Josh, 11 Nov 2026: cut every big silence automatically. A dramatic pause is easier to add back than to find.
+    long_pause_ms=700,             # pauses this long or longer are shortened without review
+    long_pause_keep_ms=400,        # what's left of a long pause: a natural gap between sentences
+    restart_window_s=4,            # the same words again within this many seconds is a restart: the first try is cut
+    restart_max_gap_words=6,       # and only when this few words come between the two tries
+    retake_min_words=5,            # this many words said again ...
+    retake_window_s=20,            # ... within this long is a retake: the first take is cut
+    candidate_min_words=3,         # shorter repeats need at least this many words ...
+    candidate_window_s=12,         # ... within this long to be shown for review; anything less is everyday wording
     sound_min_ms=80,
     sound_max_ms=1200,
     sound_isolation_ms=150,        # a sound nearer a word than this is speech-adjacent
@@ -171,12 +180,14 @@ def discover(words, pcm, sr, config=CONFIG):
         dur = (gap_end - gap_start) * 1000 / sr
         if dur >= config['pause_min_ms']:
             low = [(b - a) for a, b in runs(~seg)] or [0]
+            long = dur >= config.get('long_pause_ms', 10 ** 9)
             add(kind='pause', start=gap_start, end=gap_end, word_ids_before=[before['id']], word_ids_after=[after['id']],
-                label=f'[pause {dur / 1000:.1f}s]', proposed_action='keep', review=dur >= config['pause_review_ms'],
-                reason=('Long pause. Kept unless Tariq or Josh decides it should be shorter.' if dur >= config['pause_review_ms']
-                        else 'Ordinary pause, kept.'),
+                label=f'[pause {dur / 1000:.1f}s]', proposed_action='shorten' if long else 'keep', review=False,
+                **(dict(target_ms=config['long_pause_keep_ms']) if long else {}),
+                reason=(f"Long pause, cut to {config['long_pause_keep_ms'] / 1000:.1f}s. Put it back on the Script tab if it was meant."
+                        if long else 'Ordinary pause, kept.'),
                 measurements=dict(duration_ms=round(dur), longest_low_run_ms=max(low) * config['bin_ms']),
-                uncertainty=dict(label='unverified', editorial='needs_review' if dur >= config['pause_review_ms'] else 'default'))
+                uncertainty=dict(label='auto' if long else 'unverified', editorial='default'))
     # Whisper sometimes writes a throat clear as a word. It is a sound event, not speech.
     for w in words:
         if norm(w['text']) in NONVERBAL_WORDS:
@@ -184,16 +195,39 @@ def discover(words, pcm, sr, config=CONFIG):
                 proposed_action='remove', review=True, text=w['text'],
                 reason=f"The transcript wrote {w['text'].strip()!r} here. Not a verified label, so it needs a listen.",
                 uncertainty=dict(label='unverified', editorial='needs_review'))
-    events += restart_candidates(words, sr)
+    # A word Whisper stretched over more than one separate burst of sound is hiding something: a restart, a cough, a
+    # swallow or a word it skipped (4 Signs, 12 Nov 2026: 54 such words, "to" at 118 s lasting 2.5 s over 4 bursts).
+    # The gaps check above never sees inside a word, so these are flagged for a listen and kept until someone does.
+    gap_bins = max(1, int(config.get('burst_gap_ms', 120) / config['bin_ms']))
+    for w in words:
+        dur_ms = (w['end'] - w['start']) * 1000 / sr
+        if dur_ms < config.get('stretched_word_ms', 600):
+            continue
+        seg = active[w['start'] // hop:max(w['start'] // hop + 1, w['end'] // hop)]
+        bursts, quiet = 0, gap_bins
+        for on in seg:
+            if on:
+                if quiet >= gap_bins:
+                    bursts += 1
+                quiet = 0
+            else:
+                quiet += 1
+        if bursts >= 2:
+            add(kind='hidden_sound', start=w['start'], end=w['end'], word_ids=[w['id']], text=w['text'],
+                label=f'[{bursts} separate sounds inside "{w["text"].strip()}"]', proposed_action='keep', review=True,
+                reason='The transcript stretched one word over separate sounds. It may hide a restart, a cough or a missed word.',
+                measurements=dict(duration_ms=round(dur_ms), bursts=bursts), uncertainty=dict(label='unverified', editorial='needs_review'))
+    events += restart_candidates(words, sr, config=config)
     events.sort(key=lambda e: (e['start'], e['end'], e['kind']))
     return events, dict(speech_p95_dbfs=round(p95, 2), word_edge_sounds=word_edges, samples=total, sample_rate=sr, bins=len(db), config=dict(config))
 
 
-def restart_candidates(words, sr, window_s=30, min_match=2):
+def restart_candidates(words, sr, window_s=30, min_match=2, config=CONFIG):
     """Places where a later phrase starts with the same words as an earlier one: possible retakes.
 
-    Candidates only. Repeated wording can be a list, emphasis or a separate sentence, so the default
-    action is keep until the editorial pass or Josh decides."""
+    When the same words come again within a few seconds with only a few words between ("the reason, the reason so
+    many"), it's a restart, so the first try is cut and listed in the review as cut. Further-apart repeats can be a
+    list, emphasis or a separate sentence, so they stay candidates for the editorial pass and for Josh's review."""
     out, seen = [], set()
     toks = [norm(w['text']) for w in words]
     for i in range(len(words)):
@@ -204,15 +238,44 @@ def restart_candidates(words, sr, window_s=30, min_match=2):
             while j + k < len(words) and i + k < j and toks[i + k] and toks[i + k] == toks[j + k]:
                 k += 1
             if k >= min_match and (i, j) not in seen and not any(a <= i < b for a, b in seen):
+                apart = (words[j]['start'] - words[i]['start']) / sr
+                quick = apart <= config.get('restart_window_s', 0) and j - i <= config.get('restart_max_gap_words', 0) + k
+                # 5+ words said again within 20s is Josh redoing the line ("Which leads us to mistake number three, which
+                # is" twice, 6.3s apart, on 4 Signs). The first take goes, and the review lists it as cut.
+                retake = not quick and k >= config.get('retake_min_words', 10 ** 6) and apart <= config.get('retake_window_s', 0)
+                candidate = not quick and not retake and k >= config.get('candidate_min_words', min_match) and apart <= config.get(
+                    'candidate_window_s', window_s)
+                if not (quick or retake or candidate):
+                    continue   # "in the", "I was" 20s later: everyday wording, not a retake
                 seen.add((i, j))
+                said = ' '.join(w['text'] for w in words[i:i + k])
                 out.append(dict(kind='take_group', start=words[i]['start'], end=words[j]['start'],
                                 word_ids=[w['id'] for w in words[i:j]], retake_word_id=words[j]['id'],
-                                label='[possible retake]', proposed_action='keep', review=True,
+                                label='[restart]' if quick else '[retake]' if retake else '[possible retake]',
+                                proposed_action='keep' if candidate else 'remove',
+                                review=candidate, restart=quick or retake,
                                 text=' '.join(w['text'] for w in words[i:j]),
-                                reason=f'Words {words[j]["text"]!r}... restart {k} words from earlier. Repeats can be deliberate.',
-                                uncertainty=dict(label='candidate', editorial='needs_review'),
-                                event_id=f"ta-{words[i]['start']}-{words[j]['start']}", schema_version=SCHEMA_VERSION))
+                                reason=(f'You said {said!r} and started it again straight away, so the first try is cut.' if quick else
+                                        f'You said {said!r} again {apart:.0f}s later, so the first take is cut.' if retake else
+                                        f'Words {words[j]["text"]!r}... restart {k} words from earlier. Repeats can be deliberate.'),
+                                uncertainty=dict(label='candidate' if candidate else 'auto', editorial='needs_review' if candidate else 'default'),
+                                event_id=f"ta-{words[i]['start']}-{words[j]['start']}", schema_version=SCHEMA_VERSION,
+                                opening=tuple(toks[i:i + min(k, 3)]), said_again=k >= j - i))
                 break
+    # The same opening three or more times close together, each going on to say something different, is a list or a
+    # pattern ("There's so much detail. There's so much complexity. There's so much background."), not a restart, so it
+    # goes to review instead of being cut. A try that is said again word for word ("I know because... I know because
+    # after teaching") is still a restart.
+    auto = [e for e in out if e.get('restart')]
+    for e in auto:
+        near = [x for x in auto if x['opening'] == e['opening'] and abs(x['start'] - e['start']) <= 10 * sr]
+        if len(near) >= 2 and not e['said_again']:
+            e.update(label='[possible retake]', proposed_action='keep', review=True, restart=False,
+                     reason=f"{' '.join(e['opening'])!r}... comes several times in a row. That reads like a list, so it's kept for you to hear.",
+                     uncertainty=dict(label='candidate', editorial='needs_review'))
+    for e in out:
+        e.pop('opening', None)
+        e.pop('said_again', None)
     return out
 
 
@@ -246,6 +309,8 @@ def apply_editorial(events, words, removals=(), pauses=(), sounds=(), checks=())
                         event_id=f"tc-{span[0]['id']}-{span[-1]['id']}", schema_version=SCHEMA_VERSION))
     for p in pauses:
         e = index[p['event_id']]
+        if e.get('uncertainty', {}).get('label') == 'auto' and p['action'] == 'keep':
+            continue  # long pauses are always cut (Josh, 11 Nov 2026); he puts one back himself if it was meant
         e['proposed_action'] = p['action']
         e['reason'] = str(p.get('reason', ''))[:400] or e['reason']
         if p['action'] == 'shorten':
@@ -261,11 +326,21 @@ def apply_editorial(events, words, removals=(), pauses=(), sounds=(), checks=())
     for e in out:
         if e['kind'] == 'take_group' and e.get('source') != 'editorial':
             covered = any(a <= e['start'] and e['end'] <= b for a, b in removed)
-            e['review'] = False
             if any(a < e['end'] and e['start'] < b for a, b in checked):
-                e['reason'] = 'Tariq flagged this for you to hear. ' + e['reason']
+                # Tariq kept this range on purpose (a performance, an acted repeat). An automatic cut inside it never
+                # wins on its own: it is kept and put in front of Josh (4 Signs, 12 Nov 2026: the acted VP scene was cut
+                # because the executive re-asks "the end of the quarter?").
+                e['proposed_action'] = 'keep'
+                e['review'] = True
+                e['protected_by_check'] = True
+                e['reason'] = 'Inside a range Tariq kept as performance, so it stays unless you cut it. ' + e['reason']
                 continue
-            e['reason'] = ('Covered by a retake Tariq removed.' if covered else 'Tariq read this repeat and kept it.') + ' ' + e['reason']
+            if e.get('restart'):
+                e['review'] = False   # cut automatically; the review lists it as cut
+                continue
+            # A repeat nobody removed stays in Josh's review. Hiding these is how flubs slipped through on 4 Signs.
+            e['review'] = not covered
+            e['reason'] = ('Covered by a retake Tariq removed.' if covered else 'Tariq kept this repeat. Have a listen.') + ' ' + e['reason']
     out.sort(key=lambda e: (e['start'], e['end'], e['kind']))
     return out
 
@@ -285,8 +360,16 @@ def plan(events, words, decisions, total, sr, config=CONFIG, word_actions=None):
     word_actions = word_actions or {}
     removed_words = set(w['id'] for w in words if word_actions.get(w['id']) == 'remove')
     sound_words = set()  # words that are really sounds (a transcribed 'ahem'): cut on their own span, not neighbour to neighbour
+    # Ranges kept on purpose: Tariq's "check, keep" spans and anything Josh set to keep. An automatic cut suggestion that
+    # overlaps one is not applied. A decision Josh made on that very event, or words he removed himself, still count.
+    keep_ranges = [(e['start'], e['end']) for e in events if e['kind'] == 'take_group' and effective(e, decisions) == 'keep'
+                   and (e.get('check') or (decisions.get(e['event_id']) or {}).get('by') == 'josh')]
     for e in events:
         if effective(e, decisions) != 'remove' or not e.get('word_ids'):
+            continue
+        explicit = e['event_id'] in decisions
+        if (e['kind'] == 'take_group' and not explicit and e.get('source') != 'editorial'
+                and any(a < e['end'] and e['start'] < b for a, b in keep_ranges)):
             continue
         if e['kind'] == 'take_group':
             removed_words |= {w for w in e['word_ids'] if word_actions.get(w) != 'keep'}

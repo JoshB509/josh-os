@@ -1,6 +1,6 @@
 'use strict';
 // Phone layout: the side rail becomes a slide-out menu. Also opens the new views from
-// a #hash link and shows how to reach Josh OS from a phone.
+// a #hash link and shows how to reach CareerOS from a phone.
 (function(){
   const rail=document.querySelector('.rail'),menu=$('#menu');
   const close=()=>{document.body.classList.remove('menu-open');menu.setAttribute('aria-expanded','false')};
@@ -9,7 +9,7 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
   document.addEventListener('click',e=>{if(document.body.classList.contains('menu-open')&&!e.target.closest('.rail,#menu'))close()});
 
-  Object.assign(viewNames,{success:'Customer success',today:'Today',board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
+  Object.assign(viewNames,{success:'Customer center',today:'Today',board:'YouTube videos',team:'Team',carousels:'Carousels',editing:'Editing',email:'Email'});
 
   if(location.hostname!=='127.0.0.1'){const w=$('#where');if(w)w.innerHTML='<i></i>Remote'}
 
@@ -26,15 +26,15 @@
   $('#phone-access').onclick=async()=>{
     let info;try{info=await api('/api/phone')}catch(e){toast(e.message,true);return}
     const d=document.createElement('dialog');d.className='phone-dialog';
-    d.innerHTML=info.enabled?`<h2>Use Josh OS on your phone</h2>
-      <p>Your phone needs Tailscale installed and signed in to the same account as this PC. Open this link on the phone once, then use <b>Add to Home Screen</b>.</p>
+    d.innerHTML=info.paired?`<h2>This browser is paired</h2><p>To connect another browser, open the same home address and request its own pairing code. Send that exact code to your authenticated dot chat for approval.</p><p class="hint">Device sessions expire after 12 hours. The PC must stay awake with CareerOS running.</p><div class="dialog-actions"><button id="phone-close">Close</button></div>`:info.enabled?`<h2>Use CareerOS on your phone</h2>
+      <p>${String(info.host||'').endsWith('.ts.net')?'Your phone needs Tailscale installed and signed in to the same account as this PC. ':'This connection uses your private access link, not a separate identity login. No Tailscale app is required. '}Open this link on the phone once, then use <b>Add to Home Screen</b>. Keep the PC awake and CareerOS running.</p>
       <input readonly value="${esc(info.url)}" id="phone-url"><div class="dialog-actions"><button class="primary" id="phone-copy">Copy link</button><button id="phone-close">Close</button></div>
-      <p class="hint">Anyone with this link and access to your tailnet can open Josh OS. To sign every phone out, delete Data/phone-access.json and restart Josh OS.</p>`
+      <p class="hint">${String(info.host||'').endsWith('.ts.net')?'Anyone with this link and access to your tailnet can open CareerOS.':'Anyone who obtains this private link can open and act in CareerOS. Do not share it or paste it into chats.'} To sign every phone out, delete Data/phone-access.json and restart CareerOS.</p>`
       :`<h2>Phone access is switched off</h2>${info.error?`<p class="danger">${esc(info.error)}</p>`:''}
-      <p>Josh OS only accepts connections from this PC. To use it on your phone:</p>
+      <p>CareerOS only accepts connections from this PC. To use it on your phone:</p>
       <ol><li>Install Tailscale on this PC and your phone, signed in to the same account.</li>
       <li>Add this to settings.json, using this PC's Tailscale name:<pre>"phone_access": {"host": "your-pc.your-tailnet.ts.net", "port": 8765}</pre></li>
-      <li>Restart Josh OS, then run <code>tailscale serve --bg 8765</code> on this PC.</li>
+      <li>Restart CareerOS, then run <code>tailscale serve --bg 8765</code> on this PC.</li>
       <li>Come back here for the phone link.</li></ol>
       <div class="dialog-actions"><button id="phone-close">Close</button></div>`;
     document.body.append(d);d.showModal();

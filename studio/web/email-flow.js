@@ -110,6 +110,7 @@ function renderEmailReview(){
       </article>
       ${emailCompare&&(p.source_ids||[]).length?emailOriginal(p):`<aside class="ef-side">
         ${emailResults(p)}
+        ${p.images?.length?'<section class="pv-card"><h3>Local visuals</h3><p class="hint">Preview only. Kit preparation is blocked until approved image hosting is available. Use the full editor to edit alt text or placement.</p></section>':''}
         ${p.notes?`<details class="pv-card ef-notes"><summary>Laia's notes</summary><p class="pv-notes">${esc(p.notes)}</p></details>`:''}
         ${(p.subject_alternatives||[]).length?`<section class="pv-card"><h3>Other subject lines</h3>${p.subject_alternatives.map(s=>`<button class="ef-alt" data-ef-subject="${esc(typeof s==='string'?s:s.text||'')}">${esc(typeof s==='string'?s:s.text||'')}</button>`).join('')}</section>`:''}
         ${(p.links||[]).length?`<section class="pv-card"><h3>Link in this email</h3>${p.links.map(l=>`<p class="ef-link"><b>${esc(l.label)}</b><span>${esc(l.href)}</span></p>`).join('')}</section>`:''}

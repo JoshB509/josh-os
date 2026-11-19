@@ -85,7 +85,7 @@ function deskBrief(id,scope=null){
     return {say,items,chips:[{label:'New email',act:'new:email'},{label:'Email plan',act:'view:email'}]};
   }
   if(id==='saskia'){
-    if(!deskLessons||deskLessons.missing)return {unknown:true,say:'The course lessons aren\'t set up on this PC yet. Once the lesson catalogue is in Josh OS, I\'ll track what\'s recorded and what\'s next.',items:[],chips:[{label:'Course lessons',act:'view:lessons'}]};
+    if(!deskLessons||deskLessons.missing)return {unknown:true,say:'The course lessons aren\'t set up on this PC yet. Once the lesson catalogue is in CareerOS, I\'ll track what\'s recorded and what\'s next.',items:[],chips:[{label:'Course lessons',act:'view:lessons'}]};
     const ls=deskLessons.lessons||[],done=l=>!!(l.recording?.preferred_take||l.recording?.takes?.length);
     const todo=ls.filter(l=>!done(l)),planned=todo.filter(l=>l.recording?.planned_date).sort((a,b)=>a.recording.planned_date.localeCompare(b.recording.planned_date));
     const late=planned.filter(l=>deskDays(l.recording.planned_date)<0),undated=todo.filter(l=>!l.recording?.planned_date);
@@ -98,8 +98,8 @@ function deskBrief(id,scope=null){
     return {say,items,chips:[{label:'Course lessons',act:'view:lessons'},{label:'Tasks & goals',act:'view:tasks'}]};
   }
   if(id==='anouk'&&typeof people!=='undefined'&&people)return anoukBrief();
-  if(id==='anouk')return {unknown:true,say:'I can\'t see how customers are getting on with the courses yet. Once course progress is connected to Josh OS, I\'ll show you who started and stalled, who looks stuck, and the check-ins I\'d send them.',items:[],chips:[{label:'Customers',act:'view:customers'}]};
-  return {say:'I start once the business numbers are connected to Josh OS. Then I\'ll track sales and revenue against the USD 15,000 a month goal.',items:[],chips:[]};
+  if(id==='anouk')return {unknown:true,say:'I can\'t see how customers are getting on with the courses yet. Once course progress is connected to CareerOS, I\'ll show you who started and stalled, who looks stuck, and the check-ins I\'d send them.',items:[],chips:[{label:'Customers',act:'view:customers'}]};
+  return {say:'Ask me about any business number and I\'ll tell you where it came from and which day it covers. Once my Discord bot and a private Business channel are set up, I\'ll send you a brief each morning at 7 Dubai time. The monthly course goal in Tasks & Goals is still a starting default until you confirm it.',items:[],chips:[{label:'Tasks & goals',act:'view:tasks'}]};
 }
 // One count used everywhere: decisions waiting for Josh.
 function deskNeeds(id,scope=null){return deskBrief(id,scope).items.filter(i=>i.needs).length}
@@ -137,22 +137,76 @@ function agentDesk(id,{compact=false,scope=null,head=true}={}){
 }
 function deskSkeleton(n=1){return Array.from({length:n},()=>'<div class="skeleton" aria-hidden="true"><i></i><i style="width:70%"></i><i style="width:45%"></i></div>').join('')}
 
-// Today: the home page. Every team member reports in, then the week ahead.
+// Today: the home page (16 Nov 2026). Four lists built from records that already exist (the desks' briefings, Tasks & Goals,
+// Anouk's reply queue, videos, carousels and emails), each line naming who owns it and opening the record itself. Then the
+// week ahead. Nothing here is a copy: change the record and Today changes with it.
+let todayTasks=null,todayReplies=null;
+async function todayData(){
+  await Promise.all([deskData(),
+    api('/api/tasks').then(t=>todayTasks=t).catch(()=>{todayTasks=todayTasks||{items:[],failed:true}}),
+    api('/api/reply-queue').then(q=>todayReplies=q).catch(()=>{todayReplies=todayReplies||{waiting:[],done:[],failed:true}})]);
+}
+function todayAgent(id){return (team?.agents||[]).find(a=>a.id===id||a.name.toLowerCase()===String(id||'').toLowerCase())}
+function todayOwner(o){if(!o)return '<span class="td-owner none">No owner</span>';const a=todayAgent(o);
+  return `<span class="td-owner" style="--agent:${esc(a?.color||'var(--faint)')}"><i aria-hidden="true"></i>${esc(a?.name||o)}</span>`}
+function todayRow(i){return `<li><button class="td-row ${i.tone||''}" data-desk-act="${esc(i.act)}"><span class="td-main"><b>${esc(i.text)}</b><small>${esc(i.sub||'')}</small></span>${todayOwner(i.owner)}<i class="td-go" aria-hidden="true">›</i></button></li>`}
+function todayDaysAgo(iso){if(!iso)return null;return Math.floor((Date.now()-new Date(iso))/864e5)}
+function todaySections(){
+  const agents=(team?.agents||[]).filter(a=>a.status!=='Coming later'),tasks=(todayTasks?.items||[]).filter(t=>t.kind==='task'||t.kind==='goal');
+  const ps=state.projects.filter(p=>!p.archived),cs=deskCarouselRows(),es=deskEmailRows(),rq=todayReplies||{waiting:[],done:[]};
+  // 1. Decisions only Josh can make: the desks' gold items, replies waiting for his send, and tasks he owns.
+  const decide=[];
+  for(const a of agents)for(const i of deskBrief(a.id).items.filter(x=>x.needs))decide.push({text:i.text,sub:i.sub,act:i.act,owner:a.id,tone:'needs'});
+  for(const r of rq.waiting)decide.push({text:`Reply to ${r.who||'someone'}`,sub:`${r.kind==='email'?'Email':'YouTube comment'} · Anouk's proposed reply is ready to check and send`,act:'replies',owner:'anouk',tone:'needs'});
+  for(const t of tasks.filter(t=>/^josh$/i.test(t.owner||'')&&['Next','In progress'].includes(t.status)))decide.push({text:t.title,sub:`Your task · ${t.status}${t.due_date?` · due ${deskWhen(t.due_date)}`:''}`,act:'task:'+t.id,owner:'Josh',tone:'needs'});
+  // 2. What the team is on: each person's own briefing line, and the tasks they own that are under way.
+  // Everyone active, plus anyone not active yet who still owns a task under way, so no owned task goes missing here.
+  const live=t=>['In progress','Next'].includes(t.status),ownerOf=t=>todayAgent(t.owner)?.id;
+  const people=(team?.agents||[]).filter(a=>a.status!=='Coming later'||tasks.some(t=>live(t)&&ownerOf(t)===a.id));
+  const working=people.map(a=>({a,say:a.status==='Coming later'?`${a.name} isn't working on their own yet. These tasks are theirs.`:deskBrief(a.id).say,tasks:tasks.filter(t=>ownerOf(t)===a.id&&live(t))}));
+  const otherOwners=tasks.filter(t=>t.owner&&!todayAgent(t.owner)&&!/^josh$/i.test(t.owner)&&t.status==='In progress');
+  // 3. Blocked: tasks marked Waiting, with the reason they give, and planned work whose date has passed.
+  const blocked=[...tasks.filter(t=>t.status==='Waiting').map(t=>({text:t.title,sub:t.next_step||'Marked Waiting, with no reason given',act:'task:'+t.id,owner:t.owner})),
+    ...ps.filter(p=>p.publish_date&&deskDays(p.publish_date)<0&&!['Published','Scheduled'].includes(p.stage)).map(p=>({text:p.name,sub:`Video · ${p.stage} · planned for ${deskWhen(p.publish_date)}`,act:'project:'+p.id,owner:p.stage==='Editing'||p.stage==='Review'?'tariq':'sam'})),
+    ...cs.filter(c=>c.post_date&&deskDays(c.post_date)<0&&!['Posted','Scheduled'].includes(c.stage)).map(c=>({text:c.title,sub:`Carousel · ${c.stage} · was due ${deskWhen(c.post_date)}`,act:'carousel:'+c.id,owner:c.owner||'sam'})),
+    ...es.filter(e=>e.planned_date&&deskDays(e.planned_date)<0&&e.status==='Draft').map(e=>({text:e.subject||'Untitled email',sub:`Email · still a draft · was planned ${deskWhen(e.planned_date)}`,act:'email:'+e.id,owner:e.author||'laia'})),
+    ...rq.waiting.filter(r=>!r.available&&r.why).slice(0,3).map(r=>({text:`Reply to ${r.who}`,sub:r.why,act:'replies',owner:'anouk'}))].map(x=>({...x,tone:'blocked'}));
+  // 4. Done in the last week, and how we know: a check against the source, the evidence written on the task, or only a status.
+  const done=[...tasks.filter(t=>t.status==='Done'&&todayDaysAgo(t.completed_at)!=null&&todayDaysAgo(t.completed_at)<=7).map(t=>({text:t.title,sub:t.evidence?`Evidence: ${t.evidence}`:'Marked done. No evidence written on the task.',act:'task:'+t.id,owner:t.owner,tone:t.evidence?'checked':'unchecked'})),
+    ...ps.filter(p=>p.release?.youtube&&todayDaysAgo(p.release.youtube.published_at)<=14).map(p=>({text:p.name,sub:`Published ${deskWhen(p.release.youtube.published_at.slice(0,10))}. YouTube confirms it is ${p.release.youtube.privacy}.`,act:'project:'+p.id,owner:'sam',tone:'checked'})),
+    ...ps.filter(p=>!p.release?.youtube&&p.stage==='Published'&&p.locks?.publish&&todayDaysAgo(p.locks.publish)<=7).map(p=>({text:p.name,sub:'Marked published. Not checked against YouTube.',act:'project:'+p.id,owner:'sam',tone:'unchecked'})),
+    ...(rq.done||[]).filter(r=>todayDaysAgo(r.outcome?.at)!=null&&todayDaysAgo(r.outcome.at)<=7).map(r=>({text:`Reply to ${r.who}`,sub:r.outcome.state==='replied'?(r.kind==='email'?'Sent, and Gmail shows it as sent.':'Posted, and YouTube shows it under the comment.'):`Not confirmed. ${r.outcome.reason||''}`,act:'replies',owner:'anouk',tone:r.outcome.state==='replied'?'checked':'unchecked'})),
+    ...cs.filter(c=>c.stage==='Posted'&&c.post_date&&deskDays(c.post_date)<=0&&deskDays(c.post_date)>=-7).map(c=>({text:c.title,sub:'Carousel marked posted.',act:'carousel:'+c.id,owner:c.owner||'sam',tone:'unchecked'}))];
+  return {decide,working,otherOwners,blocked,done};
+}
+function todayList(title,items,empty,cls){
+  return `<section class="td-sec ${cls}" aria-label="${esc(title)}"><header><h2>${esc(title)}</h2>${items.length?`<span class="td-n">${items.length}</span>`:''}</header>
+    ${items.length?`<ul class="td-list">${items.slice(0,8).map(todayRow).join('')}</ul>${items.length>8?`<p class="td-more">${items.length-8} more in their own pages.</p>`:''}`:`<p class="td-empty">${esc(empty)}</p>`}</section>`}
 async function renderTodayView(){
   page('Today','');$('#page-title').parentElement.hidden=true;
   if(!team)$('#workspace').innerHTML=`<div class="today"><div class="today-desks" aria-label="Getting the team's notes">${deskSkeleton(3)}</div></div>`;
-  await deskData();if(view!=='today'||current)return;
+  await todayData();if(view!=='today'||current)return;
   const now=plannerToday(),week=[];
   for(let i=0;i<7;i++){const d=new Date(now);d.setDate(d.getDate()+i);const key=dateKey(d);
     const items=[...state.projects.filter(p=>!p.archived&&p.publish_date===key).map(p=>({kind:'Video',text:p.name,act:'project:'+p.id})),
       ...deskCarouselRows().filter(c=>c.post_date===key).map(c=>({kind:'Carousel',text:c.title,act:'carousel:'+c.id})),
       ...deskEmailRows().filter(e=>e.planned_date===key).map(e=>({kind:'Email',text:e.subject||'Untitled email',act:'email:'+e.id}))];
     week.push({d,items})}
-  const agents=(team?.agents||[]).filter(a=>a.status!=='Coming later');
+  const x=todaySections();
+  const working=`<section class="td-sec td-team" aria-label="Team working"><header><h2>Team working</h2></header><div class="td-people">${x.working.map(({a,say,tasks})=>`
+      <article class="td-person" style="--agent:${esc(a.color)}"><button class="td-person-head" data-desk-act="desk:${esc(a.id)}" aria-label="Open ${esc(a.name)}'s desk">${teamAvatar(a,'sm')}<b>${esc(a.name)}</b><small>${esc(a.role)}</small></button>
+        <p>${esc(say)}</p>${tasks.length?`<ul class="td-list">${tasks.slice(0,3).map(t=>todayRow({text:t.title,sub:`${t.status}${t.next_step?` · ${t.next_step}`:''}`,act:'task:'+t.id,owner:a.id})).join('')}</ul>`:''}</article>`).join('')}
+      ${x.otherOwners.length?`<article class="td-person"><b>Others</b><ul class="td-list">${x.otherOwners.map(t=>todayRow({text:t.title,sub:t.next_step||t.status,act:'task:'+t.id,owner:t.owner})).join('')}</ul></article>`:''}</div></section>`;
+  const failed=[todayTasks?.failed?'Tasks & Goals':'',todayReplies?.failed?'the reply queue':''].filter(Boolean);
   $('#workspace').innerHTML=`<div class="today">
     <header class="today-head"><p class="today-date">${esc(now.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}))}</p>
-      <h1>${deskGreeting()}, Josh.</h1></header>
-    <div class="today-desks">${agents.map(a=>agentDesk(a.id)).join('')}</div>
+      <h1>${deskGreeting()}, Josh.</h1>${failed.length?`<p class="td-warn">Couldn't load ${esc(failed.join(' or '))}, so those items are missing below.</p>`:''}</header>
+    <div class="td-grid">
+      ${todayList('Needs your decision',x.decide,'Nothing is waiting on you.','td-decide')}
+      ${todayList('Blocked',x.blocked,'Nothing is stuck.','td-blocked')}
+    </div>
+    ${working}
+    ${todayList('Recently completed',x.done,'Nothing finished in the last week yet.','td-done')}
     <section class="week"><h2>This week</h2><div class="week-grid">${week.map(({d,items},i)=>`<div class="week-day ${i===0?'is-today':''}">
       <div class="week-label"><b>${esc(i===0?'Today':d.toLocaleDateString(undefined,{weekday:'short'}))}</b><span>${d.getDate()}</span></div>
       ${items.map(x=>`<button class="week-item k-${x.kind.toLowerCase()}" data-desk-act="${esc(x.act)}"><small>${x.kind}</small>${esc(x.text)}</button>`).join('')||'<p class="week-empty">Free</p>'}</div>`).join('')}</div></section>
@@ -178,6 +232,9 @@ async function deskAct(act){
   if(kind==='project-tab'){const [t,id]=[rest[0],rest.slice(1).join(':')];if(view==='today')view=t==='edit'?'editing':'board';openProject(id);if(current){tab=t;renderDetail();scrollTo(0,0)}return}
   if(kind==='carousel'){if(!leave())return;current=null;view='carousels';if(!carousels)carousels=deskCarousels||await api('/api/carousels');carouselOpen=arg;carouselSlide=0;render();scrollTo(0,0);return}
   if(kind==='email'){view='email';current=null;openEmail(arg);scrollTo(0,0);return}
+  if(kind==='desk'){if(!leave())return;current=null;view='team';if(typeof teamOpen!=='undefined')teamOpen=arg;render();scrollTo(0,0);return}
+  if(kind==='task'){location.href='/tasks#task-'+encodeURIComponent(arg);return}
+  if(kind==='replies'){if(!leave())return;current=null;view='success';if(typeof ccTab!=='undefined')ccTab='replies';if(typeof rq!=='undefined')rq=null;await refresh();render();scrollTo(0,0);return}
   if(kind==='new'){if(arg==='carousel')return newCarousel();if(arg==='email'){view='email';return newEmail()}if(arg==='video')return showNew()}
 }
 

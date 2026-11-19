@@ -1,0 +1,561 @@
+{
+  "schema_version": 1,
+  "magnets": [
+    {
+      "id": "1ab1fbe1-3fee-4068-9847-8e9c9ce31282",
+      "name": "3 Things Execs Want",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/decision-toolkit",
+      "kit_form_id": null,
+      "source": "linklr",
+      "source_id": "1ab1fbe1-3fee-4068-9847-8e9c9ce31282",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Executive-Decision-Toolkit\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Get executives to act on your work the first time, by giving them the three things they need to decide, without dumbing the work down.",
+      "audience": "Anyone who explains their work properly and still gets \"can you come back with more detail\", especially people with technical work.",
+      "contents": "A 19-page PDF with sentence templates, worked examples, a before and after library and a final check.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Executive Decision Toolkit"
+      ]
+    },
+    {
+      "id": "34da9d3d-00da-40a7-ae0f-e0af3e5dd707",
+      "name": "AI Download",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/message-editor",
+      "kit_form_id": "9682434",
+      "source": "linklr",
+      "source_id": "34da9d3d-00da-40a7-ae0f-e0af3e5dd707",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Executive-Message-Editor\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Paste in what you wrote and get back the version that gets a decision, in ten seconds, free.",
+      "audience": "Professionals whose updates get read and then ignored.",
+      "contents": "Free AI rewriting tool, unlimited, no card required.",
+      "format": "AI tool",
+      "aliases": [
+        "The Executive Message Editor"
+      ]
+    },
+    {
+      "id": "efd0ad58-3d15-43a2-9f19-4228ebbe7ded",
+      "name": "ASK CON ALT",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/career-conversations",
+      "kit_form_id": "9729393",
+      "source": "linklr",
+      "source_id": "efd0ad58-3d15-43a2-9f19-4228ebbe7ded",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6fd5d333-d160-4f9a-b9f4-05ad83650e4e",
+      "name": "Data Storytelling Prompts",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/data-story-prompts",
+      "kit_form_id": null,
+      "source": "linklr",
+      "source_id": "6fd5d333-d160-4f9a-b9f4-05ad83650e4e",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:/CareerOS/05_Lead_Magnets/The-Data-Story-Prompt-Pack/Copy/2026-11-03_data-story-prompt-pack_landing-page_v02.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "contents",
+            "format",
+            "aliases"
+          ]
+        }
+      ],
+      "description": "Turn a spreadsheet into a chart and story for senior leaders.",
+      "contents": "Full and quick prompts, chart guidance and an example data story.",
+      "format": "Prompt pack",
+      "aliases": [
+        "The Data Story Prompt Pack"
+      ]
+    },
+    {
+      "id": "967abd08-920e-4e89-831a-a3dbd581ec60",
+      "name": "Executive Benefits Toolkit",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/executive-benefits",
+      "kit_form_id": "9496923",
+      "source": "linklr",
+      "source_id": "967abd08-920e-4e89-831a-a3dbd581ec60",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        }
+      ],
+      "download_url": "https://joshuabrindley.com/downloads/executive-benefits-toolkit.pdf",
+      "download_verification": {
+        "status": "unverified",
+        "url": "https://joshuabrindley.com/downloads/executive-benefits-toolkit.pdf",
+        "source": "Existing Linklr tracked destination supplied by parent; not independently fetched"
+      }
+    },
+    {
+      "id": "a7b550c1-60a9-48d4-a14f-916750bfb968",
+      "name": "Executive Communication Handbook (7 Patterns)",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/executive-handbook",
+      "kit_form_id": "9912683",
+      "source": "linklr",
+      "source_id": "a7b550c1-60a9-48d4-a14f-916750bfb968",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Executive-Communication-Handbook\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Seven sentences that get your ideas backed the first time, keep you out of corners, and get senior leaders repeating your words when you are not there.",
+      "audience": "Senior professionals who know their work and lose the conversation about it.",
+      "contents": "A 13-page handbook. Seven sentence patterns, each with the mechanism underneath it, the exact wording, and the working part of every sentence marked.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Executive Communication Handbook"
+      ]
+    },
+    {
+      "id": "484bdf95-c037-4217-aa2a-427744bb7b3d",
+      "name": "Executive Communication Toolkit",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/executive-communication",
+      "kit_form_id": "9682473",
+      "source": "linklr",
+      "source_id": "484bdf95-c037-4217-aa2a-427744bb7b3d",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Executive-Communication-Toolkit\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Present so leaders reach your conclusion themselves and the decision gets made in the meeting rather than deferred.",
+      "audience": "Senior professionals presenting high-stakes work to executives who pick it apart.",
+      "contents": "Toolkit covering deck structure, slide titles that argue the case, and answers to executive objections.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Executive Communication Toolkit"
+      ]
+    },
+    {
+      "id": "363ae09c-5927-4b1b-8d89-eb4eb707e20d",
+      "name": "Network Map",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/network-map",
+      "kit_form_id": null,
+      "source": "linklr",
+      "source_id": "363ae09c-5927-4b1b-8d89-eb4eb707e20d",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "e8a3fe6a-aeff-48f1-9c92-a9befe9aec65",
+      "name": "Newsletter",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/newsletter",
+      "kit_form_id": "9495858",
+      "source": "linklr",
+      "source_id": "e8a3fe6a-aeff-48f1-9c92-a9befe9aec65",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Newsletter\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Get the moves that turn strong work into a bigger title and salary, sent to your inbox.",
+      "audience": "Experienced professionals who want the advancement material without a programme.",
+      "contents": "Ongoing newsletter.",
+      "format": "Newsletter",
+      "aliases": [
+        "The Newsletter"
+      ]
+    },
+    {
+      "id": "ec46e7a3-a44b-4198-b27a-0533a94baf76",
+      "name": "Opening Executive Toolkit",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/executive-opening",
+      "kit_form_id": "9497030",
+      "source": "linklr",
+      "source_id": "ec46e7a3-a44b-4198-b27a-0533a94baf76",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Executive-Opening-Line-Toolkit\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Open so senior people stop and listen, and your project reaches the front of the queue when budget is decided.",
+      "audience": "Professionals whose updates and pitches get parked in the first thirty seconds.",
+      "contents": "Ten opening lines plus the 3O framework for rebuilding any opener.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Executive Opening Line Toolkit"
+      ]
+    },
+    {
+      "id": "fda3669d-d9e1-4150-b515-2a834cef8273",
+      "name": "Performance Review Toolkit",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/performance-review",
+      "kit_form_id": null,
+      "source": "linklr",
+      "source_id": "fda3669d-d9e1-4150-b515-2a834cef8273",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Performance-Review-Framework\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Set goals that leave room for a 5, write a review the calibration committee can't mark down, and know what to ask when someone says \"I see this more as a three\".",
+      "audience": "Anyone who had a strong year and came back with a 3 after calibration.",
+      "contents": "A 17-page PDF with goal rewrites, a proof worksheet and eight lines for the calibration conversation.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Performance Review Framework"
+      ]
+    },
+    {
+      "id": "ee6f4d0f-6499-42dc-95f6-3933068c7179",
+      "name": "Positioning Diagnostic",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/positioning-diagnostic",
+      "kit_form_id": null,
+      "source": "linklr",
+      "source_id": "ee6f4d0f-6499-42dc-95f6-3933068c7179",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "625fff31-ef36-4c3c-96c3-0a3d64885b5f",
+      "name": "Promotion Playbook Download",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/promotion-playbook",
+      "kit_form_id": "9498820",
+      "source": "linklr",
+      "source_id": "625fff31-ef36-4c3c-96c3-0a3d64885b5f",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-Promotion-Playbook\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Get promoted by making your work visible, your ideas backed and your name on the shortlist, using moves that fit the week you already work.",
+      "audience": "Senior professionals doing strong work who keep being passed over.",
+      "contents": "Complete promotion system as a downloadable guide.",
+      "format": "PDF guide",
+      "aliases": [
+        "The Promotion Playbook"
+      ]
+    },
+    {
+      "id": "61924075-4e39-403c-8a34-c7b00451d41d",
+      "name": "SCR Framework",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/scr-framework",
+      "kit_form_id": "9624543",
+      "source": "linklr",
+      "source_id": "61924075-4e39-403c-8a34-c7b00451d41d",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\The-SCR-Story-Builder\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Turn heavy analysis into one decision, so a board-level presentation takes an afternoon and leaders act on it.",
+      "audience": "Senior professionals whose analysis gets sent back for more analysis.",
+      "contents": "Three-box SCR worksheet plus a full board presentation worked end to end.",
+      "format": "PDF worksheet",
+      "aliases": [
+        "The SCR Story Builder"
+      ]
+    },
+    {
+      "id": "d835a0c6-5ee9-4d72-9c19-2079d3037d13",
+      "name": "Strategic Thinking Download",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/strategic-thinking",
+      "kit_form_id": "9496994",
+      "source": "linklr",
+      "source_id": "d835a0c6-5ee9-4d72-9c19-2079d3037d13",
+      "provenance": [
+        {
+          "source": "Linklr production catalog supplied by parent task",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "name",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "E:\\CareerOS\\05_Lead_Magnets\\Strategic-Thinking-Frameworks\\magnet.md",
+          "checked_at": "2026-11-16",
+          "fields": [
+            "description",
+            "audience",
+            "contents",
+            "format",
+            "aliases"
+          ],
+          "note": "Local content brief; historical status and landing fields not imported."
+        }
+      ],
+      "description": "Choose the work that gets you promoted instead of the work that fills your calendar, and think two levels up so executives treat you as senior before the title arrives.",
+      "audience": "Experienced professionals who are busy, expert, and being overlooked for their thinking.",
+      "contents": "Strategic thinking toolkit with a task scoring method and a strategy validator.",
+      "format": "PDF guide",
+      "aliases": [
+        "Strategic Thinking Frameworks"
+      ]
+    },
+    {
+      "id": "db7cafee-9dc9-40fa-82b3-c80500681e60",
+      "name": "Before and After Slide Pack",
+      "type": "lead_magnet",
+      "landing_url": "https://joshuabrindley.com/before-after-slide-pack",
+      "kit_form_id": "10196670",
+      "kit_embed_uid": "d3242c2b42",
+      "source": "linklr",
+      "source_id": "db7cafee-9dc9-40fa-82b3-c80500681e60",
+      "contents": "A 29-page PDF with 12 before-and-after executive slides and a title-only deck test.",
+      "format": "PDF guide",
+      "download_url": null,
+      "provenance": [
+        {
+          "source": "Linklr production asset registration, independently read back and connector lookup confirmed by parent task",
+          "checked_at": "2026-11-16T12:53:55Z",
+          "fields": [
+            "id",
+            "source_id",
+            "name",
+            "type",
+            "landing_url",
+            "kit_form_id"
+          ]
+        },
+        {
+          "source": "Website task verified live publication and Kit embed; confirmed by parent task",
+          "checked_at": "2026-11-16T12:53:55Z",
+          "fields": [
+            "landing_url",
+            "kit_embed_uid"
+          ]
+        },
+        {
+          "source": "Supplied PDF and live landing page verified by parent task",
+          "checked_at": "2026-11-16T12:53:55Z",
+          "fields": [
+            "contents",
+            "format"
+          ],
+          "note": "12 before-and-after executive slides, title-only deck test, 29-page PDF. Download URL is not known or verified."
+        }
+      ]
+    }
+  ]
+}

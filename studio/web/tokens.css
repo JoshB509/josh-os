@@ -1,4 +1,4 @@
-/* Josh OS design tokens. Loaded after brand.css. See docs/design/tokens.md. */
+/* CareerOS design tokens. Loaded after brand.css. See docs/design/tokens.md. */
 :root{
   --fs-caption:12px;--fs-small:13px;--fs-body:15px;--fs-lead:16px;--fs-sub:18px;--fs-h2:24px;--fs-h1:32px;--fs-display:36px;
   --lh-tight:1.15;--lh-head:1.3;--lh-body:1.55;--measure:62ch;

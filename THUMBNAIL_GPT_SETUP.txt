@@ -1,0 +1,50 @@
+CareerOS GPT Image thumbnail provider
+
+Implemented routes
+- New Sam thumbnail chat actions default to provider gpt-image. Explicit local
+  actions preserve the middle/close compositor. A failed GPT action never falls back.
+- No references: POST https://api.openai.com/v1/images/generations.
+- Selected chat/video image assets, optional catalogue pose or approved background:
+  POST https://api.openai.com/v1/images/edits with image data URLs in input order.
+- Josh's original message is retained as the highest-priority composition instruction;
+  Sam's proposal and house-style advice are subordinate. No template geometry applies.
+- API requests produce one 1536x864 PNG, resized proportionally to 1920x1080. Outputs
+  are validated, saved as new versions, imported into chat, and accompanied by a JSON
+  receipt containing provider, model, operation, request ID and content hashes.
+  Reference assets and existing thumbnails are not overwritten. Nothing is published.
+
+Connection and current blocker
+- This adapter uses only OPENAI_API_KEY already supplied to the server environment.
+  It never reads browser cookies, ChatGPT/Codex sessions, credential files or .env files.
+- No OPENAI_API_KEY was present in process, user or machine environment on inspection.
+  No OpenAI settings or .env file were present in the application. No supported
+  application-callable OpenAI connection was found. ChatGPT's image tool is not an API
+  credential that this service can borrow.
+- An authorized administrator must supply an existing OpenAI API project key to the
+  CareerOS launch environment outside chat. The project needs Images model access and
+  existing usable quota/billing; organization verification may be required by OpenAI.
+  No key, permission, authentication or billing change was made by this task.
+- Optional CAREEROS_GPT_IMAGE_MODEL selects one of the documented supported models in
+  studio/gpt_images.py. Default: gpt-image-2. Model access is not inferred from key presence.
+- The provider uses the fixed official HTTPS endpoint; arbitrary base URLs and redirects
+  are not accepted. API key values and provider response bodies are never logged.
+- Do not paste secrets into chat. After setup, perform an idle/job safety check before
+  restarting the server to inherit its environment. A live test should be a separate,
+  authorized synthetic image request; this implementation has only been tested offline.
+
+Failure behavior and limitations
+- Missing credentials fail before planning/generation begins. Authentication, access,
+  quota, timeout and malformed-response failures are explicit. There are no automatic
+  retries, preventing accidental repeated generation after an uncertain timeout.
+- References must be existing asset IDs selected from the conversation/video, or named
+  catalogue assets. Arbitrary paths/URLs are not model inputs. Six references maximum,
+  including any pose/background; 10 MB per reference and 30 MB total.
+- General reference editing is implemented; regional masks/markup, streaming previews
+  and a credential-management UI are not. Text accuracy and likeness require review.
+- No production image, external upload/publication, subscription or billing commitment
+  was created during implementation.
+
+Official API documentation checked 2026-11-17
+https://developers.openai.com/api/docs/guides/image-generation
+https://developers.openai.com/api/reference/resources/images/methods/edit/
+https://developers.openai.com/api/reference/resources/images/methods/generate/

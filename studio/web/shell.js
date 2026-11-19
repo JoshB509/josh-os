@@ -23,12 +23,12 @@
   };
   const svg=k=>`<svg viewBox="0 0 16 16" aria-hidden="true">${I[k]}</svg>`;
   const NAV=[
-    {items:[['today','Today','/#today'],['calendar','Calendar','/#calendar'],['team','Team','/#team'],['scorecard','Scorecard','/#scorecard']]},
-    {label:'Workflows',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['editing','Editing','/#editing'],['email','Email','/#email'],['success','Customer success','/#success']]},
-    {label:'Workspace',items:[['library','Library','/#inspiration'],['tasks','Tasks & Goals','/tasks'],['lessons','Lesson recording','/lessons'],['archive','Archive','/#archive']]},
-    {label:'Clients',later:true,items:[['clients','Clients','/admin#clients'],['customers','Customers','/admin#customers']]},
+    {items:[['today','Today','/#today'],['tasks','Tasks & Goals','/tasks'],['team','Team','/#team']]},
+    {label:'Make',items:[['youtube','YouTube videos','/#board'],['carousels','Carousels','/#carousels'],['lessons','Lessons','/#lessons-board'],['email','Email','/#email']]},
+    {label:'Customers',items:[['success','Customer center','/#success']]},
+    {label:'Plan and learn',items:[['calendar','Calendar','/#calendar'],['scorecard','Scorecard','/#scorecard'],['library','Library','/#inspiration'],['archive','Archive','/#archive']]},
   ];
-  const TABS=[['today','Today','/#today'],['youtube','YouTube','/#board'],['editing','Editing','/#editing'],['email','Email','/#email']];
+  const TABS=[['today','Today','/#today'],['youtube','YouTube','/#board'],['lessons','Lessons','/#lessons-board'],['email','Email','/#email']];
   const page=location.pathname.replace(/\/$/,'')||'/';
   const here=href=>{const [p,h]=href.split('#');return p===page&&(!h||page!=='/admin'||location.hash.slice(1)===h)};
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -55,10 +55,29 @@
     bar.innerHTML=TABS.map(([k,l,h])=>`<a class="tab${here(h)?' active':''}" href="${h}">${svg(k)}<span>${l}</span></a>`).join('')+`<button class="tab" id="shell-more" aria-haspopup="dialog">${svg('more')}<span>More</span></button>`;
     document.body.append(bar);
     const sheet=document.createElement('dialog');sheet.className='more-sheet';sheet.setAttribute('aria-label','All pages');
-    sheet.innerHTML=`<div class="more-head"><b>Josh OS</b><button class="subtle" data-close aria-label="Close">✕</button></div>${NAV.map(g=>`${g.label?`<div class="more-label">${esc(g.label)}</div>`:''}<div class="more-grid">${g.items.map(([k,l,h])=>`<a href="${h}" class="${here(h)?'active':''}">${svg(k)}<span>${esc(l)}</span></a>`).join('')}</div>`).join('')}`;
+    sheet.innerHTML=`<div class="more-head"><b>CareerOS</b><button class="subtle" data-close aria-label="Close">✕</button></div>${NAV.map(g=>`${g.label?`<div class="more-label">${esc(g.label)}</div>`:''}<div class="more-grid">${g.items.map(([k,l,h])=>`<a href="${h}" class="${here(h)?'active':''}">${svg(k)}<span>${esc(l)}</span></a>`).join('')}</div>`).join('')}`;
     document.body.append(sheet);
     bar.querySelector('#shell-more').onclick=()=>sheet.showModal();
     sheet.addEventListener('click',e=>{if(e.target===sheet||e.target.closest('[data-close]'))sheet.close()});
     document.body.classList.add('has-tabbar');
   }
+  // The running process may still predate this directory. Reveal navigation only
+  // once its authenticated endpoint exists, so staging files needs no restart.
+  (async()=>{
+    try{
+      const token=document.querySelector('meta[name="dj-token"]')?.content;
+      const response=await fetch('/api/lead-magnets',{headers:token?{'X-DJ-Token':token}:{}});
+      if(!response.ok)return;
+      const data=await response.json();if(!Array.isArray(data.magnets))return;
+      const icon='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2v6a4 4 0 0 0 8 0V2M4 5h3M9 5h3M7 2v6a1 1 0 0 0 2 0V2"/></svg>';
+      for(const sibling of document.querySelectorAll('.rail [data-view="inspiration"],.rail a[href="/#inspiration"],.side a[href="/#inspiration"],#side .appnav a[href="/#inspiration"],.more-sheet a[href="/#inspiration"]')){
+        if(sibling.parentElement.querySelector('a[href="/lead-magnets"]'))continue;
+        const a=document.createElement('a');a.href='/lead-magnets';
+        a.className=sibling.className.replace(/\b(active|on)\b/g,'').trim();
+        a.innerHTML=icon+'<span>Lead Magnets</span>';
+        if(page==='/lead-magnets'){a.classList.add('active','on');a.setAttribute('aria-current','page')}
+        sibling.after(a);
+      }
+    }catch{/* Keep existing navigation usable while offline. */}
+  })();
 })();

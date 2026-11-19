@@ -1,11 +1,12 @@
-"""Email planning. When Kit is connected, Ready emails are scheduled in Kit automatically (see kit.py)."""
+"""Email planning. Josh OS never schedules, sends or publishes in Kit. It reads Kit to mirror each linked email's
+status, and Laia can prepare an approved draft broadcast only through studio/kit_drafts.py."""
 import hashlib,json,threading,uuid
 from datetime import date
 from pathlib import Path
 from .store import Conflict,now
-from .kit import Kit,KitError,content_hash
+from .kit import Kit,KitError,content_hash,link_spans
 
-FIELDS={'subject','preview','body','planned_date','audience','status','tags','source_ids','notes','archived','description','type','send_time','kit','results'}
+FIELDS={'images','subject','preview','body','links','planned_date','audience','status','tags','source_ids','notes','archived','description','type','send_time','kit','results'}
 # How a sent email did, read from Kit by Laia: recipients, opens, clicks, unsubscribes and the rates, plus when it was checked.
 # New emails from the creators Josh learns from, saved by Laia from Gmail after the first collection.
 ADDITIONS='additions.json'
@@ -16,15 +17,57 @@ RESULT_KEYS={'recipients','opens','open_rate','clicks','click_rate','unsubscribe
 STATUSES=['Draft','Ready','Scheduled','Published','Sent']
 KIT_STATUS={'draft':'Scheduled','scheduled':'Published','sending':'Published','completed':'Sent','aborted':'Scheduled'}
 
+def kit_send_proof(store,broadcast_id):
+    """Whether Kit shows this broadcast went out, from the newest complete Kit snapshot (studio/counters.py, taken each
+    morning). Returns dict(sent, send_at, snapshot_at, reason). Only Kit's own completed state counts. A planned date,
+    a chat message or a missing snapshot never does."""
+    bid=str(broadcast_id or '').strip()
+    if not bid.isdigit():return dict(sent=False,reason='No Kit broadcast id was given.')
+    try:
+        with store.connect() as c:rows=[json.loads(r[0]) for r in c.execute("SELECT body FROM business_counters WHERE key LIKE 'kit:%' ORDER BY key DESC")]
+    except Exception:rows=[]
+    snap=next((s for s in rows if s.get('complete')),None)
+    if not snap:return dict(sent=False,reason='There is no complete Kit snapshot to check against yet.')
+    item=(snap.get('items') or {}).get(bid)
+    if not item:return dict(sent=False,snapshot_at=snap.get('taken_at'),reason=f"Kit's snapshot from {str(snap.get('taken_at'))[:16]} has no sent broadcast {bid}.")
+    if item.get('status')!='completed':return dict(sent=False,snapshot_at=snap.get('taken_at'),reason=f"Kit shows broadcast {bid} as {item.get('status')}, not completed.")
+    return dict(sent=True,send_at=item.get('send_at'),recipients=item.get('recipients'),snapshot_at=snap.get('taken_at'),reason='')
+
+def trusted_broadcasts(p,kit_drafts=None):
+    """The Kit broadcast ids Josh OS itself has tied to this email: its Kit link (set by Kit sync or by Josh, never from
+    chat) and a draft broadcast Josh OS made for it through the approved draft flow (studio/kit_drafts.py). Fields a
+    team member writes from chat, like results, never count."""
+    out=[]
+    k=p.get('kit') or {}
+    if isinstance(k.get('id'),int):out.append(str(k['id']))
+    if kit_drafts is not None:
+        try:
+            made=kit_drafts.made_by_us(p['id'])
+            if made:out.append(str(made))
+        except Exception:pass
+    return list(dict.fromkeys(out))
+
+def proven_send(store,p,kit_drafts=None):
+    """The Kit proof that this email went out, or None: a broadcast tied to it by Josh OS that Kit shows as completed,
+    in Kit's own synced state or in the newest complete Kit snapshot."""
+    k=p.get('kit') or {}
+    if isinstance(k.get('id'),int) and k.get('status')=='completed':return dict(broadcast_id=str(k['id']),send_at=k.get('send_at'),source='Kit sync')
+    for bid in trusted_broadcasts(p,kit_drafts):
+        proof=kit_send_proof(store,bid)
+        if proof['sent']:return dict(broadcast_id=bid,send_at=proof['send_at'],source=f"Kit snapshot {str(proof['snapshot_at'])[:16]}")
+    return None
+
 def normalize(p):
     if p.get('status') in ('Ready for review','Processing'):p['status']={'Ready for review':'Ready','Processing':'Published'}[p['status']]
-    p.setdefault('description','');p.setdefault('type','Newsletter');p.setdefault('send_time','');p.setdefault('kit',None);p.setdefault('results',{})
+    p.setdefault('images',[]);p.setdefault('description','');p.setdefault('type','Newsletter');p.setdefault('send_time','');p.setdefault('kit',None);p.setdefault('results',{})
     return p
 
 class Emails:
     def __init__(self,store,root):
         self.store,self.root=store,Path(root)
         self._references=None
+        from .email_visuals import EmailVisuals
+        self.visuals=EmailVisuals(self)
         self.kit=Kit(store.root);self.kit_lock=threading.Lock()
         with store.connect() as c:
             c.executescript('''CREATE TABLE IF NOT EXISTS email_drafts(id TEXT PRIMARY KEY,revision INTEGER NOT NULL,body TEXT NOT NULL);
@@ -67,6 +110,8 @@ class Emails:
         for key,limit in [('subject',500),('preview',1000),('body',200000),('audience',2000),('notes',20000)]:
             if not isinstance(p[key],str) or len(p[key])>limit:raise ValueError(key+' must be text within '+str(limit)+' characters')
         if not p['subject'].strip():raise ValueError('Give this email a subject or working name')
+        link_spans(p)
+        self.visuals.validate(p)
         if not isinstance(p['planned_date'],str):raise ValueError('Invalid planned date')
         if p['planned_date']:
             if len(p['planned_date'])!=10:raise ValueError('Use a YYYY-MM-DD local planning date')
@@ -119,7 +164,13 @@ class Emails:
             row=c.execute('SELECT revision,body FROM email_drafts WHERE id=?',(eid,)).fetchone()
             if not row:raise KeyError('Email not found')
             if row['revision']!=revision:raise Conflict('This email changed in another window. Reload before saving; your text is still here.')
-            p=normalize(json.loads(row['body']));p.update(changes);self.validate(p)
+            p=normalize(json.loads(row['body']))
+            # Text edits must carry existing visual anchors with their surrounding copy.
+            # An explicit, changed image list supplies its own reviewed placements.
+            if isinstance(changes.get('body'),str) and changes['body']!=p['body'] and p.get('images') and ('images' not in changes or changes['images']==p['images']):
+                from .email_visual_anchors import rebase_images
+                changes=dict(changes,images=rebase_images(p['body'],changes['body'],p['images']))
+            p.update(changes);self.validate(p)
             p.update(revision=revision+1,updated_at=now(),approval_status='Pending final approval')
             blob=json.dumps(p,ensure_ascii=False)
             c.execute('UPDATE email_drafts SET revision=?,body=? WHERE id=?',(p['revision'],blob,eid))
@@ -140,38 +191,13 @@ class Emails:
         return cur
 
     def kit_step(self,p):
-        """Bring Kit in line with this email's status. Ready goes to Kit and is scheduled for its date.
-        Edits to an email already in Kit are sent over. Moving one back to Draft unschedules it in Kit."""
-        if not self.kit.connected or p.get('archived'):return p
-        k=p.get('kit') or {};ks=k.get('status')
-        if ks in ('completed','sending'):return p
-        st=p['status'];action=None
-        if st=='Ready':action='schedule'
-        elif st in ('Scheduled','Published') and k:
-            if ks!='scheduled' or content_hash(p)!=k.get('pushed_hash') or (p['planned_date'],p['send_time'] or '17:00')!=(k.get('local_date'),k.get('local_time')):action='schedule'
-        elif st=='Draft' and ks=='scheduled':action='unschedule'
-        if not action:
-            if p.get('kit_error'):return self._apply(p['id'],lambda cur:cur.pop('kit_error',None) and None)
-            return p
-        with self.kit_lock:
-            try:kit=self.kit.push(p,schedule=action=='schedule')
-            except (KitError,ValueError) as e:
-                msg=str(e)
-                def fail(cur):
-                    if cur.get('kit_error')==msg:return False
-                    cur['kit_error']=msg
-                return self._apply(p['id'],fail)
-        kit.update(local_date=p['planned_date'],local_time=p['send_time'] or '17:00')
-        def ok(cur):
-            cur['kit']=kit;cur.pop('kit_error',None)
-            if action=='schedule':
-                if cur['status']=='Ready':cur['status']='Scheduled'
-                elif cur['status']=='Published' and content_hash(cur)!=(p.get('kit') or {}).get('pushed_hash'):cur['status']='Scheduled'
-                if not cur['send_time']:cur['send_time']='17:00'
-        return self._apply(p['id'],ok)
+        """Kit scheduling from Josh OS is turned off (11 Nov 2026). Dates and sending happen only in Kit's own app,
+        so this never pushes, schedules or unschedules anything. It only clears a stale error."""
+        if p.get('kit_error'):return self._apply(p['id'],lambda cur:cur.pop('kit_error',None) and None)
+        return p
 
     def kit_cycle(self):
-        """Refresh Kit's state for linked emails, then schedule anything waiting. Safe to run often."""
+        """Refresh Kit's state for linked emails. Read only: it never schedules or changes anything in Kit."""
         if not self.kit.connected:return dict(connected=False)
         from datetime import datetime,timedelta
         changed=0;errors=[]
@@ -199,22 +225,12 @@ class Emails:
                 if json.dumps([cur['status'],kk.get('status'),kk.get('send_at'),kk.get('local_date'),kk.get('local_time')])==before:return False
             before=p['revision'];p=self._apply(p['id'],mirror)
             if p['revision']!=before:changed+=1
-        if not errors:
-            for p in self.all():
-                if p.get('archived'):continue
-                k=p.get('kit') or {}
-                waiting=p['status']=='Ready' or (p['status'] in ('Scheduled','Published') and k.get('status')=='draft')
-                if waiting and not p.get('kit_error'):
-                    r=self.kit_step(p)
-                    if r['revision']!=p['revision']:changed+=1
-                    if r.get('kit_error'):errors.append(r['subject']+': '+r['kit_error'])
         self.kit.note(last_sync=now(),last_error=errors[0] if errors else '')
         return dict(connected=True,changed=changed,errors=errors)
 
     def kit_push(self,eid):
-        """Try again now, for one email."""
-        p=self._apply(eid,lambda cur:cur.pop('kit_error',None) and None)
-        return self.kit_step(p)
+        """Kept so the old button gets a clear answer. Josh OS no longer pushes or schedules emails in Kit."""
+        raise ValueError('Josh OS no longer schedules emails in Kit. Laia can prepare an approved draft, and you set the date in Kit.')
 
     def import_records(self,data):
         """Atomic, idempotent, non-overwriting import of local drafts and reported dates."""

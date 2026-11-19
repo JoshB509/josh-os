@@ -1,5 +1,5 @@
 'use strict';
-/* Josh OS · Admin: Clients and Customers. */
+/* CareerOS · Admin: Clients and Customers. */
 const token = document.querySelector('meta[name=dj-token]').content;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

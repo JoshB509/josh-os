@@ -19,6 +19,11 @@ import re
 import sys
 from pathlib import Path
 
+try:  # Also launched directly by the job subprocess.
+    from .thumbnail_layout import geometry, number, text_box
+except ImportError:
+    from thumbnail_layout import geometry, number, text_box
+
 TOOLS = Path(r'E:\CareerOS\12_YouTube\_thumbnail-system\tools')
 TEMPLATE = Path(r'C:\Users\Anigma PC\Documents\Codex\2026-10-24\task\Josh Photoshop Template')
 FONT = Path(r'C:\Users\Anigma PC\Downloads\Josh Thumbnail Font Kit v2\Josh Thumbnail Font Kit v2\Font\JoshThumbnailV2-BoldItalic.ttf')
@@ -59,7 +64,7 @@ COLOURS = {
     'green': '#43B37A', 'black': '#0C0D10', 'orange': '#FF8A1F', 'blue': '#3D8BFF',
 }
 # name: (default, low, high)
-STYLE_NUMBERS = {'size': (200, 60, 360), 'outline': (0, 0, 14), 'bolden': (0, 0, 6)}
+STYLE_NUMBERS = {'size': (200, 8, 1080), 'outline': (0, 0, 128), 'bolden': (0, 0, 64), 'margin': (40, 0, 540)}
 WORDS_RE = r"[\w ',.!?&%$£€:+\-]+"
 LINE_GAP = 0.92      # baseline to baseline, as a share of the font size (same as the close format)
 MIN_SIZE = 60
@@ -99,9 +104,7 @@ def check_style(style):
     font_file(name, out['weight'])
     for key, (default, low, high) in STYLE_NUMBERS.items():
         v = style.get(key, default)
-        if isinstance(v, bool) or not isinstance(v, (int, float)) or not low <= v <= high:
-            raise ValueError(f'{key} must be a number between {low} and {high}.')
-        out[key] = v
+        out[key] = number(v, key, low, high)
     out['color'] = colour(style.get('color', 'white'))
     out['bar'] = style.get('bar', out['color'] == COLOURS['white'])
     out['bar_color'] = colour(style.get('bar_color', 'yellow'))
@@ -114,10 +117,8 @@ def check_style(style):
     if out['case'] not in ('as-is', 'upper'):
         raise ValueError('case must be as-is or upper.')
     out['fit'] = style.get('fit', 'size')
-    if out['fit'] not in ('size', 'fill'):
-        raise ValueError('fit must be size or fill.')
-    if out['bar'] and out['bar_color'] == out['color']:
-        raise ValueError('The words and the bar behind them can\'t be the same colour.')
+    if out['fit'] not in ('size', 'fill', 'none'):
+        raise ValueError('fit must be size, fill or none.')
     return out
 
 
@@ -130,7 +131,7 @@ def layout(lines, style, fmt, box):
     inside the box and the frame. Returns (font, size, baselines). Refuses words that can't fit at the smallest size."""
     from PIL import ImageFont
     path = str(font_file(style['font'], style['weight']))
-    grow = style['bolden'] + style['outline']
+    grow = round(style['bolden'] + style['outline'])
     widest = box['right'] - box['left']
 
     def measure(size):
@@ -143,22 +144,26 @@ def layout(lines, style, fmt, box):
     size = style['size']
     if style['fit'] == 'fill':
         f, widths, _, _ = measure(200)
-        size = min(STYLE_NUMBERS['size'][2], 200 * (widest - (54 if style['bar'] else 0)) / max(widths))
+        size = min(max(360, style['size']), 200 * (widest - (54 if style['bar'] else 0)) / max(1, max(widths)))
+        size = max(STYLE_NUMBERS['size'][1], size)
+    minimum = min(MIN_SIZE, size)
     while True:
         f, widths, asc, desc = measure(size)
-        gap = size * LINE_GAP
+        gap = size * box.get('line_gap', LINE_GAP)
         if fmt == 'middle':      # lines stack up from the baseline
             baselines = [box['baseline'] - (len(lines) - 1 - i) * gap for i in range(len(lines))]
         else:                    # lines run down from the first baseline
             baselines = [box['baseline'] + i * gap for i in range(len(lines))]
         pad = 27 if style['bar'] else 0
-        fits = (max(widths) + 2 * pad <= widest and baselines[0] - asc >= EDGE
-                and baselines[-1] + max(desc, (0.144 * size) if style['bar'] else 0) <= 1080 - EDGE / 2)
-        if fits:
+        margin = style.get('margin', EDGE)
+        fits = (max(widths) + 2 * pad <= widest and baselines[0] - asc >= margin
+                and baselines[-1] + max(desc, (0.144 * size) if style['bar'] else 0) <= 1080 - margin / 2)
+        if fits or style['fit'] == 'none':
             return f, round(size, 1), baselines
-        if size <= MIN_SIZE:
-            raise ValueError('These words are too long to fit even at the smallest size. Use fewer words.')
-        size = max(MIN_SIZE, size * 0.97)
+        if size <= minimum:
+            raise ValueError('These words are too long to fit or their placement leaves no room. Adjust the text box/size, '
+                             'use fewer words, or choose fit none for intentional cropping.')
+        size = max(minimum, size * 0.97)
 
 
 def styled(fmt, spec, out):
@@ -168,27 +173,32 @@ def styled(fmt, spec, out):
     import oneline
     W, H = oneline.W, oneline.H
     style = check_style(spec['style'])
+    geometry(fmt, spec)
     lines = spec['lines']
     canvas = Image.open(thumb.BG[spec['scene']]).convert('RGBA').resize((W, H), Image.LANCZOS)
     p = spec['pose']
+    # Draw the cutout once on its own layer when Josh wants it over the words.
+    behind = spec.get('text_behind', False)
+    subject = Image.new('RGBA', (W, H)) if behind else canvas
     if fmt == 'middle':
-        pose_log = thumb.place_pose(canvas, p['path'], p['face_cx'], head_top=p['head_top'], body_bottom=p['body_bottom'], desk_top=p['desk_top'])
-        box = dict(left=spec['bar_left'], right=spec['bar_right'], baseline=spec['baseline'], cx=(spec['bar_left'] + spec['bar_right']) / 2)
+        pose_log = thumb.place_pose(subject, p['path'], p['face_cx'], head_top=p['head_top'], body_bottom=p['body_bottom'], desk_top=p['desk_top'])
     else:
-        pose_log = thumb.place_pose(canvas, p['path'], p['face_cx'], p['face_cy'], p['face_w'])
-        box = dict(left=1297 - 560, right=min(1880, 1297 + 560), baseline=470, cx=1297)
-    canvas.alpha_composite(thumb.bottom_shade(spec.get('shade_start', 400)))
+        pose_log = thumb.place_pose(subject, p['path'], p['face_cx'], p['face_cy'], p['face_w'])
+    box = text_box(spec, fmt)
+    if spec.get('shade', True):
+        canvas.alpha_composite(thumb.bottom_shade(spec.get('shade_start', 400)))
     f, size, baselines = layout(lines, style, fmt, box)
 
     words = Image.new('L', (W, H), 0)
     edge = Image.new('L', (W, H), 0)
     bars = []
     for text, base in zip(lines, baselines):
-        l, _, r, _ = f.getbbox(text, anchor='ls', stroke_width=style['bolden'])
+        bolden = round(style['bolden'])
+        l, _, r, _ = f.getbbox(text, anchor='ls', stroke_width=bolden)
         x = box['cx'] - (l + r) / 2
-        ImageDraw.Draw(words).text((x, base), text, font=f, fill=255, anchor='ls', stroke_width=style['bolden'], stroke_fill=255)
+        ImageDraw.Draw(words).text((x, base), text, font=f, fill=255, anchor='ls', stroke_width=bolden, stroke_fill=255)
         if style['outline']:
-            w = style['bolden'] + style['outline']
+            w = round(style['bolden'] + style['outline'])
             ImageDraw.Draw(edge).text((x, base), text, font=f, fill=255, anchor='ls', stroke_width=w, stroke_fill=255)
         bars.append((round(box['cx'] - (r - l) / 2 - 27), round(base - oneline.BAR_UP * size), round(box['cx'] + (r - l) / 2 + 27),
                      round(base + oneline.BAR_DOWN * size)))
@@ -207,6 +217,8 @@ def styled(fmt, spec, out):
     if style['outline']:
         canvas.alpha_composite(oneline.solid(edge, rgb(style['outline_color'])))
     canvas.alpha_composite(oneline.solid(words, rgb(style['color'])))
+    if behind:
+        canvas.alpha_composite(subject)
     canvas.convert('RGB').save(out, optimize=True)
     return dict(pose=pose_log, size=size, asked=style['size'] if style['fit'] == 'size' else None, ink=words.getbbox(), bars=bars if style['bar'] else [])
 
@@ -224,6 +236,12 @@ def main(job_path):
         raise SystemExit('Refused: the pose must be a cutout from the Pose Catalogue.')
     if job['spec']['scene'] not in BACKGROUNDS:
         raise SystemExit('Refused: unknown scene.')
+    try:
+        geometry(fmt, job['spec'])
+        check_image(pose)
+        check_image(BACKGROUNDS[job['spec']['scene']])
+    except (ValueError, OSError) as e:
+        raise SystemExit(f'Refused: {e}')
     style = job['spec'].get('style')
     if style is not None:
         lines = job['spec'].get('lines')
@@ -241,6 +259,24 @@ def main(job_path):
     thumb.BG = {k: str(v) for k, v in BACKGROUNDS.items()}
     thumb.FONT = str(FONT)
     thumb._casc = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    # Resource validation happens before the approved helper allocates a resized cutout.
+    original_place = thumb.place_pose
+    def bounded_place(canvas, path, face_cx, face_cy=None, face_w=None, head_top=None, body_bottom=None, desk_top=None):
+        from PIL import Image
+        with Image.open(path) as im:
+            rgba = im.convert('RGBA')
+        _, _, fw, _ = thumb.face_box(rgba)
+        check_pose_size(rgba, fw, face_w, head_top, body_bottom)
+        return original_place(canvas, path, face_cx, face_cy, face_w, head_top, body_bottom, desk_top)
+    thumb.place_pose = bounded_place
+    original_shade = thumb.bottom_shade
+    # The legacy helper uses 720-high units: 720 means no shade, not division by zero.
+    def safe_shade(start):
+        if start >= 720:
+            from PIL import Image
+            return Image.new('RGBA', (1920, 1080))
+        return original_shade(start)
+    thumb.bottom_shade = safe_shade
     import oneline
     oneline.FONT = str(FONT)
     if style is not None:
@@ -253,6 +289,33 @@ def main(job_path):
         builder.FONT = str(FONT)
         result = builder.build(job['spec'], str(out))
     print(json.dumps(dict(out=str(out), result=result), default=str))
+
+
+def check_dimensions(width, height):
+    if not (type(width) is int and type(height) is int and
+            1 <= width <= 8192 and 1 <= height <= 8192 and width * height <= 24_000_000):
+        raise ValueError('Image dimensions exceed the raster resource limit.')
+
+
+def check_image(path):
+    from PIL import Image
+    with Image.open(path) as im:
+        if im.format != 'PNG':
+            raise ValueError('Thumbnail assets must be PNG images.')
+        check_dimensions(*im.size)
+
+
+def check_pose_size(rgba, detected_face_width, face_w=None, head_top=None, body_bottom=None):
+    if head_top is not None:
+        bbox = rgba.getchannel('A').point(lambda a: 255 if a > 128 else 0).getbbox()
+        if not bbox or bbox[3] - bbox[1] <= 1:
+            raise ValueError('The cutout has no usable subject.')
+        scale = (body_bottom - head_top) / (bbox[3] - bbox[1] - 1)
+    else:
+        scale = face_w / number(detected_face_width, 'detected face width', 1, rgba.width)
+    width, height = round(rgba.width * scale), round(rgba.height * scale)
+    check_dimensions(width, height)
+    check_dimensions(width + 180, height + 180)  # contact-shadow padding
 
 
 if __name__ == '__main__':

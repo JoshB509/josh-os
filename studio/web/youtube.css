@@ -146,3 +146,100 @@
   .phase{flex:none}
   .studio-doc .script-document{padding:var(--sp-4);min-height:50vh}
 }
+
+/* Thumbnails workspace and homepage preview (studio.js, 16 Nov 2026). Cards follow a YouTube home card: a rounded 16:9
+   thumbnail, then the channel avatar beside the title, the channel name and, only when saved data has them, views and
+   age. The cards and the preview use YouTube's own light colours and a Roboto/Arial stack so Josh judges the thumbnail
+   as a viewer meets it. The workspace around them keeps CareerOS tokens. */
+#tab-body .tc-entry{display:none}  /* no separate creator step; thumbnail-creator.js still loads */
+.tw{display:flex;flex-direction:column;gap:var(--sp-6)}
+.tw-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
+.tw-head h2{margin:0;font-family:var(--display);font-size:var(--fs-h2)}
+.tw-three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-5);margin:0}
+.tw-slot{background:none!important;box-shadow:none!important;border-radius:14px;overflow:visible;padding:var(--sp-2);margin:calc(var(--sp-2)*-1)}
+.tw-slot.over{background:color-mix(in srgb,var(--gold) 14%,transparent)!important}
+.tw-pos{display:flex;align-items:center;justify-content:space-between;height:28px;margin-bottom:var(--sp-1)}
+.tw-pos b{font-size:var(--fs-small);font-weight:600;color:var(--muted)}
+.tw-slot:first-child .tw-pos b{color:var(--ink)}
+.tw-hole{display:grid;place-items:center;border:1.5px dashed var(--line2);background:transparent!important}
+.tw-hole span{font-size:var(--fs-small);color:var(--faint)}
+
+/* the card */
+.yc{font-family:Roboto,Arial,sans-serif;color:#0f0f0f;min-width:0}
+.yc-thumb{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#e5e5e5}
+.yc-thumb img{display:block;width:100%;height:100%;object-fit:cover;aspect-ratio:auto;background:none}
+.yc-dur{position:absolute;right:8px;bottom:8px;padding:1px 4px;border-radius:4px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:500;line-height:18px}
+.yc-meta{display:flex;gap:12px;padding-top:12px}
+.yc-av{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#e5e5e5;color:#606060;font:500 15px/1 Roboto,Arial,sans-serif}
+.yc-av.mine{background:#15171c;color:#fff}
+.yc-text{min-width:0}
+.yc-title{margin:0 0 4px;font-family:inherit;font-size:16px;font-weight:600;line-height:22px;color:#0f0f0f;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;letter-spacing:0}
+.yc-line{margin:0;font-size:14px;line-height:20px;color:#606060;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* small menus */
+.tw-menu{position:relative}
+.tw-menu summary{list-style:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;cursor:pointer;color:var(--muted);font-size:18px;line-height:1}
+.tw-menu summary::-webkit-details-marker{display:none}
+.tw-menu summary:hover,.tw-menu[open] summary{background:var(--hover);color:var(--ink)}
+.tw-menu summary:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.tw-pop{position:absolute;right:0;top:32px;z-index:20;display:flex;flex-direction:column;gap:2px;min-width:220px;padding:6px;border-radius:var(--r-md);background:var(--card);box-shadow:var(--lift)}
+.tw-pop button{justify-content:flex-start;box-shadow:none;border-radius:var(--r-sm);font-weight:500}
+.tw-pop button:hover{background:var(--hover)}
+.tw-pop label{display:flex;flex-direction:column;gap:4px;padding:6px 8px;font-size:var(--fs-caption);color:var(--muted)}
+.tw-pop select{font-size:var(--fs-small)}
+.tw-pop p{margin:0;padding:6px 8px;font-size:var(--fs-caption);color:var(--muted)}
+
+/* library: images only, placed with one press */
+.tw-lib-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3)}
+.tw-lib-head h3{margin:0;font-size:var(--fs-sub);font-family:var(--display)}
+.tw-lib-head .count{margin-left:6px;font-family:var(--font);font-size:var(--fs-small);font-weight:500;color:var(--faint)}
+.tw-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--sp-4) var(--sp-3)}
+.tw-item{background:none!important;box-shadow:none!important;border-radius:0;overflow:visible}
+.tw-img{position:relative;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
+.tw-item.selected .tw-img{box-shadow:0 0 0 2px var(--ink)}
+.tw-img img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.tw-badge{position:absolute;left:6px;top:6px;padding:1px 7px;border-radius:var(--r-full);background:#15171c;color:#fff;font-size:11px;font-weight:600;line-height:18px}
+.tw-place{display:flex;align-items:center;gap:4px;padding-top:6px}
+.tw-place>button{min-height:28px;padding:0 10px;font-size:var(--fs-caption);font-weight:600;border-radius:var(--r-full);box-shadow:inset 0 0 0 1px var(--line2)}
+.tw-place>button:hover:not(:disabled){background:var(--hover)}
+.tw-place>button:disabled{background:var(--ink);color:var(--card);box-shadow:none;opacity:1}
+.tw-place .tw-menu{margin-left:auto}
+@media (hover:hover){.tw-place>*,.tw-place>button:disabled{opacity:0;transition:opacity .15s ease-out}
+  .tw-item:hover .tw-place>*,.tw-item:focus-within .tw-place>*,.tw-item:hover .tw-place>button:disabled{opacity:1}}
+.tw-none{padding:var(--sp-6);text-align:center}
+@media (max-width:760px){.tw-three{grid-template-columns:1fr;gap:var(--sp-4)}.tw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tw-head h2{font-size:var(--fs-sub)}}
+
+/* View on homepage: a YouTube home feed in its light theme, preview only */
+dialog.yh{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:#fff;color:#0f0f0f;font-family:Roboto,Arial,sans-serif;overflow:auto}
+dialog.yh::backdrop{background:#fff}
+.yh-top{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:16px;height:56px;padding:0 16px;background:#fff}
+.yh-ico{display:grid;place-items:center;width:40px;height:40px;flex:none}
+.yh-ico svg,.yh-side svg{width:24px;height:24px;fill:none;stroke:#0f0f0f;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.yh-logo{display:flex;align-items:center;gap:6px;font-size:18px;font-weight:500;letter-spacing:-.02em;margin-right:auto}
+.yh-logo i{width:28px;height:20px;border-radius:6px;background:#ff0033;position:relative}
+.yh-logo i::after{content:"";position:absolute;left:11px;top:6px;border-left:8px solid #fff;border-top:4px solid transparent;border-bottom:4px solid transparent}
+.yh-search{display:flex;align-items:center;width:min(560px,40vw);height:40px;border:1px solid #ccc;border-radius:40px;overflow:hidden;margin-right:auto}
+.yh-search input{flex:1;height:100%;border:0;padding:0 16px;font:16px Roboto,Arial,sans-serif;background:#fff;box-shadow:none}
+.yh-search .yh-ico{width:64px;height:100%;background:#f8f8f8;border-left:1px solid #d3d3d3}
+.yh-body{display:flex}
+.yh-side{position:sticky;top:56px;align-self:flex-start;display:flex;flex-direction:column;width:72px;padding:4px}
+.yh-side span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 0 14px;border-radius:10px}
+.yh-side span.on{background:#f2f2f2}
+.yh-side small{font-size:10px;color:#0f0f0f}
+.yh-main{flex:1;min-width:0;padding:0 24px 120px}
+.yh-chips{position:sticky;top:56px;z-index:1;display:flex;gap:12px;padding:12px 0;background:#fff;overflow:hidden;white-space:nowrap}
+.yh-chips span{padding:0 12px;height:32px;line-height:32px;border-radius:8px;background:rgba(0,0,0,.05);font-size:14px;font-weight:500}
+.yh-chips span.on{background:#0f0f0f;color:#fff}
+.yh-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 16px;padding-top:12px}
+.yh-bar{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:8px;padding:6px;border-radius:var(--r-full);background:#15171c;box-shadow:0 2px 6px rgba(0,0,0,.2),0 12px 32px rgba(0,0,0,.25);font-family:var(--font)}
+.yh-bar button{min-height:34px;padding:0 14px;border-radius:var(--r-full);background:transparent;color:#fff;box-shadow:none;font-weight:600}
+.yh-bar button:hover{background:rgba(255,255,255,.12)}
+.yh-bar button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.yh-pick{display:flex;gap:2px;padding-right:6px;margin-right:2px;border-right:1px solid rgba(255,255,255,.2)}
+.yh-pick button.on{background:#fff;color:#15171c}
+@media (max-width:1100px){.yh-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.yh-side,.yh-search{display:none}.yh-main{padding:0 0 110px}.yh-chips{padding:12px}
+  .yh-grid{grid-template-columns:1fr;gap:24px}.yh-card .yc-thumb{border-radius:0}.yh-card .yc-meta{padding:12px 12px 0}}
+@media (prefers-reduced-motion:reduce){.tw-place>*{transition:none}}
+/* while a change to the three is saving: nothing else can be placed (studio.js twCommit) */
+.tw.busy .tw-three,.tw.busy .tw-grid{opacity:.65;pointer-events:none}

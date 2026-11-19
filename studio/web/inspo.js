@@ -1,6 +1,6 @@
 'use strict';
 // Creators: the carousels we learn from (Ali Abdaal, Alex Hormozi), kept with their slides,
-// likes, comments and the same tags as ours. Breakouts are worked out by Josh OS (at least
+// likes, comments and the same tags as ours. Breakouts are worked out by CareerOS (at least
 // twice the median likes of the creator's previous 20 posts). Sam adds and tags posts from chat.
 let inspo=null,inspoOpen=null,inspoView='posts',inspoSort='newest',inspoFilter={creator:'',format:'',only:''};
 const inspoSaver=makeAutosaver({url:p=>'/api/inspo/'+p.id,note:t=>{const n=$('#inspo-save');if(n)n.textContent=t},onSaved:()=>{}});

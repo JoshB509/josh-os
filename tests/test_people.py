@@ -92,17 +92,29 @@ class AnoukSetupTests(unittest.TestCase):
         self.assertNotIn('priya@x.com', self.agents.desk_snapshot('sam', []))
 
     def test_no_outside_tools_in_setup_mode(self):
+        # Since 11 Nov 2026 (docs/careeros-mcp-setup.md and docs/gmail-access-setup.md) Anouk's setup mode has one
+        # approved exception, the seven named CareerOS reads. Nothing that writes, sends or books may reach her, and
+        # Gmail drafts stay off even once she is live. Gmail reads are covered by test_gmail_access.py.
+        from studio import gmail_access
+        writes = ('send', 'draft', 'create', 'update', 'delete', 'cancel', 'schedul', 'book', 'tag', 'subscrib', 'label', 'trash', 'spam', 'invite')
         calls = []
-        self.agents.run = lambda system, prompt, schema, dirs=(), chrome=False, extra_tools=(), full=False, **k: (calls.append((chrome, list(extra_tools), schema)) or ('Noted.', {}))
+        self.agents.run = lambda system, prompt, schema, dirs=(), chrome=False, extra_tools=(), full=False, **k: (calls.append((chrome, list(extra_tools), schema, k.get('read_only'))) or ('Noted.', {}))
         self.agents.chat(dict(agent_id='anouk', message='Hi'), [])
-        chrome, tools, schema = calls[0]
-        self.assertEqual((chrome, tools), (False, []))
+        chrome, tools, schema, read_only = calls[0]
+        self.assertFalse(chrome)
+        self.assertEqual(set(tools), set(agent_mod.CAREEROS_READ))
+        self.assertTrue(read_only)
+        self.assertFalse([t for t in tools if any(w in t.lower() for w in writes)])
         self.assertIn('people', schema['properties'])
         (self.root / 'settings.json').write_text(json.dumps({'team_live': ['anouk']}))
         self.agents.chat(dict(agent_id='anouk', message='Hi'), [])
-        self.assertTrue(any('create_draft' in t for t in calls[1][1]))
-        self.assertFalse(any('send' in t.lower() for t in calls[1][1]))
-
+        chrome, tools, _, read_only = calls[1]
+        self.assertTrue(read_only)
+        self.assertEqual({t for t in tools if t.startswith('mcp__careeros__')}, set(agent_mod.CAREEROS_READ))
+        self.assertFalse([t for t in tools if 'Gmail' in t and ('draft' in t or 'send' in t)])
+        # The run's exact-name guard admits only these; everything else in the list is denied at call time.
+        permitted = [t for t in tools if t in agent_mod.CAREEROS_READ or t in gmail_access.READ_TOOLS]
+        self.assertFalse([t for t in permitted if any(w in t.lower() for w in writes)])
 
 if __name__ == '__main__':
     unittest.main()

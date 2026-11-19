@@ -598,7 +598,7 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 .eq-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--sp-4);align-items:baseline;width:100%;padding:var(--sp-3) 0;border-bottom:1px solid var(--line);border-radius:0;background:none;box-shadow:none;text-align:left;min-height:0}
 .eq-row:hover{background:none}.eq-row:hover b{text-decoration:underline}
 .eq-row-main{display:flex;flex-direction:column;gap:2px;min-width:0}
-.eq-row-main b{font-weight:600;color:var(--ink)}
+.eq-row-main b{font-weight:600;color:var(--ink);white-space:normal;overflow-wrap:anywhere} /* buttons don't wrap by default (style.css), so on a phone a long subject ran under the date */
 .eq-row-main span{font-size:var(--fs-small);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .eq-row-when{font-size:var(--fs-small);color:var(--ink);white-space:nowrap}
 .eq-slot{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:10px;min-height:96px;border-radius:var(--r-md);background:var(--card);box-shadow:var(--card-shadow);text-align:left;border-top:3px solid var(--line)}
@@ -636,6 +636,9 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 
 /* Team: who needs you, at a glance */
 .tm{max-width:980px}
+/* The team group picture: the full frame at full width, height from its own ratio, so nobody is cropped out. */
+.tm-group{margin:var(--sp-2) 0 var(--sp-4);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--card-shadow);background:var(--card)}
+.tm-group img{display:block;width:100%;height:auto;aspect-ratio:1983/793}
 .tm-head{margin:var(--sp-2) 0 var(--sp-5)}
 .tm-head h1{margin:0 0 var(--sp-1);font-family:var(--display);font-size:clamp(28px,3.4vw,40px);letter-spacing:-.01em;color:var(--ink)}
 .tm-head p{margin:0;font-size:17px;color:var(--ink)}
@@ -708,3 +711,274 @@ details.room-saved[open]{display:flex;flex-direction:column;gap:4px}
 .chat-images a{display:block;border-radius:8px;overflow:hidden;max-width:100%}
 .chat-images img{display:block;max-width:220px;max-height:180px;object-fit:cover}
 .chat-images a:only-child img{max-width:100%;max-height:260px}
+
+/* Team page: one big profile card per person. Their photo, name and role on top, then what needs Josh and their
+   last message. The whole top half opens their desk. */
+.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--sp-5);margin-top:var(--sp-5)}
+.tc{position:relative;display:flex;flex-direction:column;border-radius:var(--r-lg);background:var(--card);box-shadow:var(--card-shadow);overflow:hidden;transition:box-shadow .15s ease-out,transform .15s ease-out}
+.tc:hover{box-shadow:var(--lift);transform:translateY(-1px)}
+.tc.wants{box-shadow:var(--card-shadow),inset 0 0 0 1.5px var(--gold)}
+.tc.later{opacity:.82}
+.tc-open{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;min-height:0;height:auto;border:0;border-radius:0;background:none;box-shadow:none;text-align:left;white-space:normal;color:var(--ink)}
+.tc-open:hover{background:none}
+.tc-open:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.tc-portrait{position:relative;display:block;aspect-ratio:4/3;background:color-mix(in srgb,var(--agent) 10%,var(--card));overflow:hidden}
+.tc-portrait::after{content:'';position:absolute;inset:auto 0 0 0;height:4px;background:var(--agent)}
+.tc-photo{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 25%}
+.tc-photo.none{display:grid;place-items:center;font-family:var(--display);font-size:72px;font-weight:700;color:var(--agent)}
+.tc-who{display:flex;flex-direction:column;gap:2px;padding:var(--sp-4) var(--sp-4) 0}
+.tc-who b{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:var(--lh-head)}
+.tc-who small{font-size:var(--fs-small);color:var(--muted)}
+.tc-go{position:absolute;top:var(--sp-3);right:var(--sp-3);padding:4px 10px;border-radius:var(--r-full);background:var(--card);box-shadow:var(--card-shadow);font-size:var(--fs-caption);font-weight:600;color:var(--ink);opacity:0;transition:opacity .15s ease-out}
+.tc:hover .tc-go,.tc-open:focus-visible .tc-go{opacity:1}
+.tc-body{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4) var(--sp-4)}
+.tc-say{display:flex;align-items:center;gap:6px;margin:0;font-size:var(--fs-small);line-height:1.45;color:var(--text)}
+.tc-say.needs,.tc-say.ask{font-weight:600;color:var(--ink)}
+.tc-dot{flex:none;width:8px;height:8px;border-radius:var(--r-full);background:var(--gold)}
+.tc-items{display:flex;flex-direction:column;gap:2px}
+.tc-item{display:flex;justify-content:space-between;gap:var(--sp-2);width:100%;min-height:36px;height:auto;padding:var(--sp-2) var(--sp-3);border:0;border-radius:var(--r-md);background:var(--yellow);box-shadow:none;text-align:left;white-space:normal;font-size:var(--fs-small);color:var(--ink)}
+.tc-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-item small{flex:none;color:var(--yellow-t)}
+.tc-item:hover{background:color-mix(in srgb,var(--gold) 28%,var(--card))}
+.tc-item.more{background:none;color:var(--muted)}
+.tc-last{display:flex;flex-direction:column;gap:2px;margin:0;padding-top:var(--sp-2);border-top:1px solid var(--line);font-size:var(--fs-caption);color:var(--muted)}
+.tc-last q{color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tc-last q::before,.tc-last q::after{content:none}
+
+/* A desk: the office scene across the top with its edges fading into the page, the small portrait and name over its
+   foot, then chat beside what needs Josh, then the ongoing work and numbers. Every desk has the same layout. */
+.hub-hero{position:relative;margin:0 0 var(--sp-5)}
+.hub-office{position:relative;height:clamp(260px,38vw,480px);overflow:hidden}
+/* The scene fades out at the sides and into the page at the bottom. The people sit off-centre (Anouk near the right
+   edge), so only the outer edges fade, never the middle. */
+.office-img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 24%;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 6%,#000 62%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(180deg,transparent 0,#000 6%,#000 62%,transparent 100%);
+  mask-composite:intersect}
+.office-pending{border-radius:var(--r-lg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-3);height:100%;
+  background:radial-gradient(ellipse 70% 80% at 50% 45%,color-mix(in srgb,var(--agent) 14%,var(--card)) 0%,color-mix(in srgb,var(--agent) 5%,var(--bg)) 60%,var(--bg) 100%)}
+.office-pending small{padding:4px 12px;border-radius:var(--r-full);background:var(--card);box-shadow:var(--card-shadow);font-size:var(--fs-caption);color:var(--muted)}
+.hub-id{position:relative;display:flex;align-items:center;gap:var(--sp-3);margin:calc(-1 * var(--sp-6)) var(--sp-5) 0;padding:var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 4px);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--lift);overflow:hidden}
+.hub-id::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:var(--agent)}
+.hub-id .room-who{flex:1;min-width:0}
+.hub-id h1{margin:0;font-family:var(--display);font-size:var(--fs-h1);line-height:var(--lh-tight)}
+.hub-main{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.hub .room-chat{height:min(640px,calc(100vh - 140px))}
+.hub-focus{gap:var(--sp-4)}
+.hub-card{position:relative;padding:var(--sp-4);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--card-shadow)}
+.hub-card header{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-bottom:var(--sp-2)}
+.hub-card h3{margin:0;font-family:var(--display);font-size:var(--fs-sub);color:var(--ink)}
+.hub-card.needs{box-shadow:var(--card-shadow),inset 3px 0 0 var(--gold)}
+.hub-count{min-width:24px;padding:2px 8px;border-radius:var(--r-full);background:var(--gold);font-size:var(--fs-caption);font-weight:700;text-align:center;color:var(--ink)}
+.hub-meta{font-size:var(--fs-caption);color:var(--muted)}
+.hub-say{margin:0;font-size:var(--fs-small);line-height:1.5;color:var(--text)}
+.hub-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--sp-3);width:100%;min-height:44px;height:auto;padding:var(--sp-2) var(--sp-3);margin-top:2px;border:0;border-radius:var(--r-md);background:var(--yellow);box-shadow:none;text-align:left;white-space:normal;color:var(--ink);font-size:var(--fs-small)}
+.hub-row:hover{background:color-mix(in srgb,var(--gold) 28%,var(--card))}
+.hub-row-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.hub-row small{color:var(--yellow-t);font-size:var(--fs-caption)}
+.hub-row i{font-style:normal;color:var(--yellow-t)}
+.hub-more{display:flex;flex-direction:column;gap:var(--sp-4);margin-bottom:var(--sp-6)}
+.hub-more h2{margin:0;font-family:var(--display);font-size:var(--fs-sub);color:var(--muted);font-weight:600}
+.hub-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--sp-3)}
+.hub-stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:0;height:auto;padding:var(--sp-3) var(--sp-4);border:0;border-radius:var(--r-md);background:color-mix(in srgb,var(--agent) 7%,var(--card));box-shadow:none;text-align:left;white-space:normal}
+.hub-stat:hover{background:color-mix(in srgb,var(--agent) 12%,var(--card))}
+.hub-stat-label{font-size:var(--fs-caption);color:var(--muted)}
+.hub-stat-val{font-family:var(--display);font-size:var(--fs-h1);font-weight:700;line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums}
+.hub-stat-sub{font-size:11px;color:var(--muted)}
+.hub-stat.na{grid-column:1/-1;background:var(--callout)}
+.hub-stat-na{font-size:var(--fs-small);color:var(--text)}
+.hub-stat-link{margin-top:var(--sp-1);font-size:var(--fs-small);font-weight:600;color:var(--agent)}
+@media (max-width:900px){.hub-main{grid-template-columns:1fr}.hub .room-chat{position:static;height:560px;min-height:0}}
+@media (max-width:760px){
+  .tc-grid{grid-template-columns:1fr;gap:var(--sp-4)}
+  .tc-portrait{aspect-ratio:16/10}
+  .hub-office{height:auto;aspect-ratio:16/10}
+  .hub-id{margin:calc(-1 * var(--sp-5)) var(--sp-3) 0;flex-wrap:wrap}
+  .hub-id h1{font-size:22px}
+  .hub-id .subtle{width:100%}
+  .hub-stats{grid-template-columns:1fr 1fr}
+  .hub-stat-val{font-size:var(--fs-sub)}
+  .hub-row{grid-template-columns:minmax(0,1fr) auto}
+  .hub-row small{display:none}
+}
+
+/* Personal spaces. Every desk keeps the same parts in the same places (scene, name, chat, needs you, in progress,
+   numbers, ongoing work), on the warm off-white the sidebar uses. Each person's room changes the surface around them:
+   the page pattern, the cards, the number tiles and a few type details. */
+body:has(.hub),main:has(.hub){background:var(--hub-bg,var(--side))}
+main:has(.hub){background-image:var(--hub-pattern,none);background-attachment:fixed}
+.hub{--hub-fade:var(--hub-bg,var(--side))}
+.hub-hero{margin:0}
+.hub-office{height:clamp(300px,42vw,520px);border-radius:var(--r-lg) var(--r-lg) 0 0;background:var(--hub-fade)}
+/* only the bottom fades, into the page and the work coming up over it */
+.office-img{object-position:50% 22%;transform-origin:50% 0;image-rendering:high-quality;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 45%,rgba(0,0,0,.55) 66%,rgba(0,0,0,.15) 80%,transparent 88%);-webkit-mask-composite:source-over;
+  mask-image:linear-gradient(180deg,#000 0,#000 45%,rgba(0,0,0,.55) 66%,rgba(0,0,0,.15) 80%,transparent 88%);mask-composite:add}
+.hub-id{position:relative;z-index:2;margin:calc(-1 * clamp(96px,11vw,150px)) var(--sp-5) 0}
+.hub-main{position:relative;z-index:2;margin-top:var(--sp-4)}
+.hub-room{position:absolute;top:var(--sp-4);left:var(--sp-4);z-index:2;padding:5px 12px;border-radius:var(--r-full);background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(6px);box-shadow:var(--card-shadow);font-size:var(--fs-caption);font-weight:600;color:var(--ink)}
+.hub-room::before{content:'';display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:var(--r-full);background:var(--agent);vertical-align:1px}
+
+/* the fun notes: a small pill near the person, made up and labelled as such */
+.hub-fun-box{position:absolute;top:var(--sp-4);right:var(--sp-4);z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-2);max-width:min(340px,60%)}
+.hub-fun{display:flex;align-items:center;gap:var(--sp-2);margin:0;padding:6px 6px 6px 12px;border-radius:var(--r-full);background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(8px);box-shadow:var(--lift);font-size:var(--fs-caption);line-height:1.35;color:var(--text);opacity:0;transform:translateY(-4px);transition:opacity .25s ease-out,transform .25s ease-out}
+.hub-fun.on{opacity:1;transform:none}
+.hub-fun small{flex:none;padding:1px 7px;border-radius:var(--r-full);background:color-mix(in srgb,var(--agent) 14%,var(--card));font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--agent)}
+.hub-fun-x{flex:none;width:22px;height:22px;min-height:0;padding:0;border:0;border-radius:var(--r-full);background:none;box-shadow:none;font-size:15px;line-height:1;color:var(--muted)}
+.hub-fun-x:hover{background:var(--hover);color:var(--ink)}
+.hub-more h2 span{display:block;margin-bottom:2px;font-size:var(--fs-caption);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--agent)}
+.hub-meter{display:block;width:100%;height:6px;margin:6px 0 2px;border-radius:var(--r-full);background:color-mix(in srgb,var(--agent) 14%,var(--card));overflow:hidden}
+.hub-meter i{display:block;height:100%;border-radius:inherit;background:var(--agent)}
+@media (prefers-reduced-motion:reduce){.office-img{transform:none!important;will-change:auto}.hub-fun{transition:none;transform:none}}
+
+/* Sam's studio: a creative space. Dot-grid paper with soft paint washes, number tiles pinned up like photo prints. */
+body:has(.hub-sam){--hub-bg:#f8f7f3;--hub-pattern:radial-gradient(circle at 12% 30%,rgba(35,131,226,.07),transparent 28%),radial-gradient(circle at 88% 70%,rgba(245,194,27,.09),transparent 30%),radial-gradient(rgba(21,23,28,.09) 1px,transparent 1.2px);}
+body:has(.hub-sam) main{background-size:auto,auto,22px 22px}
+.hub-sam .hub-id h1{font-weight:800;letter-spacing:-.02em;background:linear-gradient(transparent 62%,color-mix(in srgb,var(--gold) 55%,transparent) 62%,color-mix(in srgb,var(--gold) 55%,transparent) 90%,transparent 90%);align-self:flex-start;width:fit-content;padding:0 4px;margin-left:-4px}
+.hub-sam .hub-stats{gap:var(--sp-4);padding:var(--sp-2) var(--sp-1)}
+.hub-sam .hub-stat{position:relative;padding:var(--sp-4) var(--sp-4) var(--sp-5);border-radius:4px;background:var(--card);box-shadow:0 1px 2px rgba(21,23,28,.08),0 6px 16px rgba(21,23,28,.08);transform:rotate(-1.2deg)}
+.hub-sam .hub-stat:nth-child(even){transform:rotate(1deg)}
+.hub-sam .hub-stat:nth-child(3n){transform:rotate(-.4deg)}
+.hub-sam .hub-stat::before{content:'';position:absolute;top:-8px;left:50%;width:54px;height:16px;margin-left:-27px;border-radius:2px;background:color-mix(in srgb,var(--gold) 45%,transparent);transform:rotate(-3deg)}
+.hub-sam .hub-stat:nth-child(even)::before{background:color-mix(in srgb,var(--agent) 30%,transparent);transform:rotate(4deg)}
+.hub-sam .hub-stat:hover{transform:rotate(0) translateY(-2px);background:var(--card)}
+.hub-sam .hub-stat-val{font-size:40px;font-weight:800}
+.hub-sam .hub-card,.hub-sam .room-chat,.hub-sam .room-list{border-radius:14px}
+
+/* Tariq's edit bay: technical. Graph-paper grid, mono labels, a console strip for the numbers. */
+body:has(.hub-tariq){--hub-bg:#f5f5f7;--hub-pattern:linear-gradient(rgba(144,101,176,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(144,101,176,.07) 1px,transparent 1px),linear-gradient(rgba(21,23,28,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(21,23,28,.035) 1px,transparent 1px);}
+body:has(.hub-tariq) main{background-size:120px 120px,120px 120px,24px 24px,24px 24px}
+.hub-tariq{--mono:ui-monospace,'Cascadia Code','Cascadia Mono',Consolas,monospace}
+.hub-tariq .hub-room,.hub-tariq .hub-id .room-who span,.hub-tariq .hub-card h3,.hub-tariq .hub-more h2,.hub-tariq .room-list h3,.hub-tariq .hub-fun{font-family:var(--mono)}
+.hub-tariq .hub-card h3::before,.hub-tariq .room-list h3::before{content:'// ';color:var(--agent)}
+.hub-tariq .hub-card,.hub-tariq .room-chat,.hub-tariq .room-list,.hub-tariq .hub-id{border-radius:8px;box-shadow:0 0 0 1px rgba(21,23,28,.09),0 4px 14px rgba(21,23,28,.05)}
+.hub-tariq .hub-stats{gap:0;border-radius:8px;overflow:hidden;background:#15171c;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));box-shadow:0 8px 24px rgba(21,23,28,.18)}
+.hub-tariq .hub-stat{border-radius:0;background:transparent;border-right:1px solid rgba(255,255,255,.08);padding:var(--sp-4)}
+.hub-tariq .hub-stat:hover{background:rgba(255,255,255,.05)}
+.hub-tariq .hub-stat-label{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.hub-tariq .hub-stat-val{font-family:var(--mono);font-weight:600;color:#fff}
+.hub-tariq .hub-stat-val::before{content:'> ';color:#b794d6}
+.hub-tariq .hub-stat-sub{font-family:var(--mono);color:#b794d6}
+
+/* Laia's planning room: a productive PM. Ruled-notebook paper, a tidy board of numbers with real progress bars. */
+body:has(.hub-laia){--hub-bg:#f8f7f4;--hub-pattern:linear-gradient(90deg,transparent 0,transparent calc(248px + 52px),rgba(217,115,13,.14) calc(248px + 52px),rgba(217,115,13,.14) calc(248px + 53px),transparent calc(248px + 53px)),repeating-linear-gradient(180deg,transparent 0,transparent 31px,rgba(35,131,226,.07) 31px,rgba(35,131,226,.07) 32px);}
+.hub-laia .hub-room,.hub-laia .hub-card h3,.hub-laia .room-list h3{letter-spacing:.01em}
+.hub-laia .hub-card h3,.hub-laia .room-list h3{font-size:var(--fs-lead);text-transform:none}
+.hub-laia .hub-card,.hub-laia .room-chat,.hub-laia .room-list,.hub-laia .hub-id{border-radius:10px}
+.hub-laia .hub-stats{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-2);padding:var(--sp-3);border-radius:10px;background:var(--card);box-shadow:var(--card-shadow)}
+.hub-laia .hub-stat{flex-direction:column;border-radius:8px;background:transparent;border-left:3px solid color-mix(in srgb,var(--agent) 60%,var(--card))}
+.hub-laia .hub-stat:hover{background:color-mix(in srgb,var(--agent) 6%,var(--card))}
+.hub-laia .hub-stat-label{font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:10px}
+.hub-laia .hub-stat-val{font-size:28px}
+.hub-laia .hub-row::before,.hub-laia .desk-item::before{content:'';flex:none;width:14px;height:14px;border:1.5px solid currentColor;border-radius:4px;opacity:.45}
+.hub-laia .hub-row{grid-template-columns:auto minmax(0,1fr) auto auto}
+
+/* Saskia's workshop: clean and modern. Lots of air, hairlines instead of shadows, big light numbers. */
+body:has(.hub-saskia){--hub-bg:#fafafa;--hub-pattern:radial-gradient(circle at 92% 18%,transparent 0 179px,rgba(181,72,122,.1) 180px,transparent 181px),radial-gradient(circle at 92% 18%,transparent 0 259px,rgba(181,72,122,.06) 260px,transparent 261px);}
+.hub-saskia .hub-card,.hub-saskia .room-chat,.hub-saskia .room-list,.hub-saskia .hub-id{border-radius:2px;box-shadow:none;border:1px solid rgba(21,23,28,.1)}
+.hub-saskia .hub-card.needs{box-shadow:inset 3px 0 0 var(--gold)}
+.hub-saskia .hub-id h1{font-weight:500;letter-spacing:-.03em}
+.hub-saskia .hub-main{gap:var(--sp-6)}
+.hub-saskia .hub-more{gap:var(--sp-5)}
+.hub-saskia .hub-stats{gap:0;border-top:1px solid rgba(21,23,28,.1);border-bottom:1px solid rgba(21,23,28,.1)}
+.hub-saskia .hub-stat{border-radius:0;background:transparent;padding:var(--sp-5) var(--sp-4)}
+.hub-saskia .hub-stat+.hub-stat{border-left:1px solid rgba(21,23,28,.1)}
+.hub-saskia .hub-stat:hover{background:color-mix(in srgb,var(--agent) 4%,transparent)}
+.hub-saskia .hub-stat-val{font-size:44px;font-weight:300;letter-spacing:-.03em}
+.hub-saskia .hub-stat.na{border:0}
+
+/* Anouk's corner café: warm and cosy. Latte paper with faint paw prints, soft round cards, cream number tiles. */
+body:has(.hub-anouk){--hub-bg:#f7f1e8;--hub-pattern:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%237a5a3a' fill-opacity='.07'%3E%3Cellipse cx='30' cy='36' rx='7' ry='6'/%3E%3Ccircle cx='21' cy='26' r='3'/%3E%3Ccircle cx='28' cy='21' r='3'/%3E%3Ccircle cx='36' cy='22' r='3'/%3E%3Ccircle cx='41' cy='29' r='3'/%3E%3Cellipse cx='88' cy='92' rx='7' ry='6'/%3E%3Ccircle cx='79' cy='82' r='3'/%3E%3Ccircle cx='86' cy='77' r='3'/%3E%3Ccircle cx='94' cy='78' r='3'/%3E%3Ccircle cx='99' cy='85' r='3'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(circle at 85% 12%,rgba(176,120,70,.08),transparent 35%);}
+.hub-anouk .hub-card,.hub-anouk .room-chat,.hub-anouk .room-list,.hub-anouk .hub-id{border-radius:22px;box-shadow:0 1px 2px rgba(122,90,58,.1),0 10px 28px rgba(122,90,58,.1)}
+.hub-anouk .hub-id h1,.hub-anouk .hub-card h3,.hub-anouk .room-list h3{font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:0}
+.hub-anouk .hub-stats{gap:var(--sp-3)}
+.hub-anouk .hub-stat{border-radius:18px;background:#fffaf2;box-shadow:inset 0 0 0 1px rgba(122,90,58,.12)}
+.hub-anouk .hub-stat:hover{background:#fff4e4}
+.hub-anouk .hub-stat-val{font-family:Georgia,serif;color:#5b4128}
+.hub-anouk .hub-room::after{content:'';display:inline-block;width:14px;height:12px;margin-left:7px;vertical-align:-1px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 12'%3E%3Cpath d='M1 3h9v4a4 4 0 0 1-4 4H5a4 4 0 0 1-4-4z M10 4h1.5a1.8 1.8 0 0 1 0 3.6H10' fill='none' stroke='%235b4128' stroke-width='1.3'/%3E%3C/svg%3E") no-repeat}
+
+/* dark mode keeps each room's idea on the dark surface */
+@media (prefers-color-scheme:dark){
+  body:has(.hub-sam),body:has(.hub-tariq),body:has(.hub-laia),body:has(.hub-saskia),body:has(.hub-anouk){--hub-bg:var(--side)}
+  .hub-sam .hub-stat,.hub-anouk .hub-stat{background:var(--card)}
+  .hub-anouk .hub-stat-val{color:var(--ink)}
+}
+@media (max-width:760px){
+  main:has(.hub){background-attachment:scroll}
+  .hub-office{height:auto;aspect-ratio:4/3;border-radius:0}
+  .hub-id{margin:-64px var(--sp-3) 0}
+  .hub-fun-box{top:var(--sp-3);right:var(--sp-3);max-width:calc(100% - 24px)}
+  .hub-room{top:var(--sp-3);left:var(--sp-3)}
+  .hub-sam .hub-stat-val{font-size:28px}
+  .hub-saskia .hub-stat{border-left:0!important;border-bottom:1px solid rgba(21,23,28,.1)}
+  .hub-saskia .hub-stat-val{font-size:32px}
+}
+/* The team's Discord messages: pause, banter and mute (team.js teamNoticesBar). */
+.nt{margin:0 0 18px;padding:12px 14px;border:1px solid var(--line,#2a2a2a);border-radius:12px;background:var(--panel,rgba(255,255,255,.03))}
+.nt-status{margin:0 0 8px;font-size:13px;color:var(--muted,#9a9a9a)}
+.nt-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.nt-bot{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line,#2a2a2a);background:transparent;color:inherit;cursor:pointer}
+.nt-bot.off{opacity:.55;text-decoration:line-through}
+
+/* Desk hero, 13 Nov 2026. The whole desk and table show when a person's page opens: the scene is taller, it stays
+   solid until its last fifth and then blends into the page, and the name card only overlaps that blended foot. On
+   scroll (team.js hubStart) the scene moves at under half speed and fades, so the work slides up over it. Reduced
+   motion and phones get the still scene. Each room keeps its own background, which the blend fades into. */
+.hub-hero{isolation:isolate}
+.hub-office{height:clamp(360px,48vw,620px);background:transparent;will-change:opacity}
+.hub-office .office-img{object-position:50% 30%;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 74%,rgba(0,0,0,.6) 86%,rgba(0,0,0,.18) 95%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0,#000 74%,rgba(0,0,0,.6) 86%,rgba(0,0,0,.18) 95%,transparent 100%)}
+.hub-office::after{content:'';position:absolute;inset:auto 0 0;height:22%;pointer-events:none;background:linear-gradient(180deg,transparent,var(--hub-fade))}
+.hub-id{margin-top:calc(-1 * clamp(44px,5vw,68px))}
+.hub-main,.hub-more{position:relative;z-index:2}
+@media (max-width:760px){
+  .hub-office{height:auto;aspect-ratio:4/3}
+  .hub-office .office-img{object-position:50% 34%}
+  .hub-id{margin-top:-36px}
+}
+
+.room-frameio{display:flex;flex-direction:column;align-items:stretch;gap:var(--sp-1);max-width:100%;min-width:0}
+.room-frameio b{display:flex;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap}
+.room-frameio b span,.room-frameio small{font-size:var(--fs-caption);color:var(--muted)}
+.room-frameio p{margin:0;font-size:var(--fs-small);overflow-wrap:anywhere}
+.room-frameio progress{width:100%;height:8px;accent-color:var(--agent,var(--gold))}
+.room-frameio a,.room-frameio button{align-self:flex-start;font-size:var(--fs-small)}
+
+/* Today (desk.js renderTodayView, 16 Nov 2026): needs your decision and blocked side by side, then the team, then what
+   finished and how we know. Gold only marks what needs Josh. */
+.td-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--sp-4);margin-bottom:var(--sp-4)}
+.td-sec{padding:var(--sp-4);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--card-shadow);margin-bottom:var(--sp-4)}
+.td-grid .td-sec{margin-bottom:0}
+.td-sec header{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)}
+.td-sec h2{margin:0;font-family:var(--display);font-size:var(--fs-sub);color:var(--ink)}
+.td-n{min-width:22px;padding:1px 8px;border-radius:var(--r-full);background:var(--hover);font-size:var(--fs-caption);font-weight:700;text-align:center;color:var(--ink)}
+.td-decide .td-n{background:var(--gold)}
+.td-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.td-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:var(--sp-3);width:100%;height:auto;min-height:44px;padding:var(--sp-2) var(--sp-3);border:0;border-radius:var(--r-md);background:none;box-shadow:none;text-align:left;white-space:normal;color:var(--text)}
+.td-row:hover{background:var(--hover)}
+.td-row.needs{background:var(--yellow)}
+.td-row.needs:hover{background:color-mix(in srgb,var(--gold) 28%,var(--card))}
+.td-main{display:flex;flex-direction:column;min-width:0}
+.td-main b{font-size:var(--fs-small);font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.td-main small{font-size:var(--fs-caption);color:var(--muted);overflow-wrap:anywhere}
+.td-row.checked .td-main small{color:#22744e}
+.td-row.unchecked .td-main small{color:var(--muted)}
+.td-row.blocked .td-main small{color:#a9372d}
+.td-owner{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-caption);font-weight:600;color:var(--text);white-space:nowrap}
+.td-owner i{width:8px;height:8px;border-radius:var(--r-full);background:var(--agent)}
+.td-owner.none{color:var(--muted);font-weight:500}
+.td-go{font-style:normal;color:var(--muted)}
+.td-empty,.td-more{margin:0;font-size:var(--fs-small);color:var(--muted)}
+.td-warn{margin:var(--sp-2) 0 0;font-size:var(--fs-small);color:#a9372d}
+.td-people{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--sp-3)}
+.td-person{padding:var(--sp-3);border-radius:var(--r-md);box-shadow:inset 3px 0 0 var(--agent,var(--line)),inset 0 0 0 1px var(--line)}
+.td-person p{margin:var(--sp-2) 0;font-size:var(--fs-small);line-height:1.5;color:var(--text)}
+.td-person-head{display:flex;align-items:center;gap:var(--sp-2);width:100%;height:auto;min-height:44px;padding:0;border:0;background:none;box-shadow:none;text-align:left;white-space:normal}
+.td-person-head:hover{background:none}
+.td-person-head b{color:var(--ink)}
+.td-person-head small{color:var(--muted);font-size:var(--fs-caption)}
+.td-person .td-row{grid-template-columns:minmax(0,1fr) auto}
+.td-person .td-owner{display:none}
+@media (max-width:760px){.td-grid{grid-template-columns:1fr}.td-row{grid-template-columns:minmax(0,1fr) auto}.td-row .td-go{display:none}}

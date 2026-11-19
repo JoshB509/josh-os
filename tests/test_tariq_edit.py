@@ -1,4 +1,6 @@
 """Tariq's editing workflow: the planner on synthetic audio and the revision and approval rules."""
+import json
+import os
 import shutil
 import tempfile
 import unittest
@@ -7,8 +9,10 @@ from pathlib import Path
 import numpy as np
 
 from dajoshi import edit_plan as ep
-from studio.edit_flow import EditFlow, verify_readback
-from studio.store import Conflict, Store
+from studio.edit_flow import EditFlow, mic_sync, verify_readback
+
+ROOT = Path(__file__).resolve().parents[1]
+from studio.store import Conflict, Store, now
 
 SR = 16000
 CAM = Path(r'E:\Videos\DaJoshiCut\tests\sample-5min.mp4')
@@ -41,11 +45,14 @@ class PlannerTests(unittest.TestCase):
     def kinds(self):
         return [(e['kind'], e['label'], e['proposed_action']) for e in self.events]
 
-    def test_pauses_are_kept_and_long_ones_flagged(self):
+    def test_long_pauses_are_cut_and_short_ones_kept(self):
+        # Josh, 11 Nov 2026: cut big silences automatically, no review. Short pauses stay.
         pauses = [e for e in self.events if e['kind'] == 'pause' and not e.get('outer')]
         self.assertTrue(pauses)
-        self.assertTrue(all(e['proposed_action'] == 'keep' for e in pauses))
-        self.assertTrue(any(e['review'] for e in pauses if e['measurements']['duration_ms'] >= 700))
+        for e in pauses:
+            long = e['measurements']['duration_ms'] >= ep.CONFIG['long_pause_ms']
+            self.assertEqual(e['proposed_action'], 'shorten' if long else 'keep')
+            self.assertFalse(e['review'])
 
     def test_isolated_sound_is_a_possible_cough_never_a_cough(self):
         snd = [e for e in self.events if e['kind'] == 'other_sound']
@@ -54,13 +61,17 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(snd[0]['review'])
         self.assertNotIn('cough', [e['kind'] for e in self.events])
 
-    def test_default_plan_never_cuts_a_word_or_a_pause(self):
+    def test_default_plan_never_cuts_a_word_and_leaves_short_pauses_whole(self):
         rem, issues = ep.plan(self.events, self.words, {}, len(self.pcm), SR)
         for w in self.words:
             self.assertFalse(any(a < w['end'] and w['start'] < b for a, b in rem), w)
         pauses = [e for e in self.events if e['kind'] == 'pause' and not e.get('outer')]
         for p in pauses:
             inside = sum(max(0, min(b, p['end']) - max(a, p['start'])) for a, b in rem)
+            if p['proposed_action'] == 'shorten':
+                # a long pause keeps a natural gap of long_pause_keep_ms and no more
+                self.assertAlmostEqual((p['end'] - p['start'] - inside) / SR, ep.CONFIG['long_pause_keep_ms'] / 1000, delta=0.05)
+                continue
             snd = sum(e['end'] - e['start'] + 2 * ep.ms(30, SR) for e in self.events if e['kind'] == 'other_sound' and p['start'] <= e['start'] < p['end'])
             self.assertLessEqual(inside, snd)
 
@@ -80,13 +91,17 @@ class PlannerTests(unittest.TestCase):
         cut = sum(max(0, min(b, p['end']) - max(a, p['start'])) for a, b in rem)
         self.assertAlmostEqual((p['end'] - p['start'] - cut) / SR, 0.4, delta=0.02)
 
-    def test_restart_candidates_default_to_keep(self):
+    def test_an_immediate_restart_is_cut_and_a_later_repeat_stays_a_candidate(self):
         w = ep.words_from_segments([dict(words=[dict(start=i * .3, end=i * .3 + .25, word=t) for i, t in
                                                 enumerate('so the first thing so the first thing is clear'.split())])], SR)
         c = ep.restart_candidates(w, SR)
         self.assertEqual(len(c), 1)
-        self.assertEqual(c[0]['proposed_action'], 'keep')
+        self.assertEqual((c[0]['proposed_action'], c[0]['label']), ('remove', '[restart]'))   # said again within 1.2s
         self.assertEqual(c[0]['word_ids'], ['w00001', 'w00002', 'w00003', 'w00004'])
+        far = ep.words_from_segments([dict(words=[dict(start=i * 1.0, end=i * 1.0 + .25, word=t) for i, t in
+                                                  enumerate('so the first thing a b c d e f g so the first thing'.split())])], SR)
+        c = ep.restart_candidates(far, SR)
+        self.assertEqual((c[0]['proposed_action'], c[0]['review']), ('keep', True))
 
     def test_transcribed_ahem_is_a_possible_throat_clear(self):
         w = ep.words_from_segments([dict(words=[dict(start=.5, end=.9, word=' Right.'), dict(start=1.5, end=1.8, word=' ahem,'),
@@ -176,6 +191,111 @@ class FlowRuleTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
+    # Tariq puts the video together from chat (added 11 Nov 2026) ------------------------------------------------
+    def premiere(self, slip=0):
+        """A fake Premiere: builds the planned cut (with every mic piece slipped by `slip` ticks) and records saves."""
+        calls = []
+
+        def bridge(cmd, args, timeout=None):
+            calls.append(cmd)
+            if cmd == 'tq_probe':
+                return dict(ok=True, frame_ticks=8467191533, frame=[1920, 1080], project='')
+            if cmd == 'tq_build_cut':
+                src = [p for p in args['plan']['map']['pieces'] if p['kind'] == 'source']
+                return dict(sequence=args['plan']['sequence_name'], saved=False,
+                            video=[dict(start=p['out_start'], end=p['out_end']) for p in src],
+                            audio=[dict(start=p['out_start'], end=p['out_end'], inp=p['mic_in'] + slip, role='mic') for p in src])
+            if cmd == 'tq_save':
+                return dict(saved=True)
+            raise AssertionError('unexpected ' + cmd)
+        self.flow.bridge_call = bridge
+        self.told = []
+        self.flow._tell = lambda pid, text, via='': self.told.append(text)
+        self.finals = []
+        self.flow.final = lambda pid, vid: self.finals.append(vid) or dict(state='started')
+        return calls
+
+    def deck(self, changed_at):
+        slides = self.tmp / 'slides_v01.html'
+        slides.write_text('<html></html>', encoding='utf-8')
+        os.utime(slides, (changed_at, changed_at))
+        self.flow.edit_review = type('ER', (), {'deck_files': lambda s, pid: (slides, None),
+                                                'review': lambda s, pid: dict(slides=slides.name, rendered='r1')})()
+
+    def run_job(self, key):
+        t = self.flow.jobs.get((key, self.p['id']))
+        if t:
+            t.join(20)
+
+    def test_a_cut_that_fails_its_check_is_still_saved(self):
+        from unittest import mock
+        pid, prop = self.p['id'], self.prop
+        self.flow.approve_script(pid, prop['id'], prop['digest'])
+        calls = self.premiere(slip=8467191533)   # a whole frame out, so the check fails
+        with mock.patch('studio.edit_master.open_project', return_value=self.tmp / 'p.prproj'):
+            cut = self.flow._after_script(pid, self.flow.latest(pid, 'edit_proposal'))
+        self.assertEqual(cut['payload']['state'], 'failed')
+        self.assertIn('tq_save', calls)   # the built sequence is kept in the project
+        self.assertTrue(any('did not build cleanly' in t for t in self.told))
+
+    def test_finish_builds_saves_approves_on_joshs_words_and_renders(self):
+        from unittest import mock
+        import time as _t
+        pid, prop = self.p['id'], self.prop
+        self.flow.approve_script(pid, prop['id'], prop['digest'])
+        calls = self.premiere(slip=-round(0.023 * ep.TICKS_PER_SECOND))   # Premiere's 23 ms rounding
+        self.deck(_t.time() - 3600)
+        said = dict(text="I've reviewed the animation deck and I'm happy with it. Go ahead and render.", at=now())
+        with mock.patch('studio.edit_master.open_project', return_value=self.tmp / 'p.prproj'):
+            self.flow.finish(pid, said, via='chat')
+            self.run_job('finish')
+        cut = self.flow.latest(pid, 'edit_cut')
+        self.assertEqual(cut['payload']['state'], 'verified')
+        self.assertEqual(calls.count('tq_build_cut'), 1)
+        self.assertIn('tq_save', calls)
+        v = self.flow.latest(pid, 'edit_visuals')
+        self.assertTrue(self.flow.approved(v))
+        self.assertEqual(self.flow.approval(v['id'])['josh_said'], said['text'])
+        self.assertEqual(self.finals, [v['id']])
+        self.assertTrue(any('Rendering the animations' in t for t in self.told))
+        # Asked again with a good cut already there: no second build.
+        with mock.patch('studio.edit_master.open_project', return_value=self.tmp / 'p.prproj'):
+            self.flow.finish(pid, said)
+            self.run_job('finish')
+        self.assertEqual(calls.count('tq_build_cut'), 1)
+
+    def test_finish_waits_when_the_slides_changed_after_joshs_yes(self):
+        from unittest import mock
+        import time as _t
+        pid, prop = self.p['id'], self.prop
+        self.flow.approve_script(pid, prop['id'], prop['digest'])
+        self.premiere()
+        said = dict(text='Happy with the animations, render it.', at='2026-11-11T14:00:00+00:00')
+        self.deck(_t.time())   # edited now, after that yes
+        with mock.patch('studio.edit_master.open_project', return_value=self.tmp / 'p.prproj'):
+            self.flow.finish(pid, said)
+            self.run_job('finish')
+        self.assertEqual(self.finals, [])
+        self.assertTrue(any('changed at' in t and 'tell me again' in t for t in self.told))
+
+    def test_finish_needs_joshs_words_and_an_approved_script(self):
+        with self.assertRaises(ValueError):
+            self.flow.finish(self.p['id'], dict(text=' ', at=now()))
+        with self.assertRaises(Conflict):
+            self.flow.finish(self.p['id'], dict(text='go', at=now()))   # script not approved yet
+
+    def test_a_request_file_runs_once(self):
+        got = []
+        self.flow.finish = lambda pid, approval, via='': got.append((pid, approval['text'], via))
+        f = self.flow.data / self.p['id'] / 'finish-request.json'
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps(dict(approval=dict(text='start editing this video', at=now()), via='chat')), encoding='utf-8')
+        self.flow.run_requests()
+        self.flow.run_requests()
+        self.assertEqual(got, [(self.p['id'], 'start editing this video', 'chat')])
+        self.assertFalse(f.exists())
+        self.assertEqual(len(list(f.parent.glob('finish-request.taken-*.json'))), 1)
+
     def test_unverified_sync_blocks_approval(self):
         bad = dict(self.payload, sync=dict(verified=False))
         prop = self.flow._put(self.p['id'], 'edit_proposal', bad, parent=self.src['id'])
@@ -257,6 +377,52 @@ class FlowRuleTests(unittest.TestCase):
         self.assertTrue(verify_readback(plan, bad))
         slip = dict(good, audio=[dict(a, inp=a['inp'] + 8467191533) for a in good['audio']])
         self.assertTrue(verify_readback(plan, slip))
+        self.assertIn('33 ms ahead of the picture on every piece, which is a frame or more', verify_readback(plan, slip)[0])
+
+    def readback(self, offsets, starts=None):
+        m = ep.output_map([[0, SR * 4], [SR * 6, SR * 9], [SR * 12, SR * 15]], SR, 0, 8467191533)
+        src = [p for p in m['pieces'] if p['kind'] == 'source']
+        res = dict(video=[dict(start=p['out_start'], end=p['out_end']) for p in src],
+                   audio=[dict(start=p['out_start'] + (starts or [0] * 9)[i], end=p['out_end'], inp=p['mic_in'] + offsets[i], role='mic')
+                          for i, p in enumerate(src)])
+        return dict(map=m), res
+
+    def test_steady_offset_under_a_frame_passes_and_is_recorded(self):
+        ms23 = round(0.023 * ep.TICKS_PER_SECOND)
+        plan, res = self.readback([-ms23] * 3)
+        self.assertEqual(verify_readback(plan, res), [])
+        sync = mic_sync(plan, res)
+        self.assertEqual((sync['ok'], sync['offset_ms']), (True, -23.0))
+        self.assertEqual(sync['note'], 'Mic 23 ms behind the picture on all 3 pieces (Premiere rounds to whole frames).')
+
+    def test_offset_that_changes_through_the_cut_fails_with_its_size(self):
+        plan, res = self.readback([0, -round(0.023 * ep.TICKS_PER_SECOND), round(0.020 * ep.TICKS_PER_SECOND)])
+        problems = verify_readback(plan, res)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("The mic's sync changes through the cut, from 23 ms behind the picture to 20 ms ahead of the picture.", problems[0])
+        self.assertIn('first off on piece 2 of 3', problems[0])
+
+    def test_mic_in_the_wrong_timeline_place_still_fails(self):
+        plan, res = self.readback([0, 0, 0], starts=[0, 0, 8467191533])
+        self.assertIn('Mic piece 3 of 3 sits at', verify_readback(plan, res)[0])
+
+    def test_real_4_signs_cut_now_passes(self):
+        """The cut that failed on 10 Nov 2026, replayed from Josh OS's saved read-back (read only)."""
+        import sqlite3
+        db = ROOT / 'Data' / 'studio.sqlite'
+        if not db.is_file():
+            self.skipTest('No Josh OS data on this machine.')
+        c = sqlite3.connect(f'file:{db}?mode=ro', uri=True)
+        row = c.execute("SELECT body FROM workflow_artifacts WHERE project_id='754882f9-0460-42f2-8391-2f5aa601a7a4' AND kind='edit_cut' "
+                        "AND body LIKE '%\"failed\"%' ORDER BY rowid DESC").fetchone()
+        c.close()
+        if not row:
+            self.skipTest('The failed 4 Signs cut is not in this database.')
+        p = json.loads(row[0])['payload']
+        self.assertEqual(p['problems'], ['The mic is out of sync at 0.00s.'])   # what the old check said
+        self.assertEqual(verify_readback(p['plan'], p['result']), [])
+        self.assertEqual(mic_sync(p['plan'], p['result'])['note'],
+                         'Mic 23 ms behind the picture on all 34 pieces (Premiere rounds to whole frames).')
 
 
 if __name__ == '__main__':

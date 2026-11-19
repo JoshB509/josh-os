@@ -1,4 +1,4 @@
-"""Kit (ConvertKit) v4 API client for scheduling broadcasts from the email planner.
+"""Kit (ConvertKit) v4 API client. Josh OS uses it only to read broadcast status; push() is turned off.
 
 The API key lives in Data/kit.json on this computer and is never sent to the browser.
 Kit's API accepts one audience group per broadcast, so emails go to one Kit segment
@@ -6,13 +6,17 @@ Kit's API accepts one audience group per broadcast, so emails go to one Kit segm
 import hashlib,html,json,os,re,threading,urllib.error,urllib.request
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 API=os.environ.get('DJ_KIT_API','https://api.kit.com/v4')
 DUBAI=timezone(timedelta(hours=4))
 DEFAULT_TEMPLATE=3719972  # "Text only", a Classic template
 
 def content_hash(p):
-    raw=json.dumps([p.get('subject',''),p.get('preview',''),p.get('body',''),[(l.get('label'),l.get('href')) for l in p.get('links') or []]],ensure_ascii=False)
+    fields=[p.get('subject',''),p.get('preview',''),p.get('body',''),[(l.get('label'),l.get('href')) for l in p.get('links') or []]]
+    # Preserve legacy text-only hashes; bind every visual version, PNG, alt and position.
+    if p.get('images'):fields.append(p['images'])
+    raw=json.dumps(fields,ensure_ascii=False,sort_keys=True)
     return hashlib.sha1(raw.encode('utf-8')).hexdigest()
 
 def send_at(p):
@@ -23,32 +27,52 @@ def send_at(p):
     if local<datetime.now(DUBAI)+timedelta(minutes=10):raise ValueError('The send time has passed. Pick a later date or time before it goes to Kit')
     return local.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-URL=re.compile(r'https://[^\s<>"]+')
+# Match raw text, including supported Liquid subscriber variables, before HTML escaping.
+URL=re.compile(r'https://(?:\{\{\s*subscriber\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}|[^\s<>"{}])+')
+
+def link_spans(p):
+    """Validate explicit label/destination pairs. Never infer a destination or rename a bare URL."""
+    links=p.get('links',[]);body=p.get('body') or '';spans=[]
+    if not isinstance(links,list) or len(links)>30:raise ValueError('Links must be a list of at most 30 label and URL pairs.')
+    for link in links:
+        if not isinstance(link,dict):raise ValueError('Each link needs a label and an explicit HTTPS URL.')
+        label,href=link.get('label'),link.get('href')
+        if not isinstance(label,str) or not label.strip() or len(label)>300 or '\n' in label or '\r' in label:
+            raise ValueError('Link wording must be nonempty text on one line.')
+        if not isinstance(href,str) or len(href)>4096 or not URL.fullmatch(href) or not urlsplit(href).hostname:
+            raise ValueError('Each link needs an explicit HTTPS URL; supported Liquid subscriber variables are preserved.')
+        start=body.find(label)
+        if start<0 or body.find(label,start+1)>=0:
+            raise ValueError('The link text "%s" must occur exactly once. Update its label together with the body.'%label)
+        spans.append((start,start+len(label),label,href))
+    spans.sort()
+    if any(a[1]>b[0] for a,b in zip(spans,spans[1:])):raise ValueError('Link labels must not overlap.')
+    return spans
+
+def linked_text(text):
+    out=[];end=0
+    for m in URL.finditer(text):
+        out.append(html.escape(text[end:m.start()],quote=False))
+        url=m.group(0)
+        out.append('<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>' %
+                   (html.escape(url,quote=True),html.escape(url,quote=False)))
+        end=m.end()
+    out.append(html.escape(text[end:],quote=False))
+    return ''.join(out)
 def body_html(p):
     """Each line becomes a paragraph, like Kit's editor. CTA labels become their tracked links."""
+    if p.get('images'):
+        from .email_visuals import LOCAL_ONLY
+        raise ValueError(LOCAL_ONLY)
     body=p.get('body') or ''
     if not body.strip():raise ValueError('This email has no body yet')
-    marks={};used=set()
-    for i,l in enumerate(p.get('links') or []):
-        if l.get('label') and str(l.get('href','')).startswith('https://'):marks[l['label']]=l['href']
-    out=[]
-    for line in body.split('\n'):
-        if not line.strip():out.append('<p>​</p>');continue
-        done=False
-        for label,href in marks.items():
-            if label in used:continue
-            at=line.find(label)
-            if at>=0:
-                used.add(label)
-                text=html.escape(line[:at])+'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>'%(html.escape(href),html.escape(label))+html.escape(line[at+len(label):])
-                out.append('<p>%s</p>'%text);done=True;break
-        if done:continue
-        text=html.escape(line,quote=False)
-        text=URL.sub(lambda m:'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>'%(m.group(0).replace('"','&quot;'),m.group(0)),text)
-        out.append('<p>%s</p>'%text)
-    missing=[l for l in marks if l not in used]
-    if missing:raise ValueError('The link text "%s" is no longer in the email. Put it back or update the link before it goes to Kit'%missing[0])
-    return ''.join(out)
+    parts=[];cursor=0
+    for start,end,label,href in link_spans(p):
+        parts.append(linked_text(body[cursor:start]))
+        parts.append('<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>'%(html.escape(href),html.escape(label)))
+        cursor=end
+    parts.append(linked_text(body[cursor:]))
+    return ''.join('<p>%s</p>'%(line if line.strip() else '\u200b') for line in ''.join(parts).split('\n'))
 
 class Kit:
     def __init__(self,data_root):
@@ -121,7 +145,9 @@ class Kit:
     def get(self,kid):return self.request('GET','/broadcasts/%d'%kid).get('broadcast') or {}
 
     def push(self,p,schedule=True):
-        """Create or update the Kit broadcast for this email. Returns the new kit link record."""
+        """Turned off. Josh OS never creates, updates or schedules a broadcast through this API key."""
+        raise ValueError('Josh OS no longer writes to Kit through the API key. Approved drafts go through studio/kit_drafts.py.')
+        # The old body is kept below, unreachable, for reference only.
         c=self.config();k=p.get('kit') or {}
         if not c.get('segment_id'):raise ValueError('Choose the Kit audience segment first')
         when=send_at(p) if schedule else None

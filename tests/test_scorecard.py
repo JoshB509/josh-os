@@ -152,8 +152,10 @@ class ScorecardTest(unittest.TestCase):
         today = date(2026, 12, 15)
         self.write(today, self.full(today, new_subscribers=1))
         before = self.sc.snapshot()
-        with mock.patch.object(Scorecard, '_raw', side_effect=RuntimeError('Linklr is down')):
+        with mock.patch.object(Scorecard, '_raw', side_effect=RuntimeError('Linklr is down')), \
+                mock.patch.object(Scorecard, 'read_reviews') as reviews:
             self.sc._refresh()
+        reviews.assert_called_once_with()
         self.assertEqual(self.sc.snapshot(), before)
         self.assertEqual(self.sc.attempt()['state'], 'failed')
         self.assertIn('Linklr is down', self.sc.attempt()['error'])
@@ -166,7 +168,7 @@ class ScorecardTest(unittest.TestCase):
         raw = {(n, json.dumps(a, sort_keys=True)): (buyers if n == 'get_course_buyer_journeys' else
                                                     dict(daily=[day(today)]) if n == 'get_daily_metrics' else {}) for n, a in calls}
         want = [(n, json.dumps(a, sort_keys=True)) for n, a in calls]
-        with mock.patch.object(Scorecard, '_raw', return_value=(raw, want, [])):
+        with mock.patch.object(Scorecard, '_raw', return_value=(raw, want, [])), mock.patch.object(Scorecard, 'read_reviews'):
             self.sc._refresh()
         text = (self.tmp / 'scorecard' / 'snapshot.json').read_text(encoding='utf-8')
         self.assertNotIn('@', text)

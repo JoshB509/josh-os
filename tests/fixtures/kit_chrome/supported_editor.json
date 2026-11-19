@@ -1,0 +1,61 @@
+{
+  "api": {
+    "id": 555,
+    "status": "draft",
+    "public": false,
+    "send_at": null,
+    "published_at": null,
+    "public_url": null,
+    "subject": "Fixture subject",
+    "preview_text": "Fixture preview",
+    "subscriber_filter": [],
+    "content": "<style>.email{}</style><table><tr><td>Template wrapper</td></tr></table>",
+    "content_tree_is_clean": true,
+    "content_tree_warnings": [],
+    "email_template": {
+      "id": 123
+    },
+    "theme": {},
+    "built_with_badge": false,
+    "content_tree": [
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "text": "Hello, reader."
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "text": ""
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "text": "Read "
+          },
+          {
+            "type": "link",
+            "href": "https://example.test/guide?reader={{ subscriber.id }}",
+            "children": [
+              {
+                "text": "the guide"
+              }
+            ]
+          },
+          {
+            "text": " for the next step."
+          }
+        ]
+      }
+    ]
+  },
+  "scoped": "textbox \"Email content editor\" [ref_94]\n generic \"Hello, reader.\" [ref_95]\n generic \"Read\" [ref_96]\n link [ref_97] href=\"https://example.test/guide?reader={{ subscriber.id }}\"\n  generic \"the guide\" [ref_98]\n generic \"for the next step.\" [ref_99]\n\nViewport: 1064x1245",
+  "plain": "Title: Fixture subject - Kit\nURL: https://app.kit.com/campaigns/555/draft\nSource element: <main>\n---\nSubject Line\nSuggest subject lines\nAB test toggle\nPreview Text\n15/150\n\nAppears after the subject line in the inbox.\n\n​\n\nHello, reader.\n\nRead ​the guide​ for the next step.\n\n​Unsubscribe | Update your profile | Test address\n\n10 words"
+}

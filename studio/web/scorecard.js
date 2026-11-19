@@ -3,6 +3,16 @@
 // the revenue goal. Numbers come from /api/scorecard. Anything a source can't give is shown as unavailable with the
 // reason, never as zero, and a change figure only shows when both windows are fully recorded.
 let scData=null,scMode='daily',scBusy=false,scPoll=null,scOpenDef={};
+// Each card belongs to the team member who looks after that part of the business. Their colour is the card's thin
+// accent, as on their desk, and the fallback colours match the team list.
+const SC_OWNER={youtube:['sam','Sam','#2383e2'],carousels:['sam','Sam','#2383e2'],email:['laia','Laia','#d9730d'],
+  course:['saskia','Saskia','#b5487a'],revenue:['max','Max','#0f7b6c'],learning:['anouk','Anouk','#4f63b8'],mtd:['max','Max','#0f7b6c']};
+function scOwner(key){
+  const [id,name,color]=SC_OWNER[key]||['','',''];
+  const a=(typeof team!=='undefined'&&team&&typeof teamAgent==='function')?teamAgent(id):null;
+  const c=a?.color||color,face=a&&typeof teamAvatar==='function'?teamAvatar(a,'sm'):`<span class="avatar sm" style="--agent:${c}">${esc(name[0]||'')}</span>`;
+  return {id,name:a?.name||name,color:c,face};
+}
 
 const scNum=(v,unit,exact)=>{
   if(v==null)return '—';
@@ -30,7 +40,7 @@ function scChart(m,key){
   const d=scDays(),cur=scGroups(m.daily.current,d.cur),prev=scGroups(m.daily.previous,d.prev);
   // One scale for both windows. A metric that can go below zero, like net subscribers, gets a zero line with losses below it.
   const all=[...cur,...prev].map(x=>x.v).filter(v=>v!=null),hi=Math.max(1,...all),lo=Math.min(0,...all);
-  const W=300,H=96,n=cur.length,step=W/n,bw=Math.max(2,step*(scMode==='daily'?.62:.7));
+  const W=300,H=110,n=cur.length,step=W/n,bw=Math.max(2,step*(scMode==='daily'?.58:.66));
   const y=v=>3+(hi-v)/(hi-lo)*(H-6),zero=y(0);
   const bars=cur.map((x,i)=>x.v==null?`<rect class="sc-gap" x="${(i*step+(step-bw)/2).toFixed(1)}" y="${(zero-1).toFixed(1)}" width="${bw.toFixed(1)}" height="2"/>`
     :`<rect class="sc-bar${x.partial?' partial':''}${x.v<0?' neg':''}" data-sc-tip="${key}:${i}" x="${(i*step+(step-bw)/2).toFixed(1)}" y="${Math.min(y(x.v),zero).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1,Math.abs(y(x.v)-zero)).toFixed(1)}"/>`).join('')
@@ -52,39 +62,53 @@ function scTip(key,i){
   return `<b>${range(cur)}</b><span>${cur.v==null?'Not recorded':scNum(cur.v,m.unit,true)+(cur.partial?' (some days not recorded)':'')}</span>
     <small>${range(prev)}: ${prev.v==null?'not recorded':scNum(prev.v,m.unit,true)}</small>`;
 }
-function scMetricRow(s,i,ck){
+function scTile(s,i,ck){
   const open=scOpenDef[ck+':'+i];
-  return `<li class="sc-row ${s.available?'':'na'}">
-    <button class="sc-row-main" data-sc-def="${ck}:${i}" aria-expanded="${!!open}"><span class="sc-row-label">${esc(s.label)}</span>
-      <span class="sc-row-val">${s.available?scNum(s.value,s.unit):'Unavailable'}${s.available?scDelta(s.delta,s.unit):''}</span>
-      <span class="sc-row-prev">${s.available?(s.previous==null?'Earlier: not recorded':`Earlier ${scNum(s.previous,s.unit)}${s.previous_partial?' (partial)':''}`):''}</span></button>
-    ${open?`<p class="sc-def">${esc(s.definition||'')}${s.reason?` <em>${esc(s.reason)}</em>`:''}${s.previous_note?` <em>${esc(s.previous_note)}</em>`:''}${s.source?` <span>Source: ${esc(s.source)}.</span>`:''}</p>`:''}
-  </li>`;
+  return `<button class="sc-tile ${s.available?'':'na'} ${open?'open':''}" data-sc-def="${ck}:${i}" aria-expanded="${!!open}">
+    <span class="sc-tile-label">${esc(s.label)}</span>
+    <span class="sc-tile-val">${s.available?scNum(s.value,s.unit):'Unavailable'}${s.available?scDelta(s.delta,s.unit):''}</span>
+    <span class="sc-tile-prev">${s.available?(s.context?esc(s.context):s.previous==null?'Earlier not recorded':`Earlier ${scNum(s.previous,s.unit)}${s.previous_partial?', partial':''}`):'No source yet'}</span>
+  </button>`;
+}
+function scTileDef(c){
+  const i=c.supporting.findIndex((s,i)=>scOpenDef[c.key+':'+i]);
+  if(i<0)return '';
+  const s=c.supporting[i];
+  return `<p class="sc-def"><b>${esc(s.label)}.</b> ${esc(s.definition||'')}${s.reason?` <em>${esc(s.reason)}</em>`:''}${s.previous_note?` <em>${esc(s.previous_note)}</em>`:''}${s.source?` <span>Source: ${esc(s.source)}.</span>`:''}</p>`;
 }
 function scCard(c){
-  const m=c.headline,k=c.key,open=scOpenDef[k+':h'];
-  return `<article class="sc-card ${m.available?'':'na'}" aria-labelledby="sc-${k}">
-    <header class="sc-card-head"><h2 id="sc-${k}">${esc(c.title)}</h2><button class="sc-info" data-sc-def="${k}:h" aria-expanded="${!!open}" aria-label="What ${esc(m.label)} means">i</button></header>
-    <p class="sc-label">${esc(m.label)}</p>
-    ${m.available?`<p class="sc-big">${scNum(m.value,m.unit)}${scDelta(m.delta,m.unit)}</p>
-      <p class="sc-context">${m.previous==null?'Earlier 30 days not recorded':`Earlier 30 days ${scNum(m.previous,m.unit)}${m.previous_partial?', partly recorded':''}`}${m.delta==null&&m.previous!=null?' · no fair change figure':''}</p>`
-      :`<p class="sc-big na">Unavailable</p><p class="sc-context">${esc(m.reason||'')}</p>`}
+  const m=c.headline,k=c.key,open=scOpenDef[k+':h'],o=scOwner(k);
+  return `<article class="sc-card ${m.available?'':'na'}" style="--agent:${o.color}" aria-labelledby="sc-${k}">
+    <header class="sc-card-head">
+      ${o.face}
+      <div class="sc-card-who"><h2 id="sc-${k}">${esc(c.title)}</h2><small>${esc(o.name)} looks after this</small></div>
+      <button class="sc-info" data-sc-def="${k}:h" aria-expanded="${!!open}" aria-label="What ${esc(m.label)} means">i</button>
+    </header>
+    <div class="sc-headline">
+      <p class="sc-label">${esc(m.label)}</p>
+      ${m.available?`<p class="sc-big">${scNum(m.value,m.unit)}${scDelta(m.delta,m.unit)}</p>
+        <p class="sc-context">${m.context?esc(m.context):m.previous==null?'Earlier 30 days not recorded':`Earlier 30 days ${scNum(m.previous,m.unit)}${m.previous_partial?', partly recorded':''}`}${m.delta==null&&m.previous!=null?' · no fair change figure':''}</p>`
+        :`<div class="sc-needs"><span class="sc-dot gold" aria-hidden="true"></span><div><b>Needs a source</b><p>${esc(m.reason||'')}</p></div></div>`}
+    </div>
     ${open?`<p class="sc-def">${esc(m.definition||'')}${m.previous_note?` <em>${esc(m.previous_note)}</em>`:''}${m.source?` <span>Source: ${esc(m.source)}.</span>`:''}</p>`:''}
-    ${m.available?scChart(m,k):'<div class="sc-chart empty"><span>No daily figures</span></div>'}
+    ${m.available?scChart(m,k):''}
     ${m.note?`<p class="sc-note">${esc(m.note)}</p>`:''}
-    <ul class="sc-rows">${c.supporting.map((s,i)=>scMetricRow(s,i,k)).join('')}</ul>
+    <div class="sc-tiles">${c.supporting.map((s,i)=>scTile(s,i,k)).join('')}</div>
+    ${scTileDef(c)}
   </article>`;
 }
 function scMtd(){
   const t=scData.mtd,g=scData.goal;
   if(!t)return '';
-  const pct=t.course_upsell==null?0:Math.min(100,t.course_upsell/t.target*100);
-  return `<section class="sc-mtd" aria-labelledby="sc-mtd-h">
+  const pct=t.course_upsell==null?0:Math.min(100,t.course_upsell/t.target*100),pace=t.days_in_month?t.completed_days/t.days_in_month*100:0,o=scOwner('mtd');
+  const behind=t.course_upsell!=null&&pct<pace;
+  return `<section class="sc-mtd" style="--agent:${o.color}" aria-labelledby="sc-mtd-h">
     <div class="sc-mtd-main">
-      <h2 id="sc-mtd-h">${esc(t.month)} so far</h2>
+      <header class="sc-card-head">${o.face}<div class="sc-card-who"><h2 id="sc-mtd-h">${esc(t.month)} so far</h2><small>${esc(o.name)} tracks the revenue goal</small></div></header>
       <p class="sc-context">${t.completed_days} completed day${t.completed_days===1?'':'s'}, to ${t.through?scDate(t.through):'—'} (UTC). Separate from the rolling 30 days.</p>
       <p class="sc-big">${scNum(t.course_upsell,'usd')} <span class="sc-of">of ${scNum(t.target,'usd')}</span></p>
-      <div class="sc-meter" role="meter" aria-valuemin="0" aria-valuemax="${t.target}" aria-valuenow="${t.course_upsell||0}" aria-label="Course and upsell revenue against the goal"><i style="width:${pct.toFixed(1)}%"></i></div>
+      <div class="sc-meter" role="meter" aria-valuemin="0" aria-valuemax="${t.target}" aria-valuenow="${t.course_upsell||0}" aria-label="Course and upsell revenue against the goal"><i style="width:${pct.toFixed(1)}%"></i><b style="left:${pace.toFixed(1)}%" title="Where an even pace would be after ${t.completed_days} days"></b></div>
+      <p class="sc-pace ${behind?'behind':'ahead'}"><span class="sc-dot ${behind?'gold':'green'}" aria-hidden="true"></span>${behind?`Behind an even pace, which would be ${scNum(t.target*t.completed_days/t.days_in_month,'usd')} by now`:`At or ahead of an even pace for ${t.completed_days} days`}</p>
       <p class="sc-context">Goal basis: courses and upsells only, as set in Tasks &amp; Goals ("${esc(g.title)}"). ${esc(g.note||'')}</p>
     </div>
     <dl class="sc-mtd-facts">
@@ -95,13 +119,13 @@ function scMtd(){
   </section>`;
 }
 function scFresh(){
-  const f=scData.freshness,a=scData.attempt;
+  const f=scData.freshness,a=scData.attempt,yt=scData.youtube;
   const stale=f&&f.youtube_data_through&&f.youtube_data_through<scData.windows.current.end;
   return `<div class="sc-fresh">
     <div class="sc-fresh-facts">
-      ${f?`<span>Refreshed ${scWhen(f.fetched_at)}${f.response_seconds?`, took ${f.response_seconds}s`:''}</span>
+      ${f?`<span><span class="sc-dot ${a&&a.state==='failed'?'red':'green'}" aria-hidden="true"></span>Refreshed ${scWhen(f.fetched_at)}${f.response_seconds?`, took ${f.response_seconds}s`:''}</span>
       <span>Payments to ${scWhen(f.payments_through)}</span><span>Email list synced ${scWhen(f.email_list_synced)}</span>
-      <span class="${stale?'warn':''}">YouTube data to ${f.youtube_data_through?scDate(f.youtube_data_through,{year:'numeric'}):'unknown'}${stale?', behind':''}</span>`:'<span>No figures yet</span>'}
+      <span class="${yt?.attempt?.state==='failed'?'warn':''}"><span class="sc-dot ${yt?.attempt?.state==='failed'?'red':yt?.data_through?'green':'gold'}" aria-hidden="true"></span>YouTube ${yt?.data_through?'data to '+scDate(yt.data_through,{year:'numeric'})+' (Pacific Time)':yt?.connected?'connected, awaiting figures':'not connected'}${yt?.attempt?.state==='failed'?' · refresh failed, keeping last report':''}</span>`:'<span>No figures yet</span>'}
       ${a&&a.state==='failed'?`<span class="warn">Last refresh failed ${scWhen(a.at)}: ${esc(a.error)}. Showing the last good figures.</span>`:''}
       ${f&&f.missing&&f.missing.length?`<span class="warn">Not returned last time: ${esc(f.missing.join(', '))}</span>`:''}
     </div>
@@ -116,7 +140,7 @@ function renderScorecard(){
   if(typeof viewNames!=='undefined')viewNames.scorecard='Scorecard';  // the shell names each view from this list
   page('Scorecard','');
   if(!scData){$('#workspace').innerHTML='<p class="hint">Getting the scorecard…</p>';scLoad();return}
-  $('#workspace').innerHTML=`<div class="sc"><p class="sc-window">Last 30 completed days, <b>${scDate(w.current.start)} to ${scDate(w.current.end,{year:'numeric'})}</b>, against ${scDate(w.previous.start)} to ${scDate(w.previous.end)}. Days are UTC.</p>${scFresh()}${scData.snapshot?scMtd()+`<div class="sc-grid">${scData.cards.map(scCard).join('')}</div>`
+  $('#workspace').innerHTML=`<div class="sc"><p class="sc-window">Last 30 completed days, <b>${scDate(w.current.start)} to ${scDate(w.current.end,{year:'numeric'})}</b>, against ${scDate(w.previous.start)} to ${scDate(w.previous.end)}. Business dates are UTC; YouTube Analytics dates are Pacific Time.</p>${scFresh()}${scData.snapshot?scMtd()+`<div class="sc-grid">${scData.cards.map(scCard).join('')}</div>`
     :`<div class="sc-empty"><p>${scData.refreshing?'Getting the first figures from Linklr. This takes about half a minute.':'No figures yet.'}</p></div>`}
     ${(scData.freshness?.warnings||[]).length?`<ul class="sc-warnings">${scData.freshness.warnings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}</div>`;
 }
@@ -128,7 +152,9 @@ async function scLoad(){
 document.addEventListener('click',async e=>{
   if(view!=='scorecard'||current)return;
   const md=e.target.closest('[data-sc-mode]');if(md){scMode=md.dataset.scMode;renderScorecard();return}
-  const df=e.target.closest('[data-sc-def]');if(df){scOpenDef[df.dataset.scDef]=!scOpenDef[df.dataset.scDef];renderScorecard();return}
+  const df=e.target.closest('[data-sc-def]');if(df){const k=df.dataset.scDef,[ck,part]=k.split(':'),was=scOpenDef[k];
+    if(part!=='h')Object.keys(scOpenDef).forEach(x=>{if(x.startsWith(ck+':')&&!x.endsWith(':h'))delete scOpenDef[x]});  // one tile's definition at a time
+    scOpenDef[k]=!was;renderScorecard();return}
   if(e.target.closest('[data-sc-refresh]')){try{await api('/api/scorecard/refresh',{});scData.refreshing=true;renderScorecard();scLoad()}catch(err){toast(err.message,true)}return}
   const t=e.target.closest('[data-sc-tip]');if(t)scShowTip(t);
 });
@@ -142,6 +168,6 @@ document.addEventListener('pointerover',e=>{if(view!=='scorecard')return;const t
 document.addEventListener('pointerout',e=>{if(view!=='scorecard')return;const fig=e.target.closest?.('.sc-chart');if(fig&&!fig.contains(e.relatedTarget)){fig.querySelector('.sc-tip').hidden=true;fig.querySelectorAll('.sc-bar.on').forEach(b=>b.classList.remove('on'))}});
 const scBaseRender=render;
 render=function(){if(!current&&view==='scorecard')return renderScorecard();return scBaseRender.apply(this,arguments)};
-// Opening Josh OS at /#scorecard goes straight here, the way the other pages do it.
+// Opening CareerOS at /#scorecard goes straight here, the way the other pages do it.
 if(typeof viewNames!=='undefined')viewNames.scorecard='Scorecard';
 if(typeof initialView==='string'&&initialView==='scorecard'){view='scorecard';document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));refresh().then(render).catch(()=>{})}

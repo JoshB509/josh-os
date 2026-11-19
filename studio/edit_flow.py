@@ -25,6 +25,7 @@ import sys
 import threading
 import uuid
 import wave
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +37,7 @@ SR = 16000
 VIDEO_EXT = {'.mp4', '.mov', '.mkv', '.mxf'}
 AUDIO_EXT = {'.wav', '.aif', '.aiff', '.flac', '.mp3', '.m4a'}
 KINDS = ('edit_sources', 'edit_proposal', 'edit_cut', 'edit_visuals', 'edit_final')
-STAGES = [('sources', 'Sources and sync'), ('proposal', 'Proposed cut'), ('script', 'Script approved'),
+STAGES = [('sources', 'Sources and sync'), ('proposal', 'Proposed cut'), ('script', 'Clean cut approved'),
           ('cut', 'Premiere cut'), ('visuals', 'Animations'), ('final', 'Final video')]
 MAX_CONTEXT_S = 15
 BRIDGE = 'http://127.0.0.1:47820'
@@ -114,11 +115,15 @@ class EditFlow:
             raise KeyError('That revision is not in this project.')
         return json.loads(r['body'])
 
-    def _put(self, pid, kind, payload, parent=None):
+    def _put(self, pid, kind, payload, parent=None, expected_latest=None):
         body = dict(id=str(uuid.uuid4()), project_id=pid, kind=kind, created_at=now(), parent=parent, payload=payload)
         body['digest'] = ep.digest({k: v for k, v in body.items() if k != 'digest'})
         with self.store.connect() as c:
             c.execute('BEGIN IMMEDIATE')
+            if expected_latest is not None:
+                current = c.execute('SELECT id FROM workflow_artifacts WHERE project_id=? AND kind=? ORDER BY rowid DESC LIMIT 1', (pid, kind)).fetchone()
+                if not current or current['id'] != expected_latest:
+                    raise Conflict('A newer revision exists. Change that one.')
             c.execute('INSERT INTO workflow_artifacts VALUES(?,?,?,?)', (body['id'], pid, kind, json.dumps(body)))
         return body
 
@@ -229,6 +234,7 @@ class EditFlow:
         return p
 
     def cancel(self, pid):
+        (self.folder(pid) / 'AUTOCUT_CANCEL').write_text('Cancel at the next safe stage boundary', encoding='utf-8')
         p = self.progress(pid)
         if p and p.get('state') == 'running':
             (Path(p['run']) / 'CANCEL').write_text('cancel', encoding='utf-8')
@@ -261,7 +267,9 @@ class EditFlow:
     def _transcribe(self, mic, sha, run):
         if not self.model_dir or not (Path(self.model_dir) / 'model.bin').is_file():
             raise ValueError('The local Whisper model is missing, so transcription stopped. Josh OS will not use a cloud service instead.')
-        cfg = dict(model=Path(self.model_dir).name, model_dir=self.model_dir, device='cpu', compute_type='int8', beam=3, vad=True, lang='en')
+        from dajoshi.media import VERBATIM_PROMPT, ASR
+        cfg = dict(model=Path(self.model_dir).name, model_dir=self.model_dir, device='cpu', compute_type='int8', lang='en',
+                   prompt=VERBATIM_PROMPT, **ASR)
         out = self._cache() / f"asr-{sha[:24]}-{ep.digest(cfg)[:12]}.json"
         if out.exists():
             return json.loads(out.read_text(encoding='utf-8')), cfg
@@ -317,6 +325,11 @@ class EditFlow:
         pauses = {e['event_id']: e for e in events if e['kind'] == 'pause' and not e.get('outer') and e.get('review')}
         lines, at = [], 0
         marks = sorted([(e['start'], f"<{e['event_id']} {e['measurements']['duration_ms'] / 1000:.1f}s pause>") for e in pauses.values()])
+        # Josh's review notes (from Frame.io), each placed on the recording by the export's own sound, shown just
+        # before the words they are about. They point Tariq at a spot; only the transcript decides what is cut.
+        for n in self.review_notes(pid):
+            marks.append((int(float(n['mic_s']) * SR) - SR, f"<Josh's review note here: {str(n['text'])[:300]}>"))
+        marks.sort()
         mi = 0
         for w in words:
             while mi < len(marks) and marks[mi][0] <= w['start']:
@@ -371,8 +384,11 @@ class EditFlow:
                          removals=len(rem), cards=len(ep.queue(pl['events'], pl['decisions'], issues))),
             config=ep.CONFIG, progress=self.progress(pid), status=self.status(pid), setup=self.setup(pid), phases=self.phases(pid), anim_notes=self.anim_notes(pid))
 
-    def revise(self, pid, proposal_id, expected_digest, changes=(), words=(), note=''):
+    def revise(self, pid, proposal_id, expected_digest, changes=(), words=(), note='', *, actor='josh'):
         """Josh's (or Tariq's) changes make a new revision. The old one is never edited."""
+        # Actor is supplied by trusted application code, never inferred from model text.
+        if actor not in ('josh', 'tariq'):
+            raise ValueError('Unknown revision actor.')
         prop = self.get(pid, proposal_id)
         if prop['kind'] != 'edit_proposal' or prop['digest'] != expected_digest:
             raise Conflict('This revision changed. Reload it before changing it.')
@@ -394,7 +410,7 @@ class EditFlow:
             if act == 'default':
                 pl['decisions'].pop(e['event_id'], None)
                 continue
-            d = dict(action=act, by='josh', at=now())
+            d = dict(action=act, by=actor, at=now())
             if act == 'shorten':
                 if e['kind'] != 'pause':
                     raise ValueError('Only pauses can be shortened.')
@@ -421,9 +437,9 @@ class EditFlow:
                 else:
                     pl['word_actions'][x] = w['action']
         if note and str(note).strip():
-            pl['notes'].append(dict(text=str(note).strip()[:2000], at=now(), by='josh'))
+            pl['notes'].append(dict(text=str(note).strip()[:2000], at=now(), by=actor))
         pl['revision'] += 1
-        return self.view(pid, self._put(pid, 'edit_proposal', pl, parent=prop['id'])['id'])
+        return self.view(pid, self._put(pid, 'edit_proposal', pl, parent=prop['id'], expected_latest=prop['id'])['id'])
 
     def approve_script(self, pid, proposal_id, expected_digest, note='', auto=False):
         prop = self.get(pid, proposal_id)
@@ -544,8 +560,23 @@ class EditFlow:
             return self._put(pid, 'edit_cut', dict(state='blocked', plan=plan, plan_digest=ep.digest(plan), error=str(e)[:500],
                                                     request=req['id']), parent=proposal_id)
         problems = verify_readback(plan, result)
+        sync = mic_sync(plan, result) or {}
         return self._put(pid, 'edit_cut', dict(state='verified' if not problems else 'failed', plan=plan, plan_digest=ep.digest(plan),
-                                                result=result, problems=problems, request=req['id']), parent=proposal_id)
+                                                result=result, problems=problems, request=req['id'],
+                                                mic_offset_ms=sync.get('offset_ms'), note=sync.get('note', '')), parent=proposal_id)
+
+    def clear_layer_tracks(self, name):
+        """Remove every clip on V4 and V5 of one of Tariq's FINAL_ASSEMBLY sequences, so placing animations replaces them
+        instead of stacking on them. Refuses any other sequence name, so Josh's own sequences are never touched."""
+        if not re.fullmatch(r'FINAL_ASSEMBLY_(r|AC)\d{2}_v\d{2}', str(name)):
+            raise ValueError(f'Only a fresh FINAL_ASSEMBLY_rNN_vNN sequence has its layer tracks cleared, not {name}.')
+        from . import edit_master as em
+        return em.ops(self, [dict(op='remove_track', seq=name, kind='v', track=t) for t in LAYER_TRACKS])
+
+    def read_sequence(self, name):
+        """Premiere's own read-back of one sequence: every clip on every track with its start, end and in point."""
+        from . import edit_master as em
+        return em.ops(self, [dict(op='info', seq=name)])[0]
 
     def bridge_call(self, cmd, args, timeout=1800):
         """Ask the Josh Cut Pro panel in Premiere, through the helper's local bridge. Fixed command names only."""
@@ -586,10 +617,64 @@ class EditFlow:
 
     # ------------------------------------------------------------ stage 5: animations and final
 
+    def clean_gate(self, pid):
+        """A video on the AutoCut clean cut (it has a clean-edit.json) goes no further than Josh's review until he
+        approves the clean cut on the Clean Cut tab. Called by every animation and assembly step."""
+        f = self.folder(pid) / 'clean-edit.json'
+        source = self.latest(pid, 'edit_sources') if hasattr(self, 'store') else None
+        if source:
+            active_file = self.folder(pid) / 'active-edit-run.json'
+            active = json.loads(active_file.read_text(encoding='utf-8')) if active_file.is_file() else {}
+            job = self.folder(pid) / 'autocut' / (active.get('id') or source['digest'][:24]) / 'setup-job.json'
+            if active and not job.is_file():
+                raise Conflict('Finish this AutoCut run and approve its clean cut before animations or assembly.')
+            if job.is_file():
+                record = json.loads(job.read_text(encoding='utf-8'))
+                if record.get('state') != 'review' or not f.is_file():
+                    raise Conflict('Finish the AutoCut pass and approve its clean cut before animations or assembly.')
+                current = json.loads(f.read_text(encoding='utf-8'))
+                if Path(current.get('evidence', '')).resolve() != job.parent.resolve():
+                    raise Conflict('The current AutoCut pass has not been registered for review.')
+        if not f.is_file():
+            return None
+        st = json.loads(f.read_text(encoding='utf-8'))
+        if not st.get('approved'):
+            raise Conflict('Josh has not approved the clean cut yet. Animations and assembly wait for his approval on the Clean Cut tab.')
+        return st['approved']['sequence']
+
+    def clean_cut(self, pid):
+        """The approved AutoCut clean cut as a cut record for animations and assembly, or None for a video on the older
+        planner. Everything comes from Josh's approval: the approved sequence (GREEN_MASTER's nest on V1, the good mic on
+        A1), its exact map, the mic path and Premiere's own words. The id changes whenever the approval or the edits do,
+        so a storyboard approved against an older clean cut is stale. Raises until the clean cut is approved."""
+        if not (self.folder(pid) / 'clean-edit.json').is_file():
+            return None
+        self.clean_gate(pid)
+        ce = getattr(self, 'clean_edit', None)
+        if ce is None:
+            raise Conflict('The clean edit service is not running, so the clean cut cannot be read.')
+        try:
+            ci = ce.animation_inputs(pid)
+        except ValueError as e:
+            raise Conflict(str(e)) from None
+        st = json.loads((self.folder(pid) / 'clean-edit.json').read_text(encoding='utf-8'))
+        seq = ci['sequence']
+        m = re.search(r'_r(\d{2})$', seq)
+        n = int(m.group(1)) if m else 0
+        plan = dict(revision=n, stem=f'FINAL_ASSEMBLY_AC{n:02d}', source='clean', master=st.get('master') or 'GREEN_MASTER', sequence_name=seq,
+                    camera_path='', mic_path=st['mic'], map=ci['map'], map_digest=ep.digest(ci['map']), provenance=ci['provenance'])
+        cid = 'clean-' + hashlib.sha1(json.dumps([seq, st['approved'], plan['map_digest']], sort_keys=True).encode()).hexdigest()[:16]
+        return dict(id=cid, kind='edit_cut', parent=None, payload=dict(state='verified', plan=plan, plan_digest=ep.digest(plan)))
+
     def visuals(self, pid, cut_id, notes=None, storyboard_digest=None, approve=False, auto=False):
-        cut = self.get(pid, cut_id)
-        if cut['kind'] != 'edit_cut' or cut['payload'].get('state') != 'verified':
-            raise Conflict('Animations follow a verified Premiere cut.')
+        cc = self.clean_cut(pid)
+        if cc:
+            # on the clean cut the storyboard always belongs to the approved clean cut, whatever cut the page last saw
+            cut, cut_id = cc, cc['id']
+        else:
+            cut = self.get(pid, cut_id)
+            if cut['kind'] != 'edit_cut' or cut['payload'].get('state') != 'verified':
+                raise Conflict('Animations follow a verified Premiere cut.')
         prev = next((v for v in self._all(pid, 'edit_visuals') if v['parent'] == cut_id), None)
         payload = dict(notes=(prev or {}).get('payload', {}).get('notes', []), storyboard_digest=(prev or {}).get('payload', {}).get('storyboard_digest'),
                        map_digest=cut['payload']['plan']['map_digest'])
@@ -599,6 +684,9 @@ class EditFlow:
             payload['storyboard_digest'] = str(storyboard_digest)
         v = self._put(pid, 'edit_visuals', payload, parent=cut_id)
         if approve:
+            if cc:
+                from . import deck_source
+                deck_source.require(self, self.edit_review, pid)
             if not payload['storyboard_digest']:
                 raise ValueError('Review the storyboard before approving it.')
             self._approve(v, dict(meaning='Josh approved this storyboard for this cut. Tariq may assemble and render it locally.'))
@@ -606,14 +694,22 @@ class EditFlow:
                 self.final(pid, v['id'])  # Josh's approval is the go-ahead to compile and export
         return v
 
-    def final(self, pid, visuals_id):
+    def final(self, pid, visuals_id, reuse_final_id=None):
         """Assemble, render and place Tariq's approved animations, export locally and check the file. Runs as a job."""
+        cc = self.clean_cut(pid)
         v = self.get(pid, visuals_id)
         if not self.approved(v):
             raise Conflict('Approve the storyboard for the current cut first.')
-        cut = self.get(pid, v['parent'])
-        if (self.latest(pid, 'edit_cut') or {}).get('id') != cut['id'] or v['payload']['map_digest'] != cut['payload']['plan']['map_digest']:
-            raise Conflict('The cut changed after the storyboard was approved, so its timing is stale.')
+        if cc:
+            from . import deck_source
+            deck_source.require(self, self.edit_review, pid)
+            cut = cc
+            if v['parent'] != cc['id'] or v['payload']['map_digest'] != cc['payload']['plan']['map_digest']:
+                raise Conflict('The clean cut changed after the storyboard was approved, so its timing is stale. Approve the storyboard again.')
+        else:
+            cut = self.get(pid, v['parent'])
+            if (self.latest(pid, 'edit_cut') or {}).get('id') != cut['id'] or v['payload']['map_digest'] != cut['payload']['plan']['map_digest']:
+                raise Conflict('The cut changed after the storyboard was approved, so its timing is stale.')
         if self.edit_review is not None:
             er = self.edit_review.review(pid)
             if v['payload'].get('storyboard_digest') != f"{er.get('slides')}|{er.get('rendered')}":
@@ -622,25 +718,43 @@ class EditFlow:
             base = Path(self.folders.path(pid))
         except Exception:  # noqa: BLE001
             raise ValueError('This video has no folder, so there is nowhere to save the render.') from None
+        reuse_sequence = None
+        if reuse_final_id:
+            previous = self.get(pid, reuse_final_id)
+            if previous['kind'] != 'edit_final' or previous['parent'] != visuals_id:
+                raise Conflict('The reusable assembly is not tied to this approved storyboard.')
+            output = Path(previous['payload'].get('output') or '')
+            if output.parent.resolve() != (base / 'video' / 'exports').resolve() or not output.is_file():
+                raise Conflict('The reusable assembly has no preserved export in this project.')
+            reuse_sequence = output.stem
+            if not re.fullmatch(r'FINAL_ASSEMBLY_[A-Za-z0-9_]+', reuse_sequence):
+                raise Conflict('The reusable assembly is not a CareerOS final sequence.')
+            proof = self.folder(pid) / 'final' / reuse_sequence / 'assembly-check.json'
+            evidence = json.loads(proof.read_text(encoding='utf-8')) if proof.is_file() else {}
+            if evidence.get('sequence') != reuse_sequence or evidence.get('problems') != []:
+                raise Conflict('The reusable assembly has no successful placement readback.')
         with self.lock:
             t = self.jobs.get(('final', pid))
             if t and t.is_alive():
                 raise Conflict('The final render is already running.')
-            t = threading.Thread(target=self._final, args=(pid, v, cut, base), daemon=True)
+            t = threading.Thread(target=self._final, args=(pid, v, cut, base, reuse_sequence), daemon=True)
             self.jobs[('final', pid)] = t
             t.start()
         return dict(state='started')
 
-    def _final(self, pid, v, cut, base):
+    def _final(self, pid, v, cut, base, reuse_sequence=None):
         plan = cut['payload']['plan']
-        name = f"FINAL_ASSEMBLY_r{plan['revision']:02d}"
+        stem = plan.get('stem') or f"FINAL_ASSEMBLY_r{plan['revision']:02d}"
         out_dir = base / 'video' / 'exports'
         out_dir.mkdir(parents=True, exist_ok=True)
         n = 1
-        while (out_dir / f'{name}_v{n:02d}.mp4').exists():
-            n += 1  # never overwrite an earlier render
-        output = out_dir / f'{name}_v{n:02d}.mp4'
-        job = self.folder(pid) / 'final' / f'{name}_v{n:02d}'
+        while (out_dir / f'{stem}_v{n:02d}.mp4').exists() or (self.folder(pid) / 'final' / f'{stem}_v{n:02d}').exists():
+            n += 1  # never overwrite an earlier render or reuse its sequence
+        # Each render gets its own fresh assembly sequence, named like its file. Reusing one let a hand edit made after
+        # the last render shift the picture while the animations were placed from the unchanged map (12 Nov 2026).
+        name = f'{stem}_v{n:02d}'
+        output = out_dir / f'{name}.mp4'
+        job = self.folder(pid) / 'final' / name
         job.mkdir(parents=True, exist_ok=True)
         F = 'final'
         self._setup_new(pid, F)
@@ -654,20 +768,69 @@ class EditFlow:
         req = self._put(pid, 'edit_final', dict(state='running', visuals=v['id'], cut=cut['id'], output=str(output)), parent=v['id'])
         title = self.store.get(pid).get('name') or 'this video'
         try:
+            if plan.get('source') == 'clean':
+                from . import deck_source
+                deck_source.require(self, self.edit_review, pid)
             say('Checking Premiere')
             from . import edit_master as em
             em.open_project(self, pid)  # Tariq's own project, when he built one
             check = self.bridge_call('tq_probe', dict(master=plan['master']))
             frame = check.get('frame') or [1920, 1080]
             say('Copying the approved cut to ' + name)
-            self.bridge_call('tq_assemble', dict(cut=plan['sequence_name'], sequence=name))
+            made = self.bridge_call('tq_assemble', dict(cut=reuse_sequence or plan['sequence_name'], sequence=name))
+            if made.get('existed'):
+                raise ValueError(f'{name} already exists in Premiere, so it was not reused. Nothing was placed or exported.')
+            bad = [] if reuse_sequence else assembly_problems(self.read_sequence(name), plan)
+            if bad:
+                raise ValueError(f'{name} does not match the approved cut: ' + ' '.join(bad[:3]))
             layers = self.animation_layers(pid, cut, frame, job, say)
+            if layers.get('gate'):
+                raise ValueError(f"The animation plan isn't complete, so nothing was placed or exported ({len(layers['gate'])} to fix): "
+                                 + ' '.join(layers['gate'][:4]))
+            om = self.animation_omissions(pid)
+            unexplained = [p for p in layers.get('problems') or []
+                           if not any(re.match(rf'Animation {k.split(":")[0]} press {k.split(":")[1]}\b', p) for k, v in om.items() if not v.get('anchor_ok'))]
+            if unexplained:
+                raise ValueError('Some presses could not be placed, so nothing was exported: ' + ' '.join(unexplained[:4]))
             self._setup_step(pid, 'render', 'done', f"{len(layers['shots'])} animation presses ready", phase=F, fraction=1)
-            if layers['result']['layers']:
+            if plan.get('source') == 'clean':
+                from . import deck_source
+                deck_source.require(self, self.edit_review, pid)
+            if reuse_sequence:
+                info = self.read_sequence(name)
+                bad = assembly_problems(info, plan, layers['result'])
+                for layer in layers['result']['layers']:
+                    if layer['kind'] == 'camera_copy':
+                        continue
+                    hits = [i for i in info['items'] if i['kind'] == 'v' and i['track'] == layer['track']
+                            and abs(int(i['start']) - layer['start_f'] * int(info['frame_ticks'])) <= int(info['frame_ticks']) // 2]
+                    norm = lambda path: os.path.normcase(os.path.normpath(str(path)))
+                    if len(hits) != 1 or norm(hits[0].get('path')) != norm(layer['path']):
+                        bad.append('A reused layer has different media: ' + layer['name'])
+                if bad:
+                    raise ValueError('The preserved assembly differs from the approved plan: ' + ' '.join(bad[:3]))
+                placed = dict(reused_from=reuse_sequence, note='Copied verified existing layers; no repeated placement.')
+                say('Placing no duplicate layers; existing assembly verified')
+            elif layers['result']['layers']:
+                # tq_place_layers never removes anything: V5 renders overwrite only the frames they cover and V4 camera
+                # copies are added on top. So the layer tracks of this sequence (and only this one, which Tariq just made)
+                # are cleared first, every time, and the read-back below proves nothing old is left.
+                self.clear_layer_tracks(name)
                 say('Placing the animations on ' + name)
                 placed = self.bridge_call('tq_place_layers', dict(sequence=name, result=layers['result'], nest=plan['master']), timeout=6 * 3600)
             else:
                 placed = dict(note='No animations to place.')
+            if any(x.get('kind') == 'broll' for x in layers['result']['layers']):
+                from . import broll_timeline
+                sized = broll_timeline.apply_fullframe(self, name, layers['result']['layers'])
+                write_atomic(job / 'broll-framing-check.json', sized)
+            # Persist the exact placement before a potentially long native export.
+            self.bridge_call('tq_save', {})
+            # Read the timeline back before rendering: picture and mic still on the cut, every animation where it belongs.
+            bad = assembly_problems(self.read_sequence(name), plan, layers['result'])
+            write_atomic(job / 'assembly-check.json', dict(at=now(), sequence=name, problems=bad))
+            if bad:
+                raise ValueError(f'{name} is not right after placing the animations, so it was not exported: ' + ' '.join(bad[:3]))
             say('Rendering the video on this PC')
             res = self.bridge_call('tq_export', dict(sequence=name, output=str(output), preset=export_preset()), timeout=6 * 3600)
             say('Saving the project')
@@ -678,39 +841,128 @@ class EditFlow:
             self._tell(pid, f'I stopped putting {title} together: {str(e)[:300]}')
             return self._put(pid, 'edit_final', dict(state='blocked', error=str(e)[:500], request=req['id']), parent=v['id'])
         self._setup_step(pid, 'check', 'running', 'Checking the exported file', phase=F)
-        problems = verify_export(output, plan['map'])
-        windows = verify_windows(output, layers['result'], self.ffmpeg, job / 'windows') if layers['result']['layers'] else dict(problems=[])
-        problems += windows['problems']
+        write_atomic(job / 'progress.json', dict(state='running', message='Checking the exported file', at=now()))
+        try:
+            problems = verify_export(output, plan['map'])
+            try:
+                sync_problems, sync_points, sync_unchecked = verify_sync(output, plan, self.ffmpeg)
+            except Exception as e:  # noqa: BLE001 - an unchecked file is not a checked one
+                sync_problems, sync_points, sync_unchecked = [f'The sound could not be checked against the mic ({str(e)[:150]}).'], [], []
+            write_atomic(job / 'sync-check.json', dict(at=now(), problems=sync_problems, points=sync_points, unchecked=sync_unchecked))
+            problems += sync_problems
+            windows = verify_windows(output, layers['result'], self.ffmpeg, job / 'windows') if layers['result']['layers'] else dict(problems=[])
+            problems += windows['problems']
+        except Exception as exc:
+            problems = ['Export verification failed: ' + str(exc)[:300]]
         self._setup_step(pid, 'check', 'problems' if problems else 'done', ' '.join(problems) or 'Length, picture, sound and every PiP window are right', phase=F)
         self._setup_finish(pid, 'done' if not problems else 'failed', f'Exported to {output}' if not problems else 'The export has problems: ' + ' '.join(problems), F)
+        try:
+            gaps = self.animation_gaps(pid)
+        except Exception:  # noqa: BLE001 - only a note
+            gaps = []
+        pacing = (' These stretches have no animation for over 30 seconds: ' + ', '.join(f"{g['from']} to {g['to']}" for g in gaps)
+                  + '. Ask me to fill them and I will add animations there.') if gaps else ''
         self._tell(pid, (f'{title} is exported to {output}. I checked its length, picture, sound and that you show in every PiP window.'
-                         if not problems else f'{title} exported to {output}, but these checks failed: ' + ' '.join(problems)))
-        write_atomic(job / 'progress.json', dict(state='done', message='; '.join(problems) or 'Exported and checked', at=now()))
+                         if not problems else f'{title} exported to {output}, but these checks failed: ' + ' '.join(problems)) + pacing)
+        write_atomic(job / 'progress.json', dict(state='failed' if problems else 'done', message='; '.join(problems) or 'Exported and checked', at=now()))
         return self._put(pid, 'edit_final', dict(state='verified' if not problems else 'failed', result=res, output=str(output), problems=problems,
                                                   animations=dict(placed=placed, left_out=layers['problems'], presses=len(layers['shots'])),
                                                   request=req['id']), parent=v['id'])
 
-    def animation_layers(self, pid, cut, frame, job, say=print, render_limit=None):
-        """Tariq's approved deck as rendered layers for this cut: presses found in the approved transcript, mapped through the cut."""
+    def animation_gaps(self, pid):
+        """Talking head stretches with no animation in the latest good cut, each with what Josh says in it, so Tariq
+        can fill them. Empty when there is no verified cut or no deck yet."""
         from . import edit_animations as ea
         from .edit_review import parse_scenes, parse_shot_list
-        plan = cut['payload']['plan']
+        cut = self.latest(pid, 'edit_cut')
+        if not cut or cut['payload'].get('state') != 'verified' or self.edit_review is None:
+            return []
+        slides, shots_md = self.edit_review.deck_files(pid)
+        if not slides or not shots_md:
+            return []
+        m = cut['payload']['plan']['map']
         prop = self.get(pid, cut['parent'])
+        rem, _ = self.computed(prop)
+        scenes = {x['n']: x for x in parse_scenes(slides.read_text(encoding='utf-8'))}
+        shots, _ = ea.plan_shots(prop['payload']['words'], rem, m['pieces'], parse_shot_list(shots_md.read_text(encoding='utf-8')), scenes,
+                                 m['frame_ticks'], SR)
+        gaps = ea.talking_head_gaps(shots, m['frame_ticks'], round(m['duration_ticks'] / m['frame_ticks']))
+        said = []
+        for w in prop['payload']['words']:
+            t = ep.map_word(m['pieces'], w['start'], SR)
+            if t is not None:
+                said.append((t / ep.TICKS_PER_SECOND, w['text']))
+        mmss = lambda s: f'{int(s // 60)}:{int(s % 60):02d}'  # noqa: E731
+        return [dict(start=a, end=b, seconds=b - a, **{'from': mmss(a), 'to': mmss(b)},
+                     text=' '.join(x for s, x in said if a <= s < b)[:300]) for a, b in gaps]
+
+    def animation_layers(self, pid, cut, frame, job, say=print, render_limit=None):
+        """Tariq's approved deck as rendered layers for this cut: presses found in the approved transcript, mapped through the cut."""
+        clean = self.clean_gate(pid) and getattr(self, 'clean_edit', None)
+        from . import edit_animations as ea
+        from .edit_review import parse_scenes, parse_shot_list
+        if clean:
+            from . import deck_source
+            deck_source.require(self, self.edit_review, pid)
+            # On the AutoCut clean cut, presses are found in Premiere's own words and placed through the approved
+            # clean cut's map, never through the older planner's transcript.
+            ci = clean.animation_inputs(pid)
+            words, rem, amap = ci['words'], ci['removals'], ci['map']
+            sources_id = (self.latest(pid, 'edit_sources') or {}).get('id')
+            plan = dict(map=amap, sequence_name=ci['sequence'], provenance=ci['provenance'])
+        else:
+            plan = cut['payload']['plan']
+            prop = self.get(pid, cut['parent'])
+            words, amap, sources_id = prop['payload']['words'], plan['map'], prop['payload']['sources_id']
+            rem, _ = self.computed(prop)
         slides, shots_md = self.edit_review.deck_files(pid)
         if not slides or not shots_md:
             return dict(result=dict(layers=[], fps_num=1, fps_den=1), shots=[], problems=['There are no slides or shot list for this video.'])
-        rem, _ = self.computed(prop)
         scenes = {x['n']: x for x in parse_scenes(slides.read_text(encoding='utf-8'))}
         parts = parse_shot_list(shots_md.read_text(encoding='utf-8'))
-        shots, problems = ea.plan_shots(prop['payload']['words'], rem, plan['map']['pieces'], parts, scenes, plan['map']['frame_ticks'], SR)
+        shots, problems = ea.plan_shots(words, rem, amap['pieces'], parts, scenes, amap['frame_ticks'], SR)
+        gate = []
+        if render_limit is None:
+            # The plan must be complete before anything is rendered or placed (see edit_animations.deck_gate).
+            gate = ea.deck_gate(shots_md.read_text(encoding='utf-8'), parts, scenes, shots, words, rem,
+                                amap['pieces'], amap['frame_ticks'], SR, self.animation_omissions(pid))
+            write_atomic(Path(job) / 'deck-gate.json', dict(at=now(), issues=gate, planner_problems=problems, shots=len(shots)))
+            if gate:
+                return dict(result=dict(layers=[], fps_num=1, fps_den=1), shots=shots, problems=problems, gate=gate)
         if render_limit is not None:
             shots = shots[:render_limit]
         scale = max(1, round(frame[0] / 1920.0, 3))
         out = Path(self.folders.path(pid)) / 'video' / 'tariq-animations'
-        ea.render_shots(shots, slides, out, plan['map']['frame_ticks'], scale, self.ffmpeg, job, log=say)
-        cam = self.get(pid, prop['payload']['sources_id'])['payload']
+        ea.render_shots(shots, slides, out, amap['frame_ticks'], scale, self.ffmpeg, job, log=say)
+        cam = self.get(pid, sources_id)['payload']
         size = (cam['headers']['camera']['width'], cam['headers']['camera']['height'])
-        return dict(result=ea.layer_result(shots, plan['map']['frame_ticks'], cam['files']['camera']['path'], size, frame), shots=shots, problems=problems)
+        result = ea.layer_result(shots, amap['frame_ticks'], cam['files']['camera']['path'], size, frame)
+        if clean and render_limit is None:
+            from .broll import catalog
+            from . import broll_timeline
+            native = deck_source.capture(self, pid)
+            broll_layers = broll_timeline.plan(shots_md.read_text(encoding='utf-8'), native['words'], amap['frame_ticks'], shots, catalog())
+            broll_timeline.verify_files(broll_layers)
+            write_atomic(Path(job) / 'broll-plan.json', dict(layers=broll_layers, provenance=native['provenance'], state='planned-not-placed'))
+            result['layers'].extend(broll_layers)
+        return dict(result=result, shots=shots, problems=problems, gate=gate, source='clean' if clean else 'planner')
+
+    def animation_omissions(self, pid):
+        """Presses left out on purpose, each with its reason: {"<animation>:<press>": {"reason", "by", "at"}}."""
+        try:
+            v = json.loads((self.folder(pid) / 'animation-omissions.json').read_text(encoding='utf-8'))
+            return {k: x for k, x in v.items() if isinstance(x, dict) and str(x.get('reason') or '').strip()}
+        except (OSError, ValueError, AttributeError):
+            return {}
+
+    def omit_press(self, pid, animation, press, reason, by):
+        """Record that a press is left out on purpose. A reason is required, so nothing is dropped without one."""
+        if not str(reason or '').strip():
+            raise ValueError('Say why this press is left out.')
+        v = self.animation_omissions(pid)
+        v[f'{int(animation)}:{int(press)}'] = dict(reason=str(reason).strip()[:500], by=str(by)[:40], at=now())
+        write_atomic(self.folder(pid) / 'animation-omissions.json', v)
+        return v
 
     def make_master(self, pid, source_sequence, reference=None, add_shadow=False):
         """GREEN_MASTER from a sequence Josh keyed himself. His sequence is copied, never changed."""
@@ -726,7 +978,9 @@ class EditFlow:
     SETUP = (('files', 'Finding your camera and mic'), ('project', 'Making my Premiere project'), ('mask', 'Masking out the room'),
              ('import', 'Bringing in your files'), ('layout', 'Laying out GREEN_MASTER'), ('centre', 'Centring you'),
              ('look', 'Keying you and copying your look'), ('picture', 'Checking the picture'), ('sync', 'Lining up the mic with the camera'),
-             ('transcribe', 'Transcribing what you said'), ('cut', 'Finding silences, repeats and retakes'))
+             ('raw', 'Creating the AutoCut copy'), ('silences', 'AutoCut Silences'), ('repeat', 'AutoCut Repeat'),
+             ('transcribe', 'Transcribing the source microphone in Premiere'), ('cut', 'Preparing clean-cut review'),
+             ('cleanup', 'Checking restarts, fillers and non-speech sounds'))
     ANALYSE_STEP = dict(hash='sync', decode='sync', sync='sync', transcribe='transcribe', measure='cut', editorial='cut')
     # After the script is approved, after Josh asks for slides, and after the storyboard is approved.
     BUILD = (('open', 'Opening my Premiere project'), ('build', 'Building the cut from your approved script'),
@@ -755,6 +1009,14 @@ class EditFlow:
                 if st['state'] == 'running':
                     st['state'], st['message'] = 'failed', 'This stopped when Josh OS closed. Ask me to start it again.'
         return s
+
+    def review_notes(self, pid):
+        """Josh's notes about what he said (from a Frame.io review), each with its time on the mic recording."""
+        try:
+            v = json.loads((self.folder(pid) / 'review-notes.json').read_text(encoding='utf-8'))
+            return [n for n in v.get('notes', []) if isinstance(n.get('mic_s'), (int, float)) and n.get('text')]
+        except (OSError, ValueError, AttributeError):
+            return []
 
     def anim_notes(self, pid):
         """Josh's notes for the animations: typed in the box on the Animations tab, or told to Tariq in chat."""
@@ -876,20 +1138,20 @@ class EditFlow:
             except Exception:  # noqa: BLE001 - the log still has it
                 pass
 
-    def go_ahead(self, pid, via=''):
-        """Josh said go ahead. Tariq gathers the files, builds his Premiere project and GREEN_MASTER, transcribes and
-        proposes the cut, then hands it to Josh to review. Approving the script and the storyboard carry it on."""
+    def go_ahead(self, pid, via='', fresh=False):
+        """Explicit go-ahead: prepare/reuse GREEN_MASTER, run AutoCut, then wait for clean-cut review."""
         self.store.get(pid)
         with self.lock:
-            t = self.jobs.get(('go', pid))
-            if t and t.is_alive():
-                raise Conflict('Tariq is already on this edit.')
-            t = threading.Thread(target=self._go, args=(pid, via), daemon=True)
+            if any(t.is_alive() for key, t in self.jobs.items()
+                   if key == pid or (isinstance(key, tuple) and key[0] in ('go', 'build', 'final'))):
+                raise Conflict('An editing job is already running. Finish or cancel it before starting AutoCut.')
+            (self.folder(pid) / 'AUTOCUT_CANCEL').unlink(missing_ok=True)
+            t = threading.Thread(target=self._go, args=(pid, via, fresh), daemon=True)
             self.jobs[('go', pid)] = t
             t.start()
         return dict(state='started')
 
-    def _go(self, pid, via):
+    def _go(self, pid, via, fresh=False):
         from . import edit_master as em
         import time as _t
         title = self.store.get(pid).get('name') or 'this video'
@@ -902,7 +1164,7 @@ class EditFlow:
                 found = self.suggest(pid)
                 if found['ambiguous']:
                     msg = (f"I found {len(found['videos'])} camera files and {len(found['audio'])} audio files in "
-                           f"{found['folder'] or 'the video folder'}. Pick the camera and the good mic on the Script tab, then ask me to start again.")
+                           f"{found['folder'] or 'the video folder'}. Pick the recorded video and good microphone audio in Setup, then press Start processing.")
                     self._setup_step(pid, 'files', 'failed', msg)
                     self._setup_finish(pid, 'needs_you', msg)
                     self._tell(pid, f"I need you to pick the files for {title}. {msg}", via)
@@ -912,10 +1174,20 @@ class EditFlow:
             self._setup_step(pid, 'files', 'done', f"Camera {Path(files['camera']['path']).name}, mic {Path(files['mic']['path']).name}")
             premiere = None
             try:
-                if not (self.data / 'look.json').is_file():
-                    step('project', 'Reading your look from the reference project')
-                    em.read_look(self)
-                premiere = em.build_master(self, pid, files['camera']['path'], files['mic']['path'], say=step)
+                step('project', 'Opening Premiere and connecting Josh Cut Pro')
+                em.prepare_run(self, pid, src, fresh=fresh)
+                existing = em.project_path(self, pid)
+                if existing.is_file():
+                    em.open_project(self, pid)
+                    opened = em.ops(self, [dict(op='project')])[0]
+                    if 'GREEN_MASTER' not in opened.get('sequences', []):
+                        raise Conflict('The existing Premiere project has no GREEN_MASTER. It was not rebuilt or replaced.')
+                    premiere = dict(project=str(existing), master='GREEN_MASTER', state='exists')
+                else:
+                    if not (self.data / 'look.json').is_file():
+                        step('project', 'Reading your look from the reference project')
+                        em.read_look(self)
+                    premiere = em.build_master(self, pid, files['camera']['path'], files['mic']['path'], say=step)
                 self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
                 if premiere.get('state') == 'exists':
                     for k in ('project', 'mask', 'import', 'layout', 'centre', 'look'):
@@ -934,47 +1206,27 @@ class EditFlow:
                     self._setup_step(pid, 'picture', 'done', 'The pictures are frames from Premiere')
                 except Exception as e:  # noqa: BLE001 - only a picture
                     self._setup_step(pid, 'picture', 'problems', 'I could not export a frame: ' + str(e)[:200])
-            except Exception as e:  # noqa: BLE001 - the review can go ahead without Premiere
+            except Exception as e:  # noqa: BLE001 - preserve the actual setup failure
                 premiere = dict(state='blocked', error=str(e)[:500])
                 self._put(pid, 'edit_master', dict(result=premiere, built_from='raw files'))
                 self._setup_step(pid, self._setup_running(pid, 'project'), 'failed', str(e)[:300])
-            prop = self.latest(pid, 'edit_proposal')
-            if not prop or prop['payload'].get('sources_id') != src['id']:
-                self.analyse(pid, src['id'], editorial=True)
-                _t.sleep(1)
-                while (self.progress(pid) or {}).get('state') == 'running':
-                    p = self.progress(pid) or {}
-                    key = self.ANALYSE_STEP.get(p.get('step'))
-                    if key:
-                        step(key, p.get('message'))
-                    _t.sleep(2)
-                p = self.progress(pid) or {}
-                if p.get('state') != 'complete':
-                    msg = p.get('message') or 'The transcript did not finish.'
-                    self._setup_step(pid, self._setup_running(pid, 'transcribe'), 'failed', msg)
-                    self._setup_finish(pid, 'failed', msg)
-                    self._tell(pid, f"I stopped on {title}. {msg}", via)
-                    return
-                prop = self.latest(pid, 'edit_proposal')
-            else:
-                for k in ('sync', 'transcribe', 'cut'):
-                    self._setup_step(pid, k, 'done', 'Already done for this recording')
-            v = self.view(pid, prop['id'])
-            s = v.get('summary') or {}
-            check = s.get('cards', 0)
-            self._setup_step(pid, 'cut', 'done', f"{s.get('removals', 0)} cuts marked and {check} moments for you to check")
-            if premiere.get('state') in ('built', 'exists'):
-                where = f"Your timeline is set up in {Path(premiere['project']).name}, with you keyed on V3, the shadow on V2 and the background on V1."
-                if premiere.get('problems'):
-                    where += ' Check these in Premiere: ' + ' '.join(premiere['problems'])
-            else:
-                where = 'I could not set up Premiere: ' + str(premiere.get('error') or ' '.join(premiere.get('problems') or []))
-            self._setup_finish(pid, 'done', 'The script is ready for you on the Script tab.')
-            self._tell(pid, f"{title} is ready for you to review. {where} I have marked {s.get('removals', 0)} cuts in red and "
-                            f"{check} moments I want you to listen to. Approve the script when you are happy and I will build the cut.", via)
+                raise
+            from .autocut_setup import run as run_autocut
+            result = run_autocut(self, pid, src, premiere, 'Josh requested Start processing' + (' via ' + via if via else ''))
+            self._setup_finish(pid, 'done', 'AutoCut and the cleanup proposals are ready for review on the Clean Cut tab.')
+            self._tell(pid, f"{title}: AutoCut Silences and Repeat are complete on {result['sequence']}. Review the clean cut before approving it.", via)
         except Exception as e:  # noqa: BLE001
-            self._setup_finish(pid, 'failed', str(e)[:300])
-            self._tell(pid, f'I stopped on {title}: {str(e)[:300]}', via)
+            self._setup_finish(pid, getattr(e, 'setup_state', 'failed'), str(e)[:500])
+            self._tell(pid, f'I stopped on {title}: {str(e)[:500]}', via)
+
+    def rules_changed(self, prop):
+        """True when this proposal was made before the current transcription or cut rules, so go ahead makes a fresh one.
+        The new proposal is a new revision: Josh's earlier decisions stay on the old one, and nothing is built until he
+        approves the new script."""
+        from dajoshi.media import VERBATIM_PROMPT
+        pl = prop['payload']
+        rules = (pl.get('measurements') or {}).get('config') or {}
+        return (pl.get('asr') or {}).get('prompt') != VERBATIM_PROMPT or any(rules.get(k) != v for k, v in ep.CONFIG.items() if k != 'note')
 
     def build_again(self, pid):
         """Josh asks for the approved script to be built again after a failed build. It runs as a job."""
@@ -990,8 +1242,11 @@ class EditFlow:
             t.start()
         return dict(state='started')
 
-    def _after_script(self, pid, prop, via=''):
-        """Josh approved the script: build the cut in Tariq's project, then hand him the slides to review."""
+    def _after_script(self, pid, prop, via='', quiet=False):
+        """Josh approved the script: build the cut in Tariq's project, then hand him the slides to review.
+        The project is saved straight after every build, passed or not, so a built sequence is never lost (on 10 Nov
+        2026 a cut that failed its check was never saved and only survived in an auto-save). Returns the cut record,
+        or None when nothing was built. quiet=True leaves the "review the slides" message out, for finish()."""
         from . import edit_master as em
         title = self.store.get(pid).get('name') or 'this video'
         B = 'build'
@@ -1008,30 +1263,121 @@ class EditFlow:
                 raise ValueError(' '.join(check.get('notes') or ['GREEN_MASTER is missing.']))
             self._setup_step(pid, 'build', 'running', f"Building CLEAN_CUT_r{prop['payload']['revision']:02d} from revision {prop['payload']['revision']}", phase=B)
             cut = self.build_cut(pid, prop['id'], prop['digest'], int(check['frame_ticks']))
-            self._setup_step(pid, 'check', 'running', 'Reading the new sequence back from Premiere', phase=B)
             state = cut['payload'].get('state')
+            if state in ('verified', 'failed'):
+                # A sequence was made in Premiere, so keep it in the project whatever the check says.
+                self._setup_step(pid, 'save', 'running', 'Saving my Premiere project', phase=B)
+                self.bridge_call('tq_save', {})
+            self._setup_step(pid, 'check', 'running', 'Reading the new sequence back from Premiere', phase=B)
             if state != 'verified':
                 msg = cut['payload'].get('error') or ' '.join(cut['payload'].get('problems') or []) or 'The cut did not build.'
                 self._phase_fail(pid, B, 'check', msg)
                 self._tell(pid, f"The cut for {title} did not build cleanly: {msg}", via)
-                return
-            slip = abs(int(cut['payload']['plan']['map'].get('mic_slip_ticks') or 0)) / 254016000000 * 1000
-            self._setup_step(pid, 'check', 'done', f"Every piece is where it should be. The mic is within {slip:.0f} ms of the picture.", phase=B)
-            self._setup_step(pid, 'save', 'running', phase=B)
-            self.bridge_call('tq_save', {})
-            self._setup_finish(pid, 'done', f"{cut['payload']['plan']['sequence_name']} is built. The animations are next.", B)
+                return cut
+            note = cut['payload'].get('note') or 'The mic lines up with the picture on every piece.'
+            self._setup_step(pid, 'check', 'done', f"Every piece is where it should be. {note}", phase=B)
+            self._setup_finish(pid, 'done', f"{cut['payload']['plan']['sequence_name']} is built and saved. The animations are next.", B)
             self.visuals(pid, cut['id'])
-            self._tell(pid, f"The cut for {title} is built as {cut['payload']['plan']['sequence_name']}. The animations are next. "
-                            'Review the slides, and when you approve the storyboard I will put it all together and export it.', via)
+            if not quiet:
+                self._tell(pid, f"The cut for {title} is built and saved as {cut['payload']['plan']['sequence_name']}. The animations are next. "
+                                'Review the slides, and when you approve the storyboard I will put it all together and export it.', via)
+            return cut
         except Exception as e:  # noqa: BLE001
             self._phase_fail(pid, B, 'open', str(e)[:300])
             self._tell(pid, f'I stopped building {title}: {str(e)[:300]}', via)
+            return None
+
+    def finish(self, pid, approval, via=''):
+        """Josh asked Tariq to put the video together. One job, no buttons: build and save the cut if there is no
+        verified cut for the approved script, approve the storyboard on Josh's own words, then render the animations,
+        place them, export and check the file (final). Tariq reports each outcome in chat.
+
+        approval is dict(text=Josh's words, at=when he said them). The storyboard is only approved for him if the
+        slides haven't changed since he said it, so his yes always covers the deck that gets rendered."""
+        self.store.get(pid)
+        if not isinstance(approval, dict) or not str(approval.get('text') or '').strip() or not approval.get('at'):
+            raise ValueError("Finishing needs Josh's own words approving the animations.")
+        cc = self.clean_cut(pid)
+        prop = None if cc else self.latest(pid, 'edit_proposal')
+        if cc:
+            from . import deck_source
+            deck_source.require(self, self.edit_review, pid)
+        elif not prop or not self.approved(prop):
+            raise Conflict('Approve the script first.')
+        with self.lock:
+            for key in (('finish', pid), ('build', pid), ('final', pid)):
+                t = self.jobs.get(key)
+                if t and t.is_alive():
+                    raise Conflict('Tariq is already working on this edit.')
+            t = threading.Thread(target=self._finish, args=(pid, prop, approval, via), daemon=True)
+            self.jobs[('finish', pid)] = t
+            t.start()
+        return dict(state='started')
+
+    def _finish(self, pid, prop, approval, via=''):
+        title = self.store.get(pid).get('name') or 'this video'
+        try:
+            cut = self.clean_cut(pid)
+            if cut:
+                from . import deck_source
+                deck_source.require(self, self.edit_review, pid)
+            else:
+                cut = self.latest(pid, 'edit_cut')
+                if not prop or not self.approved(prop):
+                    raise Conflict('Approve the script first.')
+                if not cut or cut['payload'].get('state') != 'verified' or cut['parent'] != prop['id']:
+                    cut = self._after_script(pid, prop, via, quiet=True)
+                    if not cut or cut['payload'].get('state') != 'verified':
+                        return  # _after_script has told Josh what stopped it
+            if self.edit_review is None:
+                raise ValueError('The animation review is not available, so the storyboard cannot be checked.')
+            slides, shot_list = self.edit_review.deck_files(pid)
+            if not slides or not shot_list:
+                raise ValueError('There is no animation deck for this video yet.')
+            said = datetime.fromisoformat(str(approval['at']).replace('Z', '+00:00'))
+            changed = datetime.fromtimestamp(max(slides.stat().st_mtime, shot_list.stat().st_mtime), timezone.utc)
+            if changed > said:
+                self._tell(pid, f"The slides for {title} changed at {changed:%H:%M} UTC, after you said you were happy with them. "
+                                'Have a look and tell me again, and I will render them.', via)
+                return
+            er = self.edit_review.review(pid)
+            v = self.visuals(pid, cut['id'], storyboard_digest=f"{er.get('slides')}|{er.get('rendered')}")
+            self._approve(v, dict(meaning='Josh approved the animations in chat. Tariq may assemble and render them locally.',
+                                  josh_said=str(approval['text'])[:1000], said_at=str(approval['at']), via=via or 'chat'))
+            self._tell(pid, f"The cut for {title} is built and saved as {cut['payload']['plan']['sequence_name']}. "
+                            'Rendering the animations and putting it together now. I will tell you when the export is done.', via)
+            self.final(pid, v['id'])
+        except Exception as e:  # noqa: BLE001
+            self._tell(pid, f'I stopped putting {title} together: {str(e)[:300]}', via)
+
+    def run_requests(self):
+        """Pick up finish requests left as files (Data/edit_flow/<video>/finish-request.json), once each. Used at
+        start-up, so a request made while Josh OS was off still runs. The file is renamed before the job starts, so a
+        restart never runs it twice."""
+        for f in sorted(self.data.glob('*/finish-request.json')):
+            pid = f.parent.name
+            try:
+                req = json.loads(f.read_text(encoding='utf-8'))
+                f.replace(f.with_name(f'finish-request.taken-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}.json'))
+                self.finish(pid, req.get('approval'), req.get('via') or 'request')
+            except Exception as e:  # noqa: BLE001
+                try:
+                    self._tell(pid, f"I couldn't start putting this video together: {str(e)[:300]}")
+                except Exception:  # noqa: BLE001
+                    pass
 
     # ------------------------------------------------------------ status
 
     def status(self, pid):
         src, prop, cut = self.latest(pid, 'edit_sources'), self.latest(pid, 'edit_proposal'), self.latest(pid, 'edit_cut')
         vis, fin = self.latest(pid, 'edit_visuals'), self.latest(pid, 'edit_final')
+        clean_state, clean_id = None, None
+        if (self.folder(pid) / 'clean-edit.json').is_file():
+            try:
+                cc = self.clean_cut(pid)
+                clean_state, clean_id = ('verified', f"Josh approved {cc['payload']['plan']['sequence_name']}."), cc['id']
+            except Conflict as e:
+                clean_state = ('waiting', str(e))
         def st(key):
             if key == 'sources':
                 if not src:
@@ -1049,12 +1395,22 @@ class EditFlow:
                 return ('approved' if self.approved(prop) else 'review'), f"Revision {prop['payload']['revision']} {'is approved' if self.approved(prop) else 'is ready for you'}."
             if key == 'script':
                 return ('approved', 'Approved.') if prop and self.approved(prop) else ('waiting', 'Approve the script when it reads right.')
+            if key == 'cut' and clean_state is not None:
+                return clean_state
+            if key == 'visuals' and clean_state is not None:
+                if clean_state[0] != 'verified':
+                    return 'waiting', 'Approve the clean cut first.'
+                cv = next((x for x in self._all(pid, 'edit_visuals') if x['parent'] == clean_id), None)
+                if not cv:
+                    return 'waiting', 'Add notes and review the storyboard on the approved clean cut.'
+                return ('approved', 'Storyboard approved.') if self.approved(cv) else ('review', 'Notes saved. Approve the storyboard when ready.')
             if key == 'cut':
                 if not cut:
                     return 'waiting', 'Not built in Premiere yet.'
                 s = cut['payload']['state']
                 stale = prop and cut['parent'] != prop['id']
-                return ('stale', 'The script changed after this cut.') if stale else (s, cut['payload'].get('error') or ', '.join(cut['payload'].get('problems') or []) or s)
+                return ('stale', 'The script changed after this cut.') if stale else (s, cut['payload'].get('error') or ', '.join(cut['payload'].get('problems') or [])
+                                                                                     or cut['payload'].get('note') or s)
             if key == 'visuals':
                 if not vis:
                     return 'waiting', 'Add notes and review the storyboard after the cut.'
@@ -1062,6 +1418,46 @@ class EditFlow:
             if key == 'final':
                 return (fin['payload']['state'], fin['payload'].get('error', '')) if fin else ('waiting', 'Rendered locally after both approvals.')
         return [dict(key=k, label=l, state=st(k)[0], reason=st(k)[1]) for k, l in STAGES]
+
+
+def _sync_words(ticks):
+    """A mic offset in plain words. The mic's in-point earlier than planned means the sound runs behind the picture."""
+    ms = round(abs(ticks) / ep.TICKS_PER_SECOND * 1000)
+    return f"{ms} ms {'behind' if ticks < 0 else 'ahead of'} the picture"
+
+
+def mic_sync(plan, result):
+    """How the mic lines up with the plan on every piece: where it starts in the mic recording, against where the
+    plan says. Returns None when there are no mic pieces to compare.
+
+    Premiere rounds where a clip starts in its media to a whole frame, so the mic can land up to just under one frame
+    from the planned point. That shows up as the same offset on every piece (found 11 Nov 2026 on "4 Signs You Sound
+    Junior": all 34 pieces 23 ms behind, at 33 ms a frame, and the old half-frame check failed the whole cut). A steady
+    offset under one frame passes and is recorded. An offset that changes across the cut, or one of a frame or more,
+    fails and says how big it is and where."""
+    f = int(plan['map']['frame_ticks'])
+    want = [p for p in plan['map']['pieces'] if p['kind'] == 'source']
+    mics = sorted([a for a in result.get('audio') or [] if a.get('role') == 'mic'], key=lambda x: int(x['start']))
+    pairs = list(zip(want, mics))
+    if not pairs:
+        return None
+    offs = [int(a['inp']) - p['mic_in'] for p, a in pairs]
+    lo, hi = min(offs), max(offs)
+    out = dict(offset_ticks=offs[0] if lo == hi else None, min_ticks=lo, max_ticks=hi, pieces=len(pairs),
+               offset_ms=round(offs[0] / ep.TICKS_PER_SECOND * 1000, 1) if hi - lo <= f // 10 else None)
+    if all(abs(o) <= f // 2 for o in offs):
+        return dict(out, ok=True, note='')
+    steady = hi - lo <= f // 10
+    if steady and all(abs(o) < f for o in offs):
+        return dict(out, ok=True, note=f'Mic {_sync_words(offs[0])} on all {len(pairs)} pieces (Premiere rounds to whole frames).')
+    i = next(i for i, o in enumerate(offs) if abs(o) > f // 2)
+    at = int(pairs[i][1]['start']) / ep.TICKS_PER_SECOND
+    if not steady:
+        problem = (f"The mic's sync changes through the cut, from {_sync_words(lo)} to {_sync_words(hi)}. "
+                   f"It's first off on piece {i + 1} of {len(pairs)}, at {at:.2f}s.")
+    else:
+        problem = f"The mic is {_sync_words(offs[i])} on every piece, which is a frame or more. It starts at piece {i + 1}, at {at:.2f}s."
+    return dict(out, ok=False, note='', problem=problem)
 
 
 def verify_readback(plan, result):
@@ -1080,10 +1476,15 @@ def verify_readback(plan, result):
             problems.append(f"A picture piece sits at {int(v['start']) / ep.TICKS_PER_SECOND:.2f}s instead of {p['out_start'] / ep.TICKS_PER_SECOND:.2f}s.")
             break
     mics = [a for a in got_a if a.get('role') == 'mic']
-    for p, a in zip(want, mics):
-        if abs(int(a['inp']) - p['mic_in']) > f // 2 or abs(int(a['start']) - p['out_start']) > f // 2:
-            problems.append(f"The mic is out of sync at {int(a['start']) / ep.TICKS_PER_SECOND:.2f}s.")
+    pairs = list(zip(want, mics))
+    for i, (p, a) in enumerate(pairs):
+        if abs(int(a['start']) - p['out_start']) > f // 2:
+            problems.append(f"Mic piece {i + 1} of {len(pairs)} sits at {int(a['start']) / ep.TICKS_PER_SECOND:.2f}s on the timeline "
+                            f"instead of {p['out_start'] / ep.TICKS_PER_SECOND:.2f}s.")
             break
+    sync = mic_sync(plan, result)
+    if sync and not sync['ok']:
+        problems.append(sync['problem'])
     if any(a.get('role') == 'camera' for a in got_a):
         problems.append('Camera audio is on the timeline.')
     if result.get('overlaps'):
@@ -1091,6 +1492,174 @@ def verify_readback(plan, result):
     if result.get('gaps'):
         problems.append('There are gaps between pieces.')
     return problems
+
+
+LAYER_TRACKS = (3, 4)   # V4 camera copies, V5 animations (studio/edit_animations.py)
+
+
+def assembly_problems(info, plan, layers=None):
+    """Premiere's own read-back of a FINAL_ASSEMBLY sequence (tq_ops "info") against the approved cut. The picture on V1
+    and the mic on A1 must sit exactly where the cut map says, piece by piece, so nothing placed from the map can land
+    off (12 Nov 2026: a 1.833 s ripple made by hand on a reused FINAL_ASSEMBLY_r08 put every later animation 55 frames
+    off). With layers=None the layer tracks must be empty. With a layer result, each layer track must hold exactly those
+    clips, at those frames, with nothing left over and nothing overlapping."""
+    problems = []
+    f = int(info.get('frame_ticks') or plan['map']['frame_ticks'])
+    half = f // 2
+    items = info.get('items') or []
+    want = [p for p in plan['map']['pieces'] if p['kind'] == 'source']
+    for kind, label in (('v', 'picture'), ('a', 'mic')):
+        got = sorted((i for i in items if i['kind'] == kind and int(i['track']) == 0), key=lambda i: int(i['start']))
+        if len(got) != len(want):
+            problems.append(f'The {label} track has {len(got)} pieces, the cut has {len(want)}.')
+            continue
+        src_key = 'camera_in' if kind == 'v' else 'mic_in'
+        for n, (p, g) in enumerate(zip(want, got)):
+            if abs(int(g['start']) - p['out_start']) > half or abs(int(g['end']) - p['out_end']) > half:
+                problems.append(f"{label.capitalize()} piece {n + 1} sits at {int(g['start']) / ep.TICKS_PER_SECOND:.3f}s, "
+                                f"the cut has it at {p['out_start'] / ep.TICKS_PER_SECOND:.3f}s. The sequence was changed after the cut.")
+                break
+            # Where in its source the piece starts: the right words, not only the right slot. Premiere rounds a source
+            # in point to a whole frame, so up to just under a frame is allowed.
+            if g.get('inp') not in (None, '') and abs(int(g['inp']) - p[src_key]) >= f:
+                problems.append(f"{label.capitalize()} piece {n + 1} starts {(int(g['inp']) - p[src_key]) / ep.TICKS_PER_SECOND:+.3f}s "
+                                f"away from its place in the {'recording' if kind == 'v' else 'mic file'}.")
+                break
+        if kind == 'a':
+            want_path = os.path.normcase(os.path.normpath(plan.get('mic_path') or ''))
+            other = [g for g in got if g.get('path') and os.path.normcase(os.path.normpath(g['path'])) != want_path]
+            if want_path and other:
+                problems.append(f"A1 has sound from {Path(other[0]['path']).name}, not the good mic.")
+    for t in LAYER_TRACKS:
+        got = sorted((i for i in items if i['kind'] == 'v' and int(i['track']) == t), key=lambda i: int(i['start']))
+        exp = sorted(((l['start_f'] * f, (l['start_f'] + l['out_f'] - l['in_f']) * f) for l in (layers or {}).get('layers', [])
+                      if int(l['track']) == t), key=lambda x: x[0])
+        if t == 3:
+            # The camera copy is cloned from Josh's own V1 pieces (panel copyCamera), so a copy that crosses a cut is
+            # two clips, split exactly at that cut (4 Signs r03, 12 Nov 2026: 19 copies, 8 across cuts, 27 clips).
+            edges = sorted({p['out_start'] for p in want} | {p['out_end'] for p in want})
+            split = []
+            for s, e in exp:
+                cuts = [x for x in edges if s + half < x < e - half]
+                for a, b in zip([s] + cuts, cuts + [e]):
+                    split.append((a, b))
+            exp = split
+        name = f'V{t + 1}'
+        if len(got) != len(exp):
+            problems.append(f'{name} has {len(got)} clips, it should have {len(exp)}.' + (' Old clips were left there.' if len(got) > len(exp) else ''))
+        else:
+            for (s, e), g in zip(exp, got):
+                if abs(int(g['start']) - s) > half or abs(int(g['end']) - e) > half:
+                    problems.append(f"A clip on {name} starts at {int(g['start']) / ep.TICKS_PER_SECOND:.3f}s instead of {s / ep.TICKS_PER_SECOND:.3f}s.")
+                    break
+        for a, b in zip(got, got[1:]):
+            if int(b['start']) < int(a['end']) - half:
+                problems.append(f"Clips overlap on {name} at {int(b['start']) / ep.TICKS_PER_SECOND:.3f}s.")
+                break
+    return problems
+
+
+def _envelope(x, rate=1000):
+    import numpy as np
+    hop = 16000 // rate
+    n = len(x) // hop
+    e = np.log(np.sqrt((x[:n * hop].reshape(n, hop) ** 2).mean(axis=1) + 1e-6))
+    return (e - e.mean()) / (e.std() + 1e-6)
+
+
+def best_lag(seg, hay):
+    """(index, correlation) where seg matches best inside hay: normalised cross-correlation."""
+    import numpy as np
+    L = len(seg)
+    n = len(hay) - L + 1
+    if n < 1:
+        return None, -1.0
+    s = (seg - seg.mean()) / (seg.std() + 1e-6)
+    raw = np.correlate(hay, s, mode='valid')
+    cs = np.concatenate([[0.0], np.cumsum(hay)])
+    cq = np.concatenate([[0.0], np.cumsum(hay * hay)])
+    mu = (cs[L:L + n] - cs[:n]) / L
+    sd = np.sqrt(np.maximum((cq[L:L + n] - cq[:n]) / L - mu * mu, 1e-9))
+    ncc = raw / (L * sd)
+    i = int(np.argmax(ncc))
+    return i, float(ncc[i])
+
+
+MIN_WINDOW = 1.0       # seconds of sound needed to match a point reliably
+SILENT_DBFS = -50.0    # quieter than this can't be matched
+MATCH_CORR = 0.8
+MAX_UNCHECKED = 0.05   # more than 5% of the cut unchecked is not a verified export
+
+
+def verify_sync(path, plan, ffmpeg, per_piece=3, window=4.0, search=2.5, rate=1000, pcm=None):
+    """The rendered file's sound against the good mic, near both ends and the middle of every piece of the cut. Each
+    point must be within one frame of where the map puts it. Fails closed: no points, a piece that can't be matched, or
+    more than MAX_UNCHECKED of the cut unchecked is a problem. Returns (problems, points, unchecked pieces)."""
+    import subprocess
+    import numpy as np
+
+    def _pcm(src, start=None, dur=None):
+        cmd = [ffmpeg, '-v', 'error'] + (['-ss', f'{max(0.0, start):.3f}'] if start is not None else []) + \
+              (['-t', f'{dur:.3f}'] if dur is not None else []) + ['-i', str(src), '-ac', '1', '-ar', '16000', '-f', 's16le', '-']
+        return np.frombuffer(subprocess.run(cmd, capture_output=True, check=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout,
+                             dtype=np.int16).astype(np.float32)
+    pcm = pcm or _pcm
+    T = ep.TICKS_PER_SECOND
+    fsec = int(plan['map']['frame_ticks']) / T
+    mic = _envelope(pcm(plan['mic_path']), rate)
+    points, problems, unchecked = [], [], []
+    pieces = [q for q in plan['map']['pieces'] if q['kind'] == 'source']
+    total = sum(q['out_end'] - q['out_start'] for q in pieces) / T
+    for n, p in enumerate(pieces):
+        a, b = p['out_start'] / T, p['out_end'] / T
+        length = b - a
+        # Short pieces get a shorter window, down to MIN_WINDOW. Shorter than that can't be matched reliably, so the
+        # piece is listed as unchecked, and its neighbours are checked right at the shared edges instead.
+        w = min(window, length - 0.2)
+        if w < MIN_WINDOW:
+            unchecked.append(dict(piece=n + 1, seconds=round(length, 3), why='too short to match on its own'))
+            continue
+        # Both ends and the middle, so a piece that starts or ends in the wrong place is caught at its edge.
+        spots = [a + 0.1, a + (length - w) / 2, b - w - 0.1] if length >= w + 0.5 else [a + (length - w) / 2]
+        if per_piece > 3 and length >= w + 0.5:
+            spots += [a + 0.1 + (length - w - 0.2) * (k + 1) / (per_piece - 2) for k in range(per_piece - 3)]
+        matched, silent = 0, 0
+        for at in sorted(set(round(s, 3) for s in spots)):
+            raw = pcm(path, at, w)
+            if len(raw) < w * 16000 * 0.9:
+                problems.append(f'The file has no sound at {at:.2f}s, where the cut has piece {n + 1}.')
+                continue
+            if 20 * np.log10(np.sqrt((raw.astype(np.float64) ** 2).mean()) / 32768 + 1e-9) < SILENT_DBFS:
+                silent += 1
+                continue   # silence can't be matched; it doesn't count as checked
+            seg = _envelope(raw, rate)
+            want = p['mic_in'] / T + (at - a)
+            lo = int(max(0, (want - search) * rate))
+            i, c = best_lag(seg, mic[lo:lo + int((2 * search + w) * rate)])
+            if i is None:
+                continue
+            lag = (lo + i) / rate - want
+            points.append(dict(piece=n + 1, export_s=round(at, 3), window_s=round(w, 2), lag_s=round(lag, 3), corr=round(c, 3)))
+            if c < MATCH_CORR:
+                problems.append(f'The sound at {at:.2f}s could not be matched to the mic (corr {c:.2f}).')
+            elif abs(lag) > fsec:
+                problems.append(f'The sound at {at:.2f}s is {lag:+.3f}s off the cut (piece {n + 1}).')
+            else:
+                matched += 1
+        if not matched:
+            unchecked.append(dict(piece=n + 1, seconds=round(length, 3),
+                                  why='silent where it was checked' if silent and not any(x['piece'] == n + 1 for x in points)
+                                  else 'no point in it could be matched'))
+    # Fail closed: nothing checked, or too much left unchecked, is not a verified export.
+    missed = sum(u['seconds'] for u in unchecked)
+    if not points:
+        problems.append('None of the sound could be checked against the mic, so the sync is not verified.')
+    elif total and missed / total > MAX_UNCHECKED:
+        problems.append(f'{missed:.1f}s of {total:.1f}s could not be checked against the mic, so the sync is not verified.')
+    for u in unchecked:
+        if u['why'] == 'no point in it could be matched' and u['seconds'] >= 2 * MIN_WINDOW:
+            problems.append(f"Piece {u['piece']} ({u['seconds']:.1f}s) could not be checked against the mic at all.")
+    return problems[:12], points, unchecked
 
 
 def verify_export(path, mapping):
@@ -1104,7 +1673,7 @@ def verify_export(path, mapping):
     except Exception as e:  # noqa: BLE001
         return [f'The file does not open: {str(e)[:200]}']
     problems = []
-    want = mapping['duration_ticks'] / mapping['ticks_per_second']
+    want = mapping['duration_ticks'] / mapping.get('ticks_per_second', ep.TICKS_PER_SECOND)
     if abs(h['duration'] - want) > 0.5:
         problems.append(f"The file runs {h['duration']:.2f}s, the approved cut {want:.2f}s.")
     if not h.get('channels'):
@@ -1306,6 +1875,8 @@ def wake_premiere(flow, wait=300, say=None):
         st = status()
         if st and st.get('connected'):
             return dict(started=started, seconds=round(_t.time() - t0))
+        if _t.time() - t0 > 15 and not _premiere_running():
+            raise BridgeError('Premiere is no longer running. The setup stopped before creating or editing a project.')
         _t.sleep(2)
     raise BridgeError('Premiere is open but the Josh Cut Pro panel did not connect within %d seconds. '
                       'Premiere may be showing a message that needs Josh.' % wait)

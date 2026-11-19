@@ -34,10 +34,10 @@ class TeamTests(unittest.TestCase):
 
     def test_default_photos_are_imported(self):
         agents = {a['id']: a for a in self.team.all()['agents']}
-        for aid in ('sam', 'tariq', 'laia'):
+        # Max has had an approved portrait since 11 Nov 2026, so every team member now starts with one.
+        for aid in ('sam', 'tariq', 'laia', 'max'):
             self.assertEqual(len(agents[aid]['photo']), 64)
             self.assertTrue(self.store.asset(agents[aid]['photo'])[0].is_file())
-        self.assertEqual(agents['max']['photo'], '')
 
     def test_first_draft_names_are_migrated(self):
         with self.store.connect() as c:
@@ -146,11 +146,14 @@ class CarouselTests(unittest.TestCase):
         c = self.carousels.create({'title': 'Charts', 'slides': 'One\n---\nTwo'})
         self.carousels.save(c['id'], {'design': {'style': 'Paper', 'words': self.carousels.words_hash(c)}}, 1)
         made = []
-        def design(s, cid):  # stands in for the real renderer, which records the words it drew
-            made.append(cid)
-            item = s.get(cid)
-            return s.save(cid, {'design': dict(item['design'], words=s.words_hash(item))}, item['revision'])
-        with mock.patch.object(Carousels, 'make_design', design):
+        from contextlib import contextmanager
+        @contextmanager
+        def design(s, item, render):  # prepared output is committed together with the words
+            if render:
+                made.append(item['id'])
+                item = dict(item, design=dict(item['design'], words=s.words_hash(item)))
+            yield item
+        with mock.patch.object(Carousels, '_prepared_design', design):
             self.assertEqual(self.carousels.apply('sam', [{'id': c['id'], 'slides': 'One\n---\nTwo, sharper'}])[0]['action'], 'designed')
             self.carousels.apply('sam', [{'id': c['id'], 'caption': 'Only the caption'}])
         self.assertEqual(made, [c['id']])

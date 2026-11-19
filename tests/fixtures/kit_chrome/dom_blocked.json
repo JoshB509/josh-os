@@ -1,0 +1,18 @@
+{
+  "tool": "mcp__claude-in-chrome__javascript_tool",
+  "args": {
+    "tabId": 1340484145,
+    "action": "javascript_exec",
+    "text": "JSON.stringify({url:location.href,title:document.title,editors:Array.from(document.querySelectorAll('[aria-label=\"Email content editor\"]')).map(e=>({tag:e.tagName,html:e.innerHTML,attributes:Array.from(e.attributes).map(a=>[a.name,a.value])})),subject:Array.from(document.querySelectorAll('input[aria-label=\"Subject Line\"]')).map(e=>e.value),fileInputs:Array.from(document.querySelectorAll('input[type=\"file\"]')).map(e=>({accept:e.accept,multiple:e.multiple,hidden:e.hidden})),buttons:Array.from(document.querySelectorAll('button')).filter(e=>/image|media|upload/i.test((e.textContent||'')+' '+(e.getAttribute('aria-label')||''))).map(e=>({text:e.textContent,label:e.getAttribute('aria-label')}))})"
+  },
+  "response": [
+    {
+      "type": "text",
+      "text": "[BLOCKED: Cookie/query string data]"
+    },
+    {
+      "type": "text",
+      "text": "\n\nTab Context:\n- Executed on tabId: 1340484145\n- Available tabs:\n  \u00e2\u20ac\u00a2 tabId 1340484145: \"The founding price goes on Saturday - Kit\" (\"https://app.kit.com/campaigns/26402089/draft\")"
+    }
+  ]
+}

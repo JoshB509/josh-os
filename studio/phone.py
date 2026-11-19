@@ -60,6 +60,6 @@ class PhoneAccess:
         return dict(enabled=True, host=self.host, port=self.port, url=f'https://{self.host}/?token={token}')
 
     def manifest(self):
-        return dict(name='Josh OS', short_name='Josh OS', start_url='/', scope='/', display='standalone',
+        return dict(name='CareerOS', short_name='CareerOS', start_url='/', scope='/', display='standalone',
                     background_color='#ffffff', theme_color='#ffffff',
-                    icons=[dict(src='/icon.png', sizes='256x256', type='image/png')])
+                    icons=[dict(src='/icon.png', sizes='512x512', type='image/png', purpose='any')])

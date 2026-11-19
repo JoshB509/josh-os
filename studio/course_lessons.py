@@ -100,7 +100,7 @@ def _text(v, limit, label):
 class CourseLessons:
     def __init__(self, store, root, recording=None):
         self.store, self.root, self.recording = store, Path(root), recording
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.jobs = {}  # lesson id -> thread, for Saskia's work and publishing
         self.slots = threading.Semaphore(JOB_SLOTS)  # Saskia's jobs run two at a time and the rest wait
         self.agents = None  # set by the server once the team is ready
@@ -402,6 +402,9 @@ class CourseLessons:
     def approve(self, lid, revision):
         with self.lock:
             l = self._get(lid)
+            # Check before write_script can create/rename any source artifact.
+            if type(revision) is not int or revision != l['revision']:
+                raise Conflict('This lesson changed in another window. Reload before approving again.')
             if not (l.get('script') or '').strip():
                 raise ValueError('There is no script to approve yet.')
             path = self.write_script(l)
@@ -445,15 +448,17 @@ class CourseLessons:
         return p.read_text(encoding='utf-8-sig') if p.is_file() else ''
 
     def save_cues(self, lid, text):
-        self._get(lid)
-        text = _text(text, TEXT['script'], 'Cued script')
-        p = self.cues_path(lid)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        if text.strip():
-            p.write_text(text, encoding='utf-8')
-        elif p.exists():
-            p.unlink()
-        return dict(cues=bool(text.strip()))
+        # Shared with the chat version check so a UI cue save cannot race its write.
+        with self.lock:
+            self._get(lid)
+            text = _text(text, TEXT['script'], 'Cued script')
+            p = self.cues_path(lid)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if text.strip():
+                p.write_text(text, encoding='utf-8')
+            elif p.exists():
+                p.unlink()
+            return dict(cues=bool(text.strip()))
 
     # Checking the slides --------------------------------------------------------
     def check_slides(self, lid, path=None):
@@ -462,6 +467,8 @@ class CourseLessons:
         path = path or (self.files(l).get('slides') or {}).get('path')
         if not path or not Path(path).is_file():
             raise ValueError('There is no slide file to check yet.')
+        source_hash = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        revision, script_hash = l['revision'], digest(l.get('script'))
         from playwright.sync_api import sync_playwright
         from PIL import Image
         import io
@@ -511,10 +518,21 @@ class CourseLessons:
             sheets.append(dict(asset=self.store.import_image(f'beats-{i}.jpg', buf.getvalue())['asset'], first=i, last=i + len(group) - 1))
         result = dict(path=str(path), beats=total, errors=errors[:10], problems=problems[:20], sheets=sheets,
                       ok=not errors and not problems, checked_at=now())
+        return self._save_slides_check(lid, result, revision, source_hash, script_hash)
+
+    def _save_slides_check(self, lid, result, revision, source_hash, script_hash):
+        """Never attach an old check to a changed lesson or changed slide file."""
         with self.lock:
             l = self._get(lid)
+            try:
+                current_hash = hashlib.sha256(Path(result['path']).read_bytes()).hexdigest()
+            except OSError:
+                raise Conflict('The slides changed during checking. Run the check again.') from None
+            if l['revision'] != revision or digest(l.get('script')) != script_hash or current_hash != source_hash:
+                raise Conflict('The lesson or slides changed during checking. Run the check again.')
+            result = dict(result, source_sha256=source_hash, script_hash=script_hash, source_revision=revision)
             l['slides_check'] = result
-            self._put(l)
+            self._put(l, revision)
         return result
 
     # Saskia's work ------------------------------------------------------------

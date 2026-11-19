@@ -20,7 +20,7 @@ def focus_lessons():
     @callback
     def visit(hwnd,_):
         text=ctypes.create_unicode_buffer(1024);user.GetWindowTextW(hwnd,text,1024)
-        if text.value.startswith('Lessons') and 'Josh OS' in text.value:
+        if text.value.startswith('Lessons') and ('CareerOS' in text.value or 'Josh OS' in text.value):
             found.append(hwnd);return False
         return True
     user.EnumWindows(visit,None)
@@ -37,7 +37,7 @@ def browser(root,url,section=None,reuse=False):
     subprocess.Popen([str(exe),'--app='+url,'--user-data-dir='+str(profile),'--no-first-run','--disable-sync','--disable-background-networking','--disable-component-update','--disable-extensions','--window-size=1500,980'],creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--root',default=str(Path(__file__).parent));p.add_argument('--data');p.add_argument('--port',type=int,default=0);p.add_argument('--no-browser',action='store_true');p.add_argument('--demo',action='store_true');p.add_argument('--section',choices=['lessons']);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--root',default=str(Path(__file__).parent));p.add_argument('--data');p.add_argument('--port',type=int,default=0);p.add_argument('--no-browser',action='store_true');p.add_argument('--maintenance-hold-dispatch',action='store_true',help='Temporary maintenance: hold notification dispatch without changing queues or settings');p.add_argument('--demo',action='store_true');p.add_argument('--section',choices=['lessons']);a=p.parse_args()
     root=Path(a.root).resolve();data=Path(a.data).resolve() if a.data else root/'Data';data.mkdir(parents=True,exist_ok=True)
     # One local server per persistent library. Lock disappears after process exit.
     lock=(data/'studio-corridorkey-v1.lock').open('a+b');lock.seek(0);lock.write(b'0');lock.flush();lock.seek(0)
@@ -50,7 +50,7 @@ def main():
         with urllib.request.urlopen(req,timeout=5) as response:response.read()
         if not a.no_browser:browser(data,r['url'],a.section,reuse=True)
         return
-    server=Server(root,data,a.port,a.demo);(data/'runtime.json').write_text(json.dumps(dict(url=server.url,token=server.token,pid=os.getpid(),app_generation='corridorkey-v1')),encoding='utf-8')
+    server=Server(root,data,a.port,a.demo,maintenance_hold_dispatch=a.maintenance_hold_dispatch);(data/'runtime.json').write_text(json.dumps(dict(url=server.url,token=server.token,pid=os.getpid(),app_generation='corridorkey-v1',maintenance_hold_dispatch=a.maintenance_hold_dispatch)),encoding='utf-8')
     if not a.no_browser:browser(data,server.url,a.section)
     try:server.serve_forever(poll_interval=.3)
     finally:server.server_close();lock.close()

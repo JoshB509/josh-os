@@ -1,0 +1,24 @@
+HTTP/1.1 200 OK
+X-GUploader-UploadID: AFy3sg2Uk5dLtYMaxdHQCe5JKKVtp3V5gQNVFkhcWoVduqgRf-MHbQACkiptkSW2x2ihPz1gQceLi9w
+x-goog-generation: 1682545011390892
+x-goog-metageneration: 1
+x-goog-stored-content-encoding: identity
+x-goog-stored-content-length: 4126810
+x-goog-hash: crc32c=2bG3tw==
+x-goog-hash: md5=0C4bg4gTEHgXt1XQnWtWsw==
+x-goog-storage-class: STANDARD
+Accept-Ranges: bytes
+Content-Length: 4126810
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: Content-Type
+Access-Control-Expose-Headers: Access-Control-Allow-Origin
+Server: UploadServer
+Date: Fri, 13 Nov 2026 06:43:48 GMT
+Expires: Fri, 13 Nov 2026 07:43:48 GMT
+Cache-Control: public, max-age=3600
+Last-Modified: Wed, 26 Apr 2023 21:36:51 GMT
+ETag: "d02e1b838813107817b755d09d6b56b3"
+Content-Type: application/octet-stream
+Age: 0
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+

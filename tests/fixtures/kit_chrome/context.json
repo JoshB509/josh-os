@@ -1,0 +1,20 @@
+{
+  "tool": "mcp__claude-in-chrome__tabs_context_mcp",
+  "args": {
+    "createIfEmpty": true
+  },
+  "response": [
+    {
+      "type": "text",
+      "text": "{\"availableTabs\":[{\"tabId\":1340484143,\"title\":\"New Tab\",\"url\":\"chrome://newtab/\"}],\"tabGroupId\":1866673402}"
+    },
+    {
+      "type": "text",
+      "text": "\n\nTab Context:\n- Available tabs:\n  \u00e2\u20ac\u00a2 tabId 1340484143: \"New Tab\" (\"chrome://newtab/\")"
+    },
+    {
+      "type": "text",
+      "text": "<system-reminder>You used a single tool call this turn. Prefer browser_batch to execute multiple actions in one call \u00e2\u20ac\u201d it is significantly faster. Batch your next sequence of clicks, types, navigations, and screenshots together.</system-reminder>"
+    }
+  ]
+}

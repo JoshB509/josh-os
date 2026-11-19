@@ -102,7 +102,7 @@ function bindCompletion(){
 }
 async function finishLesson(){
  if(busy)return;
- if(catalog.lifecycle_version!==2)return toast('The recorder update needs Josh OS safely reloaded. Save current work first; pending recordings are preserved.',true);
+ if(catalog.lifecycle_version!==2)return toast('The recorder update needs CareerOS safely reloaded. Save current work first; pending recordings are preserved.',true);
  busy=true;const lid=selected;
  try{
   const state=await api('/api/lessons/'+lid+'/done',{confirmed:true,binding_id:detail.binding?.id});
@@ -127,7 +127,7 @@ function takesTable(){
 }
 function recBar(){
   const live=obsState?.recording,ok=obsState?.connected;
-  const state=!obsState?'<div class="state"><b></b>Getting ready…</div>':live?'<div class="state live"><b></b>Recording</div>':ok?'<div class="state ready"><b></b>Ready to record</div>':'<div class="state"><b></b>OBS not connected</div>';
+  const state=!obsState?'<div class="state"><b></b>Getting ready…</div>':obsState.stale?'<div class="state unknown"><b></b>OBS status unknown. Check OBS before recording</div>':live?'<div class="state live"><b></b>Recording</div>':ok?'<div class="state ready"><b></b>Ready to record</div>':'<div class="state"><b></b>OBS not connected</div>';
   const obsChip=ok?`<span class="tag ${obsState.profile==='Lessons'?'green':'yellow'}">OBS · ${esc(obsState.profile)}</span>`:'<span class="tag yellow">Open OBS</span>';
   const pChip=prompterState===null?'<span class="tag">Prompter…</span>':prompterState.screen_mode?'<span class="tag green">Prompter · Screen</span>':'<span class="tag yellow">Prompter · set Screen mode</span>';
   const newTake=wasLive===false&&rec.stopped;
@@ -227,13 +227,16 @@ function startPoll(){clearInterval(poll);poll=setInterval(async()=>{
     if(wasLive&&!live){rec.stopped=true;toast('Take stopped. Saving automatically; record another or click Done.')}
     if(live)rec.stopped=false;wasLive=live;
     const changed=JSON.stringify(s)!==JSON.stringify(obsState);obsState=s;if(changed&&rec){const y=$('#page').scrollTop;render();$('#page').scrollTop=y}
-  }catch{}
+  }catch{
+    // The check failed, so the last answer may be out of date. Say so instead of showing it (11 Nov 2026).
+    if(rec&&obsState&&!obsState.stale){obsState={...obsState,stale:true};const y=$('#page').scrollTop;render();$('#page').scrollTop=y}
+  }
 },3000)}
 async function leaveRec(){
  if(busy)return;busy=true;
  try{
   if(detail.binding?.lesson_id===selected){
-   if(catalog.lifecycle_version!==2)throw Error('Save current work and safely reload Josh OS to activate the recorder update.');
+   if(catalog.lifecycle_version!==2)throw Error('Save current work and safely reload CareerOS to activate the recorder update.');
    await api('/api/lessons/'+selected+'/release',{binding_id:detail.binding.id});
   }
   rec=false;clearInterval(poll);obsState=null;await load();detail=await api('/api/lessons/'+selected);tree();render();
@@ -241,7 +244,7 @@ async function leaveRec(){
 }
 async function showImport(){
  try{
-  if(catalog.lifecycle_version!==2)throw Error('Recovery is preserved. Safely reload Josh OS after saving work to open the new recovery queue.');
+  if(catalog.lifecycle_version!==2)throw Error('Recovery is preserved. Safely reload CareerOS after saving work to open the new recovery queue.');
   const queue=await api('/api/lessons/recovery');recordings=queue.items;
   $('#import-dialog h2').textContent='Recover a recording';
   $('#import-lesson').textContent='Choose the exact file and original lesson shown below. Nothing is assigned by newest-file guesswork.';

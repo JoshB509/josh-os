@@ -117,11 +117,11 @@ function efNext(){
     return `<section class="ef-card ef-approve">
       ${efData.errors?.length?`<p class="ef-err">${efData.errors.map(esc).join(' ')}</p>`:''}
       <p>Approving revision ${p.revision} lets Tariq build exactly this cut in Premiere, as a new sequence. Your original sequence and files stay as they are.</p>
-      <button class="primary" data-ef-approve ${efData.errors?.length||efBusy||!p.latest?'disabled':''}>Approve this script</button>
+      <button class="primary" data-ef-approve ${efData.errors?.length||efBusy||!p.latest?'disabled':''}>Approve this clean cut</button>
     </section>`;
   }
   const cut=st.cut,vis=st.visuals,fin=st.final;
-  if(efEmbedded())return '';  // the Script tab shows the build itself
+  if(efEmbedded())return '';  // the Clean Cut tab shows the build itself
   if(efEmbedded())return `<section class="ef-card ef-approve">
     <p>You approved revision ${p.revision}. ${cut?.state==='verified'?'Tariq has built the cut in Premiere, so the animations are next.':cut?.state==='blocked'||cut?.state==='failed'?esc(cut.reason):'Tariq is building it in Premiere now.'}</p>
     ${cut?.state==='verified'?'<button class="primary" data-vp-edit-tab="animations">Go to the animations</button>':''}</section>`;
@@ -150,7 +150,7 @@ function efNext(){
   </section>`;
 }
 
-// The same review also sits inside the video page's Edit piece, on its Script tab.
+// The same review also sits inside the video page's Edit piece, on its Clean Cut tab.
 function efEmbedded(){return view!=='edit-flow'&&!!current&&efPid===current.id&&typeof vpPiece==='function'&&vpPiece(current)==='edit'}
 function renderEditFlow(){
   if(efEmbedded())return vpEditRender();
@@ -171,7 +171,7 @@ function efInner(embedded){
       ${p?`<div class="ef-row"><button class="subtle" data-ef-undo ${efUndo.length?'':'disabled'}>Undo</button><button class="subtle" data-ef-redo ${efRedo.length?'':'disabled'}>Redo</button></div>`:''}
     </header>
     ${embedded?'':efStages()}
-    ${!p||efData.progress?.state==='running'||efData.status?.[0]?.state!=='ready'?efSources():''}
+    ${!embedded&&(!p||efData.progress?.state==='running'||efData.status?.[0]?.state!=='ready')?efSources():''}
     ${p?`<div class="ef-body">
       <div class="ef-main">
         <div class="ef-legend"><span class="ef-w removed">cut</span> <span class="ef-w josh">your change</span> Select words to cut or restore them. Click a tag to check it.</div>
@@ -234,7 +234,7 @@ document.addEventListener('click',async e=>{
   const ctx=e.target.closest('[data-ef-ctx]');if(ctx){efCtx=+ctx.dataset.efCtx;renderEditFlow();if(efCard)efListen();return}
   if(e.target.closest('[data-ef-listen]')){efListen();return}
   if(e.target.closest('[data-ef-approve]')){const p=efData.proposal;
-    if(await efPost('approve',{proposal_id:p.id,digest:p.digest},true)){toast('Script approved');await efLoad()}return}
+    if(await efPost('approve',{proposal_id:p.id,digest:p.digest},true)){toast('Clean cut approved');await efLoad()}return}
   if(e.target.closest('[data-ef-master]')){const src=$('#ef-src-seq').value.trim();if(!src){toast('Type the name of your keyed sequence',true);return}
     const r=await efPost('master',{source:src,reference:$('#ef-ref').value||null,add_shadow:$('#ef-shadow').checked},true);if(r)toast(r.notes?.length?r.notes.join(' '):'GREEN_MASTER is ready');renderEditFlow();return}
   if(e.target.closest('[data-ef-native]')){const src=$('#ef-src-seq').value.trim(),pr=$('#ef-prproj').value.trim().replace(/^"|"$/g,'');if(!src||!pr){toast('Type your keyed sequence and the project path',true);return}

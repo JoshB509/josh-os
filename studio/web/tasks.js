@@ -19,7 +19,9 @@
     const done=visible.filter(x=>x.status==='Done');$('#completed-label').textContent='Completed · '+done.length;$('#completed-list').innerHTML=done.map(row).join('')||'<p class="group-empty">Completed tasks and goals will stay here.</p>';
     const open=data.items.filter(x=>x.status!=='Done').length;$('#task-summary').textContent=open+' open · '+data.items.filter(x=>x.status==='Done').length+' completed';$('#tasks-loading').hidden=true;$('#tasks-content').hidden=false;
   }
-  async function load(){if(loading)return;loading=true;try{data=await api('/api/tasks');$('#load-error').hidden=true;render()}catch(e){$('#load-error').hidden=false;$('#load-error-text').textContent=e.message}finally{loading=false;$('#tasks-loading').hidden=true}}
+  // /tasks#task-<id> (from Today) opens that task itself, scrolled into view.
+  let deepDone=false;function deep(){if(deepDone)return;deepDone=true;const m=/^#task-(.+)$/.exec(decodeURIComponent(location.hash||''));const item=m&&data.items.find(x=>x.id===m[1]);if(!item)return;document.querySelector(`[data-item="${CSS.escape(item.id)}"]`)?.scrollIntoView({block:'center'});edit(item)}
+  async function load(){if(loading)return;loading=true;try{data=await api('/api/tasks');$('#load-error').hidden=true;render();deep()}catch(e){$('#load-error').hidden=false;$('#load-error-text').textContent=e.message}finally{loading=false;$('#tasks-loading').hidden=true}}
   function replace(item){const i=data.items.findIndex(x=>x.id===item.id);if(i<0)data.items.push(item);else data.items[i]=item;render()}
   function edit(item=null,kind='task',state='Next'){
     editing=item?structuredClone(item):{id:crypto.randomUUID(),kind,status:state,title:'',next_step:'',link:'',due_date:''};$('#dialog-title').textContent=item?'Edit '+item.kind:'New '+kind;

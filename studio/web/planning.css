@@ -22,3 +22,11 @@ div.cal-project.slot-card{cursor:default}
 .slot-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:8px 0 12px;font-size:12px;color:var(--muted)}
 .slot-legend i{display:inline-block;width:3px;height:11px;border-radius:2px;background:var(--type);margin-right:6px;vertical-align:-1px}
 .slot-legend-note{color:var(--faint)}
+
+/* Library sources (planning.js, 16 Nov 2026): which collection a card comes from, and any other collection holding the same video. */
+.lib-source{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}
+.lib-kind{padding:1px 7px;border-radius:999px;background:var(--hover);font-size:11px;font-weight:600;color:var(--text)}
+.lib-kind.k-hooks{background:color-mix(in srgb,var(--gold) 22%,var(--card))}
+/* The Library's own reference and output sets sit after a small gap, apart from the inspiration filters (16 Nov 2026). */
+.segmented .lib-split{margin-left:10px}
+.lib-kind.k-saved{background:color-mix(in srgb,var(--ink) 8%,var(--card))}

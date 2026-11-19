@@ -96,7 +96,13 @@ def steady(html, sizes=None):
     return html
 
 
-async def render(slides, out):
+async def render(slides, out, local_only=False):
+    if local_only:
+        try:
+            from .render_email_visuals import render_email_visuals
+        except ImportError:
+            from render_email_visuals import render_email_visuals
+        return await render_email_visuals(slides, out)
     ns = load_template()
     slide_html = ns['slide_html']
     slides = [s if isinstance(s, dict) else {'lines': s} for s in slides]
@@ -112,7 +118,20 @@ async def render(slides, out):
             browser = await pw.chromium.launch()
         except Exception:
             browser = await pw.chromium.launch(channel='chrome')
-        page = await browser.new_page(viewport={'width': 1080, 'height': 1080})
+        page = await browser.new_page(viewport={'width': 1080, 'height': 1080}, service_workers='block')
+        if local_only:
+            # Email visuals have no network access. Only the trusted template fonts and this job HTML load.
+            from urllib.parse import urlsplit, unquote
+            from urllib.request import url2pathname
+            fonts = (RENDERER.parent / 'node_modules' / '@fontsource').resolve()
+            async def local_resource(route):
+                url = urlsplit(route.request.url)
+                file = pathlib.Path(url2pathname(unquote(url.path))).resolve() if url.scheme == 'file' and not url.netloc else None
+                if file and (file == tmp.resolve() or (file.is_relative_to(fonts) and file.suffix == '.woff2')):
+                    await route.continue_()
+                else:
+                    await route.abort()
+            await page.route('**/*', local_resource)
 
         async def load(i, sizes=None):
             tmp.write_text(steady(with_visual(slide_html(slides[i]['lines'], i, len(slides)), slides[i]), sizes), encoding='utf-8')
@@ -141,4 +160,4 @@ async def render(slides, out):
 
 if __name__ == '__main__':
     job = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
-    print(json.dumps({'slides': asyncio.run(render(job['slides'], job['out']))}))
+    print(json.dumps({'slides': asyncio.run(render(job['slides'], job['out'], job.get('local_only', False)))}))

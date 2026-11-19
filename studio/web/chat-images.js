@@ -1,5 +1,5 @@
 // Images in team chats. Attach with the clip button, paste, or drop onto the box you type in.
-// Each image is saved in Josh OS first, so a message only carries asset ids.
+// Each image is saved in CareerOS first, so a message only carries asset ids.
 const CHAT_MAX_IMAGES=6;
 let chatAttach={room:[],dock:[],sam:[]},chatUploading={room:0,dock:0,sam:0};
 const chatClip='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 4.5 5.6 9.4a1.4 1.4 0 0 0 2 2l5.2-5.2a2.8 2.8 0 0 0-4-4L3.6 7.4a4.2 4.2 0 0 0 6 6l4-4"/></svg>';

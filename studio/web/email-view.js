@@ -85,11 +85,13 @@ renderEmailEditor=function(){
         <label class="ev-field"><span>Type</span><input data-email-field="type" list="ev-types" value="${esc(p.type||'Newsletter')}" placeholder="Newsletter, or a sequence name"><datalist id="ev-types">${types.map(t=>`<option value="${esc(t)}">`).join('')}</datalist></label>
         <div class="ev-save"><button class="primary" data-email-action="save" ${emailBusy?'disabled':''}>Save</button><span id="email-save-note" class="hint">${dirty?'Unsaved changes':'Saved'}</span></div>
         <div class="ev-kit">
-          ${kit?`<a class="btn ev-kit-btn" href="${esc(kit.url)}" target="_blank" rel="noopener noreferrer">${kit.status==='completed'?'View report in Kit':kit.status==='scheduled'?'Check it in Kit':'Open in Kit'} ↗</a>`:evKit?.connected?'':`<button class="btn ev-kit-btn" data-ev-kit>Connect Kit to schedule automatically</button>`}
+          ${kit?`<a class="btn ev-kit-btn" href="${esc(kit.url)}" target="_blank" rel="noopener noreferrer">${kit.status==='completed'?'View report in Kit':kit.status==='scheduled'?'Check it in Kit':'Open in Kit'} ↗</a>`:evKit?.connected?'':`<button class="btn ev-kit-btn" data-ev-kit>Connect Kit to read its status</button>`}
           <p class="hint">${esc(kitLine)}</p>
           ${p.kit_error?`<p class="ev-kit-error">⚠ ${esc(p.kit_error)} <button class="small subtle" data-ev-kit-retry="${esc(p.id)}">Try again</button></p>`:''}
         </div>
+        ${evDraftPanel(p)}
       </section>
+      ${emailVisualControls(p)}
       ${links?`<section class="ev-card"><h4>Link</h4>${links}<p id="email-link-warning" class="hint"></p></section>`:''}
       <details class="ev-more">
         <summary>More details</summary>
@@ -159,7 +161,7 @@ document.addEventListener('change',e=>{if(e.target.id==='ev-lib-author'){evLibAu
 if(view==='email'&&!current)render();
 
 /* Kit: the app schedules Ready emails in Kit and keeps their status in step. */
-var evKit=null,evKitSynced=0; // var, not let: the email view can render before this line runs when Josh OS opens on #email
+var evKit=null,evKitSynced=0; // var, not let: the email view can render before this line runs when CareerOS opens on #email
 function evKitLoad(){return api('/api/kit').then(k=>{evKit=k;if(view==='email'&&!current)render()}).catch(()=>{})}
 function evKitPill(){if(!evKit)return '';return evKit.connected?`<button class="subtle ev-kit-pill on" data-ev-kit title="${esc(evKit.last_error||'Connected to Kit')}"><i></i>Kit · ${esc(evKit.segment_name)}${evKit.last_error?' ⚠':''}</button>`:`<button class="ev-kit-pill" data-ev-kit><i></i>Connect Kit</button>`}
 function evSendText(iso){if(!iso)return '';const d=new Date(iso);return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Dubai'})+', '+d.toLocaleTimeString('en-GB',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'}).replace(' ','')}
@@ -263,3 +265,30 @@ renderCalendar=function(){slotOldCalendar();
  const note=document.querySelector('#workspace .email-calendar-note');
  if(note)note.outerHTML=`<p class="slot-legend">${SLOT_TYPES.map(([t,l])=>`<span class="t-${t}"><i></i>${l}s</span>`).join('')}</p>`;
 };
+
+// Laia's Kit draft: the exact subject, preview, audience and content she prepared. Josh approves that exact version; any
+// edit to the email makes it stale. Saving puts a DRAFT in Kit. The date, scheduling and sending stay in Kit's own app.
+const evDrafts={};
+function evDraftLoad(id){return api('/api/emails/'+id+'/kit-draft').then(r=>{evDrafts[id]=r;if(view==='email'&&emailCurrent?.id===id&&!dirty)render()}).catch(()=>{})}
+function evDraftPanel(p){
+  if(p.images?.length)return `<div class="ev-draft"><h4>Kit visual review</h4><p class="hint">Local visuals need a separate exact review before an existing unsent Kit draft can be edited. Browser insertion is currently unavailable; open the review for its reason.</p><a class="btn small" href="/kit-visuals?email=${encodeURIComponent(p.id)}" target="_blank" rel="noopener noreferrer">Review these visuals for Kit</a></div>`;
+  const r=evDrafts[p.id];if(!r){evDraftLoad(p.id);return ''}
+  const d=(r.items||[]).filter(x=>!['replaced'].includes(x.status)).at(-1);if(!d)return '';
+  const stale=d.email_revision!==p.revision&&['waiting','approved'].includes(d.status);
+  const aud=(d.payload.subscriber_filter||[]).map(g=>Object.entries(g).map(([k,v])=>`${k} of ${v.map(e=>`${e.type} ${e.ids.join(', ')}`).join('; ')}`).join('')).join('');
+  const state={waiting:'Waiting for your approval',approved:'Approved',writing:'Saving to Kit',drafted:'Saved as a draft in Kit',stale:'Needs approving again',uncertain:'Not sure Kit saved it'}[d.status]||d.status;
+  return `<div class="ev-draft"><h4>Kit draft from Laia</h4><p class="hint">${esc(stale?'You edited this email after Laia prepared the draft, so it needs preparing again.':state)}</p>
+    <dl><dt>Subject</dt><dd>${esc(d.payload.subject)}</dd><dt>Preview</dt><dd>${esc(d.payload.preview_text||'None')}</dd><dt>Audience</dt><dd>${esc(aud)}</dd><dt>Draft only</dt><dd>No date and no send. Not shown on your newsletter site.</dd></dl>
+    <details><summary>Review exact draft content</summary><iframe title="Kit draft content" sandbox srcdoc="${esc(d.payload.content)}" style="width:100%;min-height:300px;border:0"></iframe></details>
+    ${d.status==='waiting'&&!stale?`<p class="hint">Approval keeps this exact version for review. Use Save draft to Kit separately when writing is enabled.</p><button class="small primary" data-ev-draft-approve="${esc(d.id)}" data-hash="${esc(d.hash)}">Approve this draft</button>`:''}
+    ${d.status==='approved'&&!stale?(r.live?`<button class="small primary" data-ev-draft-write="${esc(d.id)}">Save draft to Kit</button>`:'<p class="hint">Saving drafts to Kit isn\'t switched on yet. Your approval is kept.</p>'):''}
+    ${d.confirm_url?`<a class="btn small" href="${esc(d.confirm_url)}" target="_blank" rel="noopener noreferrer">Open the draft in Kit ↗</a>`:''}</div>`;
+}
+document.addEventListener('click',async e=>{
+  const a=e.target.closest('[data-ev-draft-approve]'),w=e.target.closest('[data-ev-draft-write]');if(!a&&!w)return;
+  const id=emailCurrent?.id;if(!id)return;(a||w).disabled=true;
+  try{await api('/api/emails/'+id+'/kit-draft',a?{action:'approve',id:a.dataset.evDraftApprove,hash:a.dataset.hash}:{action:'write',id:w.dataset.evDraftWrite});
+    toast(a?'Approved. Nothing has gone to Kit yet':'Verified in Kit as a private unsent draft. Nothing scheduled or sent')}
+  catch(err){toast(err.message,true)}
+  await evDraftLoad(id);render();
+});

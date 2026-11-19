@@ -1,0 +1,14 @@
+/* The clean cut from AutoCut. Built on the Script tab's own pieces (edit-flow.css): words, cards, waves, the queue. */
+.cc .ef-w{cursor:pointer}
+.cc .ef-w:hover{background:var(--hover)}
+.ef-w.partial{text-decoration:underline dotted #e2584c;text-decoration-thickness:2px;text-underline-offset:3px}
+.ef-w.edge{text-decoration:underline dotted var(--muted);text-underline-offset:3px}
+.ef-w.flag{background:color-mix(in srgb,#F5C21B 22%,transparent)}
+.ef-w.on{outline:2px solid #F5C21B;outline-offset:1px}
+.cc-tag{display:inline-block;margin:0 3px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.6;vertical-align:2px;
+  background:color-mix(in srgb,#e2584c 14%,transparent);color:#8a3a31}
+.cc-next h2{margin-bottom:var(--sp-1)}
+.cc-seq{display:flex;align-items:center;gap:6px;font-size:var(--fs-small);color:var(--muted)}
+.cc-seq input{width:220px}
+.cc .ef-qi span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media (max-width:900px){.cc .ef-body{grid-template-columns:1fr}.cc .ef-rail{position:static;max-height:none}}

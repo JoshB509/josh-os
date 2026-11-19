@@ -129,15 +129,57 @@ def visual_offset(composite, reference, job):
     return dict(verified=max(offsets)-min(offsets)<=tolerance and min(r['separation_ratio'] for r in rows)>1.08,
                 offset_seconds=float(np.median(offsets)),checks=rows,method='SIFT spatial registration and moving-pixel temporal match ±5s')
 
+VERBATIM_PROMPT='Umm, so, the, the reason is, uh, I mean, the reason... Verbatim, with repeats and restarts.'
+# The settings above as one record, so the transcript cache re-keys whenever they change (studio/edit_flow.py).
+ASR=dict(beam=5,vad=False,condition_on_previous_text=False,suppress_blank=False,hallucination_silence_threshold=2.0,chunks='quiet 12-24s')
+
+
+
 def transcribe(path, model_dir, job):
     os.environ['HF_HUB_OFFLINE']='1'; os.environ['TRANSFORMERS_OFFLINE']='1'
     from faster_whisper import WhisperModel
     if not (Path(model_dir)/'model.bin').is_file(): raise ValueError('Local Whisper model is unavailable; downloads are disabled')
     model=WhisperModel(model_dir,device='cpu',compute_type='int8',cpu_threads=2,num_workers=1,local_files_only=True)
-    segments,info=model.transcribe(str(path),beam_size=3,word_timestamps=True,vad_filter=True,language='en')
+    # Every spoken word, restart and retake has to be in the transcript (12 Nov 2026 measurements on 4 Signs):
+    # - Silero VAD at its defaults (threshold 0.5) cut faint false starts and short restarts before Whisper heard them,
+    #   and glued the kept chunks together, so words stretched over coughs and restarts ("to" lasting 2.5 s at 118 s).
+    # - condition_on_previous_text (on by default) made Whisper skip a phrase it had just said ("So what do they do?"
+    #   at 696 s was dropped; with VAD and conditioning off it came back).
+    # So: no VAD, no conditioning, no blank suppression, a wider beam, and hallucination_silence_threshold to stop loops
+    # in long silences now VAD is off. The prompt only reaches the first window without conditioning.
+    # - Even with those settings, one long pass over the whole file still merged repeats ("so you finally work up" said
+    #   twice at 116-121 s came out once; "sorry, this, sorry, this" at 126-128 s came out once). The same model and
+    #   settings on a short stretch heard both. So the file goes in as short chunks, each cut at the quietest point,
+    #   each transcribed on its own, with word times put back on the whole recording.
+    from faster_whisper import decode_audio
+    audio=decode_audio(str(path),sampling_rate=16000)
     out=[]
-    for s in segments:
+    for a,b in chunk_points(audio,16000):
         check(job)
-        out.append(dict(start=s.start,end=s.end,text=s.text,words=[dict(start=w.start,end=w.end,word=w.word,probability=w.probability) for w in s.words]))
-        print('Transcribed %.1fs'%s.end,flush=True)
+        segments,info=model.transcribe(audio[a:b],beam_size=ASR['beam'],word_timestamps=True,vad_filter=False,language='en',
+                                       condition_on_previous_text=False,suppress_blank=False,hallucination_silence_threshold=2.0,
+                                       initial_prompt=VERBATIM_PROMPT)
+        off=a/16000
+        for s in segments:
+            out.append(dict(start=off+s.start,end=off+s.end,text=s.text,chunk=[round(off,3),round(b/16000,3)],
+                            words=[dict(start=off+w.start,end=off+w.end,word=w.word,probability=w.probability) for w in s.words]))
+        print('Transcribed %.1fs'%(b/16000),flush=True)
     return out
+
+
+def chunk_points(audio, sr, lo=12.0, hi=24.0, bin_ms=10):
+    """[(start, end)] sample ranges covering the whole file, each cut at the quietest 10 ms bin between lo and hi
+    seconds after the previous cut, so no cut lands inside a word."""
+    import numpy as np
+    hop=int(sr*bin_ms/1000)
+    n=len(audio)//hop
+    db=20*np.log10(np.sqrt((audio[:n*hop].astype(np.float64).reshape(n,hop)**2).mean(axis=1))+1e-9)
+    # smooth over 50 ms so a gap between two syllables isn't mistaken for a pause
+    k=5
+    sm=np.convolve(db,np.ones(k)/k,mode='same')
+    cuts=[0]
+    while (n-cuts[-1])*bin_ms/1000>hi:
+        s=cuts[-1]+int(lo*1000/bin_ms); e=cuts[-1]+int(hi*1000/bin_ms)
+        cuts.append(s+int(np.argmin(sm[s:e])))
+    cuts.append(n)
+    return [(cuts[i]*hop, min(len(audio), cuts[i+1]*hop)) for i in range(len(cuts)-1)]

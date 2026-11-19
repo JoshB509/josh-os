@@ -56,7 +56,7 @@ class Recording:
         self.folder_roots=[Path(p).resolve() for p in (folder_roots or ['E:/CareerOS/12_YouTube','E:/Videos'])]
         self.idle=idle or idle_obs;self.validator=validator or self.validate_media
         self.opener=opener or (lambda p:os.startfile(str(p)))
-        self.lock=threading.Lock()
+        self.lock=threading.RLock()
         with store.connect() as c:c.executescript('''
             CREATE TABLE IF NOT EXISTS youtube_recording_active(singleton INTEGER PRIMARY KEY CHECK(singleton=1),body TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS youtube_recording_projects(project_id TEXT PRIMARY KEY,body TEXT NOT NULL);
@@ -83,12 +83,19 @@ class Recording:
         dest=plain_path(str(p/'Recorded'/'Input'))
         if dest.drive.lower()!=self.input.drive.lower():raise ValueError('Project and recording input must be on the same disk for a safe move.')
         return dest
+    def take_folders(self,b):
+        """Where a take for this video may be: the shared input folder, and the video's own Recorded/Input once Film set it up."""
+        out=[self.input]
+        if b.get('destination'):
+            try:out.append(plain_path(b['destination']))
+            except ValueError:pass
+        return out
     def state(self,pid):
         p=self.store.get(pid)
         with self.store.connect() as c:
             a=self.active(c);b=self.binding(c,pid)
             rows=c.execute('SELECT body FROM youtube_recording_takes WHERE project_id=? ORDER BY rowid DESC',(pid,)).fetchall()
-        return dict(project_id=pid,active=bool(a and a['project_id']==pid),active_project_id=a['project_id'] if a else None,
+        return dict(project_id=pid,active=bool(a and a['project_id']==pid and p['stage']=='Recording'),active_project_id=a['project_id'] if a else None,
             eligible=not p['archived'] and p['stage']=='Recording',binding=b,takes=[json.loads(r['body']) for r in rows])
     def activate(self,pid,revision,folder):
         dest=self.destination(folder)
@@ -104,12 +111,15 @@ class Recording:
         return self.state(pid)
     def select(self,pid,revision,path):
         source=plain_path(path)
-        if source.parent!=self.input or source.suffix.lower() not in ('.mp4','.mkv','.mov','.webm') or not source.is_file():
-            raise ValueError('Choose one exact finalized recording in E:\\Videos\\Input. No latest-file selection is used.')
+        if source.suffix.lower() not in ('.mp4','.mkv','.mov','.webm') or not source.is_file():
+            raise ValueError('Choose one exact finalized recording in E:\\Videos\\Input or this video\'s Recorded\\Input. No latest-file selection is used.')
         with self.lock,self.store.connect() as c:
             c.execute('BEGIN IMMEDIATE');a=self.active(c);p=self.store.get(pid);self.eligible(p);self.no_lesson(c)
             if not a or a['project_id']!=pid or p['revision']!=revision:raise Conflict('Save this video and set it as the active recording project first.')
             b=self.binding(c,pid)
+            # Film (studio/filming.py) points OBS at the video's own Recorded/Input, so a take may already be there.
+            if source.parent not in self.take_folders(b):
+                raise ValueError('Choose one exact finalized recording in E:\\Videos\\Input or this video\'s Recorded\\Input. No latest-file selection is used.')
             if b.get('selection'):
                 r=c.execute('SELECT body FROM youtube_recording_takes WHERE id=?',(b['selection']['id'],)).fetchone()
                 if r and json.loads(r['body'])['phase']!='complete':raise Conflict('Recover the pending Lock Take before selecting another source.')
@@ -146,37 +156,80 @@ class Recording:
         for key,value in media.items():
             if value and Path(value).resolve()==Path(r['source']['path']):media[key]=r['destination']
         media['video']=r['destination']
-        p.update(media=media,stage='Recorded',revision=p['revision']+1,updated_at=now())
+        completed_at=now()
+        p.update(media=media,stage='Recorded',revision=p['revision']+1,updated_at=completed_at,
+                 locks=dict(p.get('locks') or {},recording=completed_at))
         self.store.validate(p)
         r.update(phase='complete',completed_at=now(),project_revision=p['revision'])
         c.execute('UPDATE projects SET revision=?,body=? WHERE id=?',(p['revision'],json.dumps(p),p['id']))
         c.execute('UPDATE youtube_recording_takes SET body=? WHERE id=?',(json.dumps(r),r['id']))
-    def lock_take(self):
+
+    def completed(self,p,r):
+        """A retry verifies the saved take without changing stage, selection or OBS."""
+        dest=plain_path(r['destination'])
+        with stable_reader(dest):
+            if p['media'].get('video')!=str(dest) or sha256(dest)!=r['sha256']:
+                raise Conflict('The previously locked take changed. No files were moved.')
+        return dict(r,reused=True)
+
+    def _keep_in_place(self,p,a,b,s,r,source):
+        """Film already filed this take. Verify it under a deny-write/delete handle and bind it as-is.
+
+        OBS may be closed and teleprompter preparation may be stale. Neither can affect
+        this finalized, explicitly selected file while the handle is held.
+        """
+        if r and Path(r['destination'])!=source and Path(r['destination']).exists():
+            raise Conflict('Recovery destination already exists. Files were left untouched.')
+        with stable_reader(source):
+            initial=identity(source)
+            if initial!=s['source']:raise Conflict('Selected take changed. Select its finalized file again in JoshOS.')
+            evidence=self.validator(source);hash_value=sha256(source)
+            if initial!=identity(source):raise Conflict('Recording changed during validation.')
+            if r and r['sha256']!=hash_value:raise Conflict('Pending take changed. Files were left untouched.')
+            with self.store.connect() as c:
+                c.execute('BEGIN IMMEDIATE');fresh=self.store.get(p['id'])
+                if fresh['revision']!=p['revision'] or self.active(c)!=a or self.binding(c,p['id']).get('selection')!=s:
+                    raise Conflict('Active video or take selection changed during validation.')
+                if r and fresh['revision']!=r['expected_revision']:
+                    raise Conflict('Project changed during recovery. Saved media is preserved at '+str(source))
+                self.no_lesson(c);self.shared_source(c,p['id'],source)
+                take=dict(r or {},id=s['id'],project_id=p['id'],source=s['source'],destination=str(source),
+                          sha256=hash_value,expected_revision=p['revision'],phase='prepared',validation=evidence,
+                          prepared_at=(r or {}).get('prepared_at') or now(),kept_in_place=True)
+                if r and r['destination']!=str(source):take['previous_destination']=r['destination']
+                c.execute('INSERT OR REPLACE INTO youtube_recording_takes VALUES(?,?,?)',(take['id'],p['id'],json.dumps(take)))
+                self._commit(c,fresh,take)
+        return take
+
+    def lock_take(self,expected_pid=None):
         if not self.lock.acquire(False):raise Conflict('Lock Take is already checking this recording. Wait for it to finish.')
         try:
-            self.idle()
             with self.store.connect() as c:
                 a=self.active(c)
                 if not a:raise Conflict('Set one YouTube video active at Recording stage in JoshOS first.')
+                if expected_pid and a['project_id']!=expected_pid:raise Conflict('The active recording video changed. Reload before completing this take.')
                 pid=a['project_id'];p=self.store.get(pid);b=self.binding(c,pid);s=b.get('selection');self.no_lesson(c)
                 if not s:raise Conflict('Choose the exact finished take in the active video in JoshOS first.')
                 row=c.execute('SELECT body FROM youtube_recording_takes WHERE id=?',(s['id'],)).fetchone();r=json.loads(row['body']) if row else None
             if r and r['phase']=='complete':
-                dest=Path(r['destination'])
-                if p['media'].get('video')!=str(dest) or not dest.is_file() or sha256(dest)!=r['sha256']:raise Conflict('The previously locked take changed. No files were moved.')
-                return r
+                return self.completed(p,r)
+            if r and r['expected_revision']!=p['revision']:
+                raise Conflict('Project changed during recovery. Saved media was left untouched.')
             self.eligible(p)
             destdir=self.destination(b['project_folder'])
             if str(destdir)!=b['destination']:raise Conflict('Saved destination changed.')
             source=plain_path(s['source']['path'])
-            if source.parent!=self.input:raise Conflict('Selected recording is outside the configured input folder.')
+            if source.parent not in self.take_folders(b):raise Conflict('Selected recording is outside the input folder and this video\'s Recorded\\Input.')
             prior_video=p['media'].get('video')
             if (not prior_video or Path(prior_video).resolve()!=source) and any(p['media'].get(k) for k in ('audio','reference','transcript','shots')):
                 raise Conflict('Existing editing inputs may belong to another take. Rebind or clear those inputs in this video before locking a replacement recording.')
             if r and Path(r['destination']).exists():
                 # Durable journal recovers a crash after rename, before DB commit.
                 dest=plain_path(r['destination'])
+                if source.exists() and dest==source and r.get('kept_in_place'):
+                    return self._keep_in_place(p,a,b,s,r,source)
                 if source.exists() or dest.parent!=destdir or sha256(dest)!=r['sha256']:raise Conflict('Recovery collision or changed take. Files were left untouched.')
+                self.idle()
                 with self.store.connect() as c:
                     c.execute('BEGIN IMMEDIATE');fresh=self.store.get(pid)
                     if fresh['revision']!=r['expected_revision']:raise Conflict('Project changed during recovery. Saved media is preserved at '+str(dest))
@@ -186,8 +239,10 @@ class Recording:
             if time.time()-source.stat().st_mtime<5:raise Conflict('Take was just modified. Wait for recording/remux to finish.')
             # Reject a still-present alternate container with the same basename.
             # OBS keeps the original .mkv beside the .mp4 it remuxes from it, so that one pair is expected and the .mkv stays put.
-            if any(x!=source and x.is_file() and x.stem==source.stem and x.suffix.lower() in ('.mp4','.mkv','.mov','.webm','.tmp','.partial') and not (source.suffix.lower()=='.mp4' and x.suffix.lower()=='.mkv') for x in self.input.iterdir()):
+            if any(x!=source and x.is_file() and x.stem==source.stem and x.suffix.lower() in ('.mp4','.mkv','.mov','.webm','.tmp','.partial') and not (source.suffix.lower()=='.mp4' and x.suffix.lower()=='.mkv') for x in source.parent.iterdir()):
                 raise Conflict('Multiple containers or a remux/temp sibling exist for this take. Resolve the ambiguity before locking.')
+            if source.parent==destdir:return self._keep_in_place(p,a,b,s,r,source)
+            self.idle()
             with stable_reader(source):
                 initial=identity(source);time.sleep(.3)
                 evidence=self.validator(source);hash_value=sha256(source)

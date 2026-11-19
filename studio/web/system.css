@@ -1,4 +1,4 @@
-/* Josh OS system layer: loaded last on every page (main app, Tasks, Lessons, Admin).
+/* CareerOS system layer: loaded last on every page (main app, Tasks, Lessons, Admin).
    Puts the older screens on the tokens and shares the phone navigation.
    Findings and reasons: docs/design/critique-2026-11-07.md, "Whole app" section. */
 

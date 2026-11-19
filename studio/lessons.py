@@ -288,10 +288,14 @@ class Lessons:
   try:
    bound=self.binding()
    if not bound or bound['lesson_id']!=lid:
-    return self.handover_released(lid)
-   if expected_binding_id and bound['id']!=expected_binding_id:raise Conflict('Lesson session changed. Refresh before reviewing recordings.')
-   return self._handover_bound(bound)
+    if expected_binding_id:raise Conflict('Lesson session changed. Refresh before reviewing recordings.')
+   else:
+    if expected_binding_id and bound['id']!=expected_binding_id:raise Conflict('Lesson session changed. Refresh before reviewing recordings.')
+    return self._handover_bound(bound)
   finally:self.handover_lock.release()
+  # The released-session helper owns its synchronization. Release this scope
+  # before fallback; explicit binding requests above never take that fallback.
+  return self.handover_released(lid)
  def _handover_bound(self,bound,archived=False):
   lid=bound['lesson_id']
   status=self.obs()

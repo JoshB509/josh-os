@@ -1,0 +1,55 @@
+{
+ "note": "Approved office images for each team member's desk. Put the exact approved original here as <id>.jpg, .png or .webp. Josh OS shows it at the top of that person's desk as soon as the file exists. The Team page keeps their profile photo. Until then the desk shows an office image pending panel. Never substitute a different image.",
+ "offices": {
+  "sam": {
+   "library_id": "libfile_fde3_f-18e2db3aaaac8191bcc625129aebd724_64de104c17dc8191bc3d13b6aa8b85d9",
+   "status": "added",
+   "file": "sam.png",
+   "original_name": "exec-9206ab11-95dc-4624-b24d-28f440fdc0c4.png",
+   "sha256": "c9a932d5321bbe6efce82b0ad46bfd1230dd6ce92b5e598f794d322739097502",
+   "added": "2026-11-11"
+  },
+  "tariq": {
+   "library_id": "libfile_fde3_f-3d8a1cfa611c8191b6eef8625630ed2a_64de104c17dc8191bc3d13b6aa8b85d9",
+   "status": "added",
+   "file": "tariq.png",
+   "original_name": "Tariq editing workspace.png",
+   "sha256": "d644b53fff9ba1dfc156d60af118991e12c0a2ee9234fd6af8a0b0dbf65a07ac",
+   "added": "2026-11-11"
+  },
+  "laia": {
+   "library_id": "libfile_fde3_f-928cdcd42b3881919c79366319984cd1_64de104c17dc8191bc3d13b6aa8b85d9",
+   "status": "added",
+   "file": "laia.png",
+   "original_name": "exec-f2f05faf-3d3f-4698-9402-adbfb0f91e20.png",
+   "sha256": "563cc1ee7fb5e8416a2ebdf66bff73711d3602c60a768b5e570f23bb34ffce9a",
+   "added": "2026-11-11"
+  },
+  "saskia": {
+   "library_id": "libfile_fde3_f-47cb8166f6548191a552f892ad6eb089_64de104c17dc8191bc3d13b6aa8b85d9",
+   "status": "added",
+   "file": "saskia.png",
+   "original_name": "exec-a2b43254-48ce-49c6-8e29-4aee5b71d025.png",
+   "sha256": "a803be1d00948d68222655d53c37b928393dc72d89c1508942ad44002ce969b8",
+   "added": "2026-11-11"
+  },
+  "anouk": {
+   "library_id": "libfile_fde3_f-bca309603d9481918d5edad6ffc0ff74_64de104c17dc8191bc3d13b6aa8b85d9",
+   "status": "added",
+   "file": "anouk.png",
+   "original_name": "exec-1482239e-1d0c-4404-be78-2e0942047119.png",
+   "sha256": "db80136b972fb89c985836a854c775f9f82c910598c9ccf90061ff859400111f",
+   "added": "2026-11-11"
+  },
+  "max": {
+   "library_id": null,
+   "status": "added",
+   "file": "max.png",
+   "original_name": "95253.png",
+   "sha256": "9844fd451d023fe8d55b24da15a4691253a61239ca6959490757185598a7df57",
+   "added": "2026-11-11",
+   "approved": "Josh approved this exact image in chat on 11 Nov 2026. No Library ID was given.",
+   "source": "C:\\Users\\Anigma PC\\Documents\\JoshOS-approved-max-images-20261111\\95253.png"
+  }
+ }
+}
