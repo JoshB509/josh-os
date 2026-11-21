@@ -54,3 +54,47 @@ button.small,.small,.chip-btn{min-height:32px}
   body.has-tabbar .app{grid-template-columns:1fr!important}
 }
 @media (min-width:761px){.tabbar{display:none!important}}
+
+/* Polish pass, loaded with system.css on every page (main app, Tasks, Lessons, Admin, Lead magnets).
+   Made with the unslop skill (.claude/skills/unslop, by Damir Sokolovsky @heydamir, CC BY 4.0) in polish mode, 21 Nov 2026.
+   Josh approved the direction. Delete this section to go back.
+
+   Direction
+   Product    Josh's studio for running CareerOS, from YouTube videos to emails and customers, with his team.
+   Character  Steady, exact, a little warm.
+   World      A coach's notebook on an editing desk. Ink on paper with a gold highlighter.
+   Moments    The "Needs your decision" list on Today and the thumbnail wall on a video page.
+   Signature  The gold highlighter mark. It only sits on what needs Josh.
+
+   Left alone on purpose: each teammate's own room (.hub-*), the recording script, the ink and gold palette and all copy. */
+
+/* Type. Headings at 600 instead of 700 to 800, so hierarchy comes from size. */
+h1,#page-title,.today-head h1,.project-top .name,.vp-top .name,.pv-title,.profile-name .name,.ev-subject,.pk-title,.tc-who b{font-weight:600}
+h1,#page-title{letter-spacing:-.01em}
+h2,.td-sec h2{font-weight:600}
+:root .sc-big,.cc-card-val,.hub-stat-val{font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Labels in sentence case with normal tracking instead of uppercase with wide tracking. */
+.rail-label,.track,.appnav .navlabel,.more-label,.today-date,.side-label,.stat-label,.data th,.date small,.prose h3,
+.res-metric small,.res-dips .kind,.cc-group h4,.week-item small,.room-list h4,.cv-stats dt,.glance-title small,.glance-date{text-transform:none;letter-spacing:0}
+.rail-label,.track,.appnav .navlabel,.side-label,.more-label{font-size:var(--fs-small);font-weight:500;color:var(--muted)}
+.today-date{font-size:var(--fs-body);font-weight:500}
+.cc-group h4{font-weight:600}
+.cv-stats dt{font-size:var(--fs-caption)}
+
+/* Counts read as plain numbers. The decision count is the one in gold ink. */
+.td-n,.td-decide .td-n{min-width:0;padding:0;border-radius:0;background:none;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.td-decide .td-n{color:var(--gold-deep)}
+.td-sec header{align-items:baseline}
+
+/* Needs your decision. One gold highlighter mark per row instead of every row filled gold. */
+.td-list{gap:var(--sp-1)}
+.td-row.needs{background:none;box-shadow:inset 2px 0 0 var(--gold);border-radius:0 var(--r-md) var(--r-md) 0}
+.td-row.needs:hover{background:var(--hover)}
+
+/* Today's team. Hairline cards. Each person's colour stays on their avatar and owner dot, not a coloured card edge. */
+.td-sec{padding:var(--sp-5)}
+.td-person{padding:var(--sp-4);border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.td-person-head{justify-content:flex-start;min-height:36px}
+.td-person-head small{margin-left:auto;text-align:right}
+.td-person p{margin:var(--sp-3) 0 0}
