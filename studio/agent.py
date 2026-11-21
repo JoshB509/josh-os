@@ -1181,6 +1181,8 @@ class Agents:
             f"  results has d1 and d7, each with any of {', '.join(RESULT_NUMBERS)} and checked_at (a date).",
             '  Tags and results you send are merged into what is already saved. Describe proposed changes, not a successful save.',
             '  The host saves after your answer and supplies the verified receipt. Never say saved, changed or redrawn before that receipt.',
+            '  Your reply is shown to Josh with the save line added under it, so answer what he actually asked (for example, say',
+            '  plainly whether you scheduled it on YouTube and for when). If a save fails, Josh sees only the failure.',
             '- To make or redo a Paper post\'s slide images, set make_design true on that carousel (with any slide changes in the',
             '  same entry). Josh OS draws them with the house template. When you change the words of a post that already has a',
             '  Paper design, Josh OS makes the design again by itself, so Josh always sees the new slides.',
@@ -2317,7 +2319,7 @@ class Agents:
                 else:
                     reply = (reply or '').rstrip() + '\n\nNo refresh started. Ask to refresh the scorecard in this message.'
             if original_attempt:
-                from .carousels import save_receipt
+                from .carousels import reply_with_receipt
                 try:
                     row = OriginalCarousels(tracker, local_asset_chat).apply(answer.get('original_carousel'),
                         owner=agent_id, message=message, proactive=proactive,
@@ -2327,10 +2329,10 @@ class Agents:
                     row = dict(kind='carousel', action='failed', title='Original carousel',
                                error='The original carousel was not saved. Review the request before retrying.')
                 saved.append(row)
-                reply = save_receipt([row])
+                reply = reply_with_receipt(reply, [row])
             photo_attempt = not original_attempt and (photo_allowed or answer.get('photo_draft') is not None)
             if photo_attempt:
-                from .carousels import save_receipt
+                from .carousels import reply_with_receipt
                 try:
                     from .photo_distinct import DistinctPhotoReceipts
                     row = PhotoDrafts(tracker, DistinctPhotoReceipts(tracker,self.root)).apply(answer.get('photo_draft'),
@@ -2339,8 +2341,8 @@ class Agents:
                 except (ValueError, KeyError, OSError, RuntimeError) as exc:
                     row = dict(kind='carousel',action='failed',title='Photo carousel',error=str(exc)[:300])
                 saved.append(row)
-                # Only a committed host receipt can report a successful Photo draft.
-                reply = save_receipt([row])
+                # Only a committed host receipt can report a successful Photo draft. A failure replaces the answer.
+                reply = reply_with_receipt(reply, [row])
             todo = [] if photo_attempt or original_attempt else answer.get('carousels')
             if carousel_override_requested or answer.get('carousel_slide_override') is not None:
                 todo = []
@@ -2361,10 +2363,10 @@ class Agents:
                     request_id=(data.get('request_id') or str(uuid.uuid4())) if agent_id == 'sam' else None)
                 saved += carousel_saved
                 if todo:
-                    from .carousels import save_receipt, date_clashes
-                    # Model prose was written before the save. Replace it with
-                    # committed host outcomes, including partial batch failures.
-                    reply = save_receipt(carousel_saved) or 'No carousel changes were saved.'
+                    from .carousels import reply_with_receipt, date_clashes
+                    # Josh's question keeps its answer, with the committed host outcome under it. Any failed or
+                    # unfinished save replaces the answer, since it was written before the save.
+                    reply = reply_with_receipt(reply, carousel_saved)
                     try:
                         clashes = date_clashes(tracker.all()['items'], carousel_saved)
                     except Exception:  # noqa: BLE001 - the warning is extra; the save already happened

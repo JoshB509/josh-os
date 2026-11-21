@@ -62,9 +62,25 @@ def save_receipt(results):
             lines.append('Carousel work is still in progress. Completion has not been confirmed.')
         elif row.get('action') == 'failed':
             lines.append(f"Could not save {label}: {row.get('error', 'Unknown error')} No carousel changes were saved for this request.")
+        elif row.get('action') == 'added':
+            lines.append(f'Added "{label}" to CareerOS.')
+        elif row.get('action') == 'designed':
+            lines.append(f'Saved "{label}" in CareerOS and redrew its slides.')
         else:
-            lines.append(f"Saved {label} in Josh OS (revision {row['revision']}; {row['action']}).")
+            lines.append(f'Saved "{label}" in CareerOS.')
     return '\n'.join(lines)
+
+
+def reply_with_receipt(reply, results):
+    """The team member's answer with the host's save outcome under it. Josh asked a question, so the answer stays.
+    If any save failed or hasn't finished, the receipt replaces the answer, because the answer was written before the
+    save and could claim something that didn't happen."""
+    receipt = save_receipt(results)
+    if not results:
+        return reply
+    if not (reply or '').strip() or any(r.get('action') in ('failed', 'pending') for r in results):
+        return receipt or 'No carousel changes were saved.'
+    return reply.rstrip() + '\n\n' + receipt
 
 
 def date_clashes(items, results):

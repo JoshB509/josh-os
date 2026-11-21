@@ -222,7 +222,7 @@ class AtomicSaveTests(unittest.TestCase):
     def test_receipts_are_host_outcomes_for_mixed_success_and_failure(self):
         rows = self.tracker.apply('sam', [dict(id=self.item['id'], caption='Saved caption'), dict(title='Bad', make_design=True)])
         receipt = save_receipt(rows)
-        self.assertIn('Saved Paper post in Josh OS (revision 2; updated)', receipt)
+        self.assertIn('Saved "Paper post" in CareerOS.', receipt)
         self.assertIn('Could not save Bad', receipt)
         self.assertIn('No carousel changes were saved for this request', receipt)
 
@@ -247,10 +247,14 @@ class CarouselChatSaveTests(AtomicSaveTests):
         self.assertEqual(reply['saved'][0]['action'], 'failed')
         self.assertEqual(self.tracker.get(self.item['id']), self.item)
 
-    def test_successful_save_reply_uses_committed_revision(self):
+    def test_successful_save_keeps_the_answer_and_adds_the_receipt(self):
+        # 21 Nov 2026: Josh asked Sam to push a post to YouTube and saw only "Saved ... (revision 4; updated)", because
+        # the receipt replaced Sam's answer. A successful save now keeps the answer, with the host's outcome under it.
+        self.answer = dict(reply='Scheduled on YouTube for 9pm tonight.', carousels=[dict(id=self.item['id'], slides='New words')])
         reply = self.chat()
-        self.assertNotIn("I've saved", reply['text'])
-        self.assertIn('Saved Paper post in Josh OS (revision 2; designed)', reply['text'])
+        self.assertTrue(reply['text'].startswith('Scheduled on YouTube for 9pm tonight.'))
+        self.assertIn('Saved "Paper post" in CareerOS and redrew its slides.', reply['text'])
+        self.assertNotIn('revision', reply['text'])
         self.assertEqual(reply['saved'][0]['revision'], self.tracker.get(self.item['id'])['revision'])
 
     def test_chat_snapshot_revision_is_bound_before_model_returns(self):
