@@ -67,6 +67,26 @@ def save_receipt(results):
     return '\n'.join(lines)
 
 
+def date_clashes(items, results):
+    """Lines warning that a carousel just saved shares its post date with another live one. The app shows every
+    carousel on its post_date, so a replaced post left on the same day still shows on Today and the calendar."""
+    live = [c for c in items if c.get('post_date') and not c.get('archived') and c.get('stage') != 'Posted']
+    touched = {r.get('id') for r in results if r.get('action') in ('added', 'updated', 'designed')}
+    seen, lines = set(), []
+    for c in live:
+        if c['id'] not in touched:
+            continue
+        others = [o for o in live if o['id'] != c['id'] and o['post_date'] == c['post_date']]
+        key = frozenset([c['id'], *(o['id'] for o in others)])
+        if not others or key in seen:
+            continue
+        seen.add(key)
+        names = ', '.join(f'"{o["title"]}"' for o in others)
+        lines.append(f'"{c["title"]}" and {names} are all set for {c["post_date"]}, so they all show for that day. '
+                     'Move or clear the date on any that is not going out.')
+    return lines
+
+
 def clean_tags(tags):
     if not isinstance(tags, dict):
         raise ValueError('Tags must be a set of named values.')

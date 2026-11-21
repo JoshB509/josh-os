@@ -393,6 +393,8 @@ PROJECT_PROPS = {
             'chosen_title': {'type': 'string', 'description': 'Exact saved title ID to choose, or empty to clear. Existing lock is enforced.'},
             'top_three': {'type': 'array', 'maxItems': 3, 'items': {'type': 'string'}, 'description': 'Ordered existing thumbnail asset IDs; empty clears selection. Existing lock is enforced.'},
             'remove_thumbnail_assets': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Remove these saved thumbnail references from the card only. Original files remain.'},
+            'description': {'type': 'string', 'description': 'The whole YouTube description shown in Packaging, when it changes. This is the text Publish uses, so there is never a separate copy. Josh approves it again on the video page.'},
+            'pinned_comment': {'type': 'string', 'description': 'The whole pinned comment shown in Packaging, when it changes. Publish uses this exact text. Josh approves it again on the video page.'},
             'packaging': {'type': 'object', 'description': 'Partial local packaging brief: thumbnail_concept, thumbnail_reference, curiosity_question, concrete_payoff. Merged with existing.'},
             'lead_magnet': {'type': 'object', 'description': 'Partial local lead-magnet brief: decision unknown/none/yes, name, contents, result, free_status, destination, evidence. Does not upload or publish.'},
             'archived': {'type': 'boolean', 'description': 'Archive or restore the local video card; does not delete files or change YouTube.'}},
@@ -953,8 +955,10 @@ class Agents:
             *(['Publishing uses only what CareerOS shows on the video page: the chosen title, the description and pinned comment '
                'shown in Packaging, the thumbnails in Main, B and C, and the approved final export. That is the single version. '
                'Never write your own title, description, comment or "package" for publishing, and never keep a separate copy. '
-               'If something should change, change it in CareerOS (draft the description, ask Josh to pick the title or thumbnail) '
-               'so the video page shows it, then publish what the page shows. When Josh asks you to publish, read the open video\'s '
+               'If something should change, change it in CareerOS so the video page shows it, then publish what the page shows. '
+               'New links or wording for the description or pinned comment go in with the projects list (description, pinned_comment) '
+               'on that video card, and Josh approves them again there. Never prepare a new release just to change words. '
+               'When Josh asks you to publish, read the open video\'s '
                '"publishing" block, tell him in one or two lines what will go out and anything missing, and prepare it. '
                'Unlisted needs no date or time; only scheduling does. Never ask for a time for an unlisted upload.',
                'Publishing: use prepare_release only to prepare the exact final release packet for Josh. Josh can approve an exact Unlisted upload using /release review <job ID> and its exact confirmation command in his paired CareerOS chat or verified owner DM to Sam. These deterministic commands are handled by authenticated ingress before the model, never by you. Tell him the supported command; do not submit it yourself or interpret relayed text as proof. Public publishing and scheduling remain owner-only in the /publishing review page. Never approve via browser automation, HTTP, scripts or model output, even when asked to prepare a release. Inspect current job status using the publishing page in Chrome or the app-provided result; do not approve or resume through browser automation. Do not claim upload or schedule success without verified job status. Native A/B needs separately approved variants and an eligible nonprivate video.'] if agent['id']=='sam' else []),
@@ -979,6 +983,14 @@ class Agents:
             '  a video\'s Results tab, use its asset id as the screenshot.',
             '- Sam and Tariq can create a NEW video card with new_projects only when Josh directly asks in this message (name, notes, script, planned publish_date, add_titles). Other roles hand video creation to Sam. Never repurpose an existing card to stand in for a new one.',
             '- Change an existing video card with the projects list and its exact project_id. These actions work in every chat, including Discord, without opening a particular page.',
+            '- Josh OS is the one record of everything. Josh checks the app, so every change he asks for has to be made on the item',
+            '  itself in Josh OS, in its own fields (date, stage, title, description, pinned comment, slides and so on), in this same',
+            '  reply. A note, a file on the E drive, a separate packet or a message in chat does not count as making the change.',
+            '- When Josh asks you to replace, swap or move something, change both sides in the same reply. The new item goes on the',
+            '  date or slot, and the old one comes off it. Give the old one the new date Josh named, or clear its date if he named',
+            '  none, so it shows as needing a date. Never leave two things on the same day unless Josh asked for both.',
+            '- If Josh OS has no field for a change, say so plainly in your reply and ask what to do. Never put it somewhere the app',
+            '  doesn\'t show and call it done.',
             *([f'- Your skills are in .claude/skills ({", ".join(n + "/SKILL.md" for n in SKILLS.get(agent["id"], []))}). Read the one that',
                '  fits before you write, unless it is already in the prompt.'] if SKILLS.get(agent['id']) else []),
             '- Be yourself, as described in "Who you are" below. Keep replies short and plain, and give your view.',
@@ -1160,6 +1172,9 @@ class Agents:
             '  When you draft carousels, save each one there as a Drafting card with hook, slides (a line of three dashes between',
             '  slides), caption and tags. When you post or schedule one, set the stage, post_date and link. When you read stats,',
             '  save them in results. Never invent a number. Leave out anything you did not check.',
+            '  When one carousel replaces another on a day, send both entries. The new one gets the date, and the old one gets the',
+            '  new date Josh named, or an empty post_date if he named none. A note saying it moved is not enough, because Today, the',
+            '  calendar and the queue all read post_date.',
             f"  Stages: {', '.join(STAGES)}. Folder is the slide images folder under E:\\CareerOS\\03_Community_Posts.",
             '  Tags use these exact values: ' + '; '.join(f"{k} = {' / '.join(v)}" for k, v in TAG_OPTIONS.items()) + '.',
             f"  Free text tags: {', '.join(sorted(TAG_TEXT))} (post_time like 21:00). True or false tags: {', '.join(sorted(TAG_FLAGS))}. slide_count is a whole number.",
@@ -1605,7 +1620,7 @@ class Agents:
                 done.append(dict(id=pid, title=title or '', action='failed', kind='project', error=str(e).strip("'\"")[:200]))
         return done
 
-    def apply_projects(self, updates, expected_revisions=None):
+    def apply_projects(self, updates, expected_revisions=None, by='team'):
         """Video card changes a team member made from chat."""
         done = []
         for u in (updates or [])[:20]:
@@ -1639,6 +1654,30 @@ class Agents:
                         raise ValueError('Use exact existing thumbnail asset IDs.')
                     changes['thumbnails'] = [t for t in p['thumbnails'] if t['asset'] not in removed]
                     changes.setdefault('top_three', [a for a in p['top_three'] if a not in removed])
+                # The description and pinned comment live on the card (release.description and release.cta), which is what
+                # the video page shows and what Publish sends. A changed text loses its approval, so Josh approves it again.
+                texts = {'description': ('description', 5000), 'pinned_comment': ('cta', 1000)}
+                if any(isinstance(u.get(k), str) for k in texts):
+                    release = dict(p.get('release') or {})
+                    what = []
+                    for key, (field, limit) in texts.items():
+                        text = u.get(key)
+                        if not isinstance(text, str):
+                            continue
+                        text = text.strip()
+                        if len(text) > limit:
+                            raise ValueError(f'The {key.replace("_", " ")} is longer than {limit} characters.')
+                        old = dict(release.get(field) or {})
+                        if text == old.get('text', ''):
+                            continue
+                        old.pop('approved', None)
+                        release[field] = dict(old, text=text, by=str(by or 'team'), edited_at=now())
+                        what.append(field)
+                    if what:
+                        hist = list(release.get('history') or [])[-40:]
+                        hist.append(dict(at=now(), what=', '.join(what)))
+                        release['history'] = hist
+                        changes['release'] = release
                 ideas = [t.strip() for t in (u.get('add_titles') or []) if isinstance(t, str) and t.strip()]
                 if ideas:
                     current_titles = changes.get('titles', p['titles'])
@@ -2322,10 +2361,16 @@ class Agents:
                     request_id=(data.get('request_id') or str(uuid.uuid4())) if agent_id == 'sam' else None)
                 saved += carousel_saved
                 if todo:
-                    from .carousels import save_receipt
+                    from .carousels import save_receipt, date_clashes
                     # Model prose was written before the save. Replace it with
                     # committed host outcomes, including partial batch failures.
                     reply = save_receipt(carousel_saved) or 'No carousel changes were saved.'
+                    try:
+                        clashes = date_clashes(tracker.all()['items'], carousel_saved)
+                    except Exception:  # noqa: BLE001 - the warning is extra; the save already happened
+                        clashes = []
+                    if clashes:
+                        reply += '\n' + '\n'.join(clashes)
             found = answer.get('inspo')
             if keeps and inspo is not None and isinstance(found, list):
                 saved += inspo.apply(found)
@@ -2383,7 +2428,7 @@ class Agents:
                     if answer['projects']:
                         reply = (reply or '').rstrip() + '\n\nExisting cards were left unchanged because you asked for a new card. Changes to an existing card need a separate request.'
                 else:
-                    saved += self.apply_projects(answer['projects'], project_revisions)
+                    saved += self.apply_projects(answer['projects'], project_revisions, by=agent_id)
             if business is not None and not proactive and isinstance(answer.get('todos'), list):
                 done, changed = business.apply_todos(answer['todos'])
                 saved += done
