@@ -547,7 +547,8 @@ function roomCarouselPaint(){
   for(const node of document.querySelectorAll('[data-carousel-job]')){const row=roomCarouselCache.get(node.dataset.carouselJob);if(row){const html=roomCarouselCard(row);if(node.outerHTML!==html)node.outerHTML=html}}
   const box=view==='carousels'?$('#carousel-job-progress'):$('#room-carousel-progress');if(!box)return;
   const saved=new Set();if(view==='team')for(const m of roomThread.sam||[])for(const row of m.saved||[])if(row.job?.job_id)saved.add(row.job.job_id);
-  const keys=roomCarouselScopes(),rows=[...roomCarouselCache.values()].filter(x=>keys.has((view==='carousels'?'carousel:':'request:')+(view==='carousels'?x.carousel_id:x.request_id))&&!saved.has(x.job_id));
+  // On the carousel page a finished job says nothing new (the slides already show it), so only work in progress and problems appear there.
+  const keys=roomCarouselScopes(),rows=[...roomCarouselCache.values()].filter(x=>keys.has((view==='carousels'?'carousel:':'request:')+(view==='carousels'?x.carousel_id:x.request_id))&&!saved.has(x.job_id)&&!(view==='carousels'&&x.state==='complete'));
   const issue=[...roomCarouselWatching.values()].some(w=>w.issue)?'<p class="hint">Progress unavailable. Last confirmed stages are shown. <button type="button" class="link" data-carousel-check>Check status</button></p>':'';
   const html=issue+rows.map(roomCarouselCard).join('');if(box.innerHTML!==html)box.innerHTML=html;
 }

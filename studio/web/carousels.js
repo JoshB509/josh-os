@@ -133,14 +133,39 @@ function carouselViewer(c){
   const slides=carouselSlides(c.slides),n=c.images||slides.length;
   if(!n)return `<div class="pv-stage pv-empty"><p>No slides yet.</p><button class="primary" data-dock-ask="Write the slides and caption for this carousel, and save them to it.">Ask Sam to write it</button></div>`;
   const i=Math.min(carouselSlide,n-1);
-  const face=k=>c.images?`<img src="${carouselImg(c,k)}" alt="Slide ${k+1}">`:`<div class="pv-paper"><p>${esc(slides[k].replace(/\*\*/g,''))}</p></div>`;
   return `<div class="pv-stage" tabindex="0" aria-label="Slide ${i+1} of ${n}. Use the arrow keys to move." data-pv-stage>
-      <div class="pv-frame">${face(i)}</div>
-      ${n>1?`<button class="pv-nav prev" data-pv-go="${i-1}" ${i===0?'disabled':''} aria-label="Previous slide">‹</button><button class="pv-nav next" data-pv-go="${i+1}" ${i===n-1?'disabled':''} aria-label="Next slide">›</button>`:''}
+      <button type="button" class="pv-frame" data-pv-zoom aria-label="Show slide ${i+1} large">${carouselFace(c,i)}</button>
+      ${n>1?`<button class="pv-nav prev" data-pv-go="${i-1}" ${i===0?'disabled':''} aria-label="Previous slide">‹</button><button class="pv-nav next" data-pv-go="${i+1}" ${i===n-1?'disabled':''} aria-label="Next slide">›</button><span class="pv-count">${i+1} / ${n}</span>`:''}
       ${c.images&&(c.design_stale||c._edited)?'<span class="pv-stale">Words changed since this design was made</span>':''}
     </div>
     <div class="pv-thumbs">${Array.from({length:n},(_,k)=>`<button class="pv-thumb ${k===i?'on':''}" data-pv-go="${k}" aria-label="Slide ${k+1}">${c.images?`<img src="${carouselImg(c,k)}" alt="" loading="lazy">`:`<span>${k+1}</span>`}</button>`).join('')}</div>`;
 }
+function carouselFace(c,k){const slides=carouselSlides(c.slides);return c.images?`<img src="${carouselImg(c,k)}" alt="Slide ${k+1}">`:`<div class="pv-paper"><p>${esc((slides[k]||'').replace(/\*\*/g,''))}</p></div>`}
+function carouselCount(c){return c.images||carouselSlides(c.slides).length}
+// The big view: one slide at a time in the middle of the screen, the page dimmed and blurred behind it.
+function carouselZoom(){
+  const c=carouselFind(carouselOpen);if(!c||!carouselCount(c))return;
+  let d=$('#plb');
+  if(!d){
+    d=document.createElement('dialog');d.id='plb';d.className='plb';d.setAttribute('aria-label','Carousel slides');document.body.append(d);
+    d.addEventListener('click',e=>{const g=e.target.closest('[data-plb-go]');if(g){carouselZoomGo(carouselSlide+ +g.dataset.plbGo);return}if(e.target===d||e.target.closest('[data-plb-close]'))d.close()});
+    d.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();carouselZoomGo(carouselSlide+1)}if(e.key==='ArrowLeft'){e.preventDefault();carouselZoomGo(carouselSlide-1)}});
+    // Swipe to move. The click that a swipe can leave behind is ignored, so a swipe never closes the view.
+    let x0=null,swiped=0;d.addEventListener('pointerdown',e=>{x0=e.clientX});
+    d.addEventListener('pointerup',e=>{if(x0==null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>40){swiped=Date.now();carouselZoomGo(carouselSlide+(dx<0?1:-1))}});
+    d.addEventListener('click',e=>{if(Date.now()-swiped<400){swiped=0;e.stopImmediatePropagation()}},true);
+    d.addEventListener('close',()=>{$('[data-pv-stage]')?.focus({preventScroll:true})});
+  }
+  carouselZoomPaint();if(!d.open)d.showModal();
+}
+function carouselZoomPaint(){
+  const d=$('#plb'),c=carouselFind(carouselOpen);if(!d||!c)return;const n=carouselCount(c),i=Math.min(carouselSlide,n-1);
+  d.innerHTML=`<div class="plb-frame">${carouselFace(c,i)}</div>
+    ${n>1?`<button type="button" class="plb-nav prev" data-plb-go="-1" ${i===0?'disabled':''} aria-label="Previous slide">‹</button><button type="button" class="plb-nav next" data-plb-go="1" ${i===n-1?'disabled':''} aria-label="Next slide">›</button>`:''}
+    <p class="plb-count" aria-live="polite">${i+1} / ${n}</p>
+    <button type="button" class="plb-close" data-plb-close aria-label="Close">✕</button>`;
+}
+function carouselZoomGo(i){carouselGo(i,false);carouselZoomPaint();$('#plb .plb-nav:not(:disabled)')?.focus({preventScroll:true})}
 // Editing the words: one box per slide, in order, instead of one long text with dashes.
 function carouselWordsEditor(c){
   const slides=carouselSlides(c.slides);if(!slides.length)slides.push('');
@@ -177,23 +202,22 @@ function carouselSteps(c){
 function renderCarouselEditor(){
   const c=carouselFind(carouselOpen);if(!c){carouselOpen=null;return renderCarousels()}
   page(c.title,'Carousel');subPage('Carousels',c.title,'data-carousel-back');
-  $('#workspace').innerHTML=`<div class="pv">
+  // Laid out like the post on YouTube's Community tab: the caption above the slides. Sam's notes, what a post is testing
+  // and the other tracking fields stay in the closed Tracking details at the bottom.
+  const when=c.post_date?`${carouselDate(c.post_date)}${c.tags?.post_time?`, ${c.tags.post_time}`:''}`:'No date yet';
+  $('#workspace').innerHTML=`<div class="pv pv-page">
   <header class="pv-head">
     <input class="pv-title" data-carousel-field="title" value="${esc(c.title)}" maxlength="240" aria-label="Title">
-    ${carouselSteps(c)}
     <p class="pv-when">${esc(carouselStep(c).label)}. ${esc(carouselWhen(c))}<span id="carousel-save" class="save-note"></span></p>
     <div id="pv-actions">${carouselActions(c)}</div>
     <div id="carousel-job-progress" data-carousel-progress="${esc(c.id)}" aria-live="polite"></div>
   </header>
-  <div class="pv-body">
-    <div class="pv-left" id="pv-viewer">${carouselViewer(c)}</div>
-    <div class="pv-right">
-      ${carouselPerformance(c)}
-      <section class="pv-card"><h3>Caption</h3><textarea class="pv-caption-edit" data-carousel-field="caption" rows="4" placeholder="The words that sit above the post">${esc(c.caption)}</textarea></section>
-      ${c.tags?.testing?`<section class="pv-card"><h3>What it's testing</h3><p>${esc(c.tags.testing)}</p></section>`:''}
-      ${c.notes?`<section class="pv-card"><h3>Sam's notes</h3><p class="pv-notes">${esc(c.notes)}</p></section>`:''}
-    </div>
-  </div>
+  <article class="pv-post" aria-label="How the post looks on YouTube">
+    <div class="pv-post-head"><img src="/icon.png?v=careeros-20261116" alt=""><span>${esc(when)}</span></div>
+    <textarea class="pv-caption-edit" data-carousel-field="caption" rows="2" aria-label="Caption" placeholder="The words that sit above the slides">${esc(c.caption)}</textarea>
+    <div id="pv-viewer">${carouselViewer(c)}</div>
+  </article>
+  ${carouselPerformance(c)}
   ${carouselTracking(c)}
   </div>`;
   document.querySelectorAll('.pv-caption-edit,[data-pw-slide]').forEach(roomGrow);
@@ -227,7 +251,7 @@ function carouselTracking(c){
   </div></details>`;
 }
 function carouselRefreshTop(){const c=carouselFind(carouselOpen);if(!c)return;const a=$('#pv-actions');if(a)a.innerHTML=carouselActions(c);const s=$('.ps');if(s)s.outerHTML=carouselSteps(c);const w=$('.pv-when');if(w)w.firstChild.textContent=`${carouselStep(c).label}. ${carouselWhen(c)}`}
-function carouselGo(i){const c=carouselFind(carouselOpen);if(!c)return;const n=c.images||carouselSlides(c.slides).length;carouselSlide=Math.max(0,Math.min(n-1,i));const v=$('#pv-viewer');if(v){v.innerHTML=carouselViewer(c);v.querySelector('[data-pv-stage]')?.focus({preventScroll:true})}}
+function carouselGo(i,focus=true){const c=carouselFind(carouselOpen);if(!c)return;const n=carouselCount(c);carouselSlide=Math.max(0,Math.min(n-1,i));const v=$('#pv-viewer');if(v){v.innerHTML=carouselViewer(c);if(focus)v.querySelector('[data-pv-stage]')?.focus({preventScroll:true})}}
 function carouselWordsSave(c){const boxes=[...document.querySelectorAll('[data-pw-slide]')];const text=boxes.map(b=>b.value.trim()).filter(Boolean).join('\n---\n');c._edited=true;carouselSaver.change(c,'slides',text)}
 async function carouselDesign(c){
   carouselDesigning=true;carouselRefreshTop();
@@ -240,6 +264,7 @@ async function carouselSetStage(c,stage){carouselSaver.change(c,'stage',stage);a
 document.addEventListener('click',e=>{
   if(view!=='carousels'||!carouselOpen)return;const c=carouselFind(carouselOpen);if(!c)return;
   const g=e.target.closest('[data-pv-go]');if(g){carouselGo(+g.dataset.pvGo);return}
+  if(e.target.closest('[data-pv-zoom]')){carouselZoom();return}
   if(e.target.closest('[data-pv-design]')){carouselDesign(c);return}
   if(e.target.closest('[data-pv-approve]')){if(!c.post_date){toast('Pick the day it goes out first',true);document.querySelector('.pa-when input[type=date]')?.focus();return}carouselSetStage(c,'Approved');toast('Approved. Sam will schedule it.');return}
   const st=e.target.closest('[data-pv-set]');if(st){carouselSetStage(c,st.dataset.pvSet);return}
