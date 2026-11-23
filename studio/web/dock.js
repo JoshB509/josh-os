@@ -101,6 +101,7 @@ async function dockRefresh(saved=[]){
     }
     if((kinds.has('project')||kinds.has('video'))&&current&&ids.has(current.id)&&!dirty){
       const id=current.id;await refresh();const p=state.projects.find(x=>x.id===id);
+      if(typeof vpRel!=='undefined')delete vpRel[id];  // the description and pinned comment live in the release view
       if(p&&current?.id===id&&!dirty){current=structuredClone(p);if(tab==='results'&&typeof resLoad==='function')await resLoad();else renderDetail()}
     }
   }catch{}

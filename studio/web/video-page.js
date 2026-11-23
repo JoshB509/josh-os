@@ -310,6 +310,20 @@ document.addEventListener('click',async e=>{
 let vpRel={},vpRelBusy='';
 const VP_REL_MARK={done:'Done',review:'For your review',todo:'To do',blocked:'Blocked',waiting:'Waiting'};
 // One fetch of the release check per visit. A refresh keeps what is on screen until the new answer comes back.
+// Josh OS is the one record (23 Nov 2026). The 3-second check in app.js hands the latest videos here. When the open
+// video was saved somewhere else (Sam in chat or on Discord, another window), the page shows that saved version, with a
+// fresh description and pinned comment. Unsaved edits, a typing cursor or an open dialog are never replaced.
+let vpSyncTold=null;
+function vpSyncOpen(){
+  if(!current?.id)return;
+  const p=state.projects.find(x=>x.id===current.id);
+  if(!p||!(p.revision>current.revision))return;
+  if(dirty||(typeof autoBusy!=='undefined'&&autoBusy)){
+    if(vpSyncTold!==p.revision){vpSyncTold=p.revision;toast('This video changed while you were editing. Save your edits to see the latest.')}
+    return}
+  if(document.querySelector('dialog[open]')||document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'))return;
+  current=structuredClone(p);delete vpRel[p.id];renderDetail();
+}
 function vpRelFetch(p,refresh){
   if(p.id in vpRel&&!refresh)return;if(!(p.id in vpRel))vpRel[p.id]=null;
   const pid=p.id,n=vpRelFetch.n=(vpRelFetch.n||0)+1;
